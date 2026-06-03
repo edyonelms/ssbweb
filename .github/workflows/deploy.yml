@@ -26,6 +26,8 @@ jobs:
 
             git pull origin main
 
+            rm -rf vendor/laravel/sail/database/mysql/create-testing-database.sh
+
             docker compose exec -T laravel.test composer install --no-dev --optimize-autoloader
 
             docker compose up -d --remove-orphans --wait
