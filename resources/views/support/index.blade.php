@@ -100,7 +100,7 @@
                                     </span>
                                 @endif
                                 @if ($q->replies->isNotEmpty())
-                                    <span class="text-[10px] font-medium text-slate-500">· {{ $q->replies->count() }} {{ Str::plural('reply', $q->replies->count()) }}</span>
+                                    <span class="text-[10px] font-medium text-slate-500">· {{ $q->replies->count() }} {{ $q->replies->count() === 1 ? 'reply' : 'replies' }}</span>
                                 @endif
                             </div>
                             @if ($q->description)
