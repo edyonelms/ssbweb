@@ -2,7 +2,6 @@
 
 @section('title', 'Users - SSB Education')
 
-@section('admin')
 @php
     $reopenMode = old('panel_mode');
     $reopenUserId = old('user_id');
@@ -19,8 +18,8 @@
     ])->keyBy('id');
 @endphp
 
-{{-- STICKY MINIMAL HEADER (bleeds the page-body padding so it sits flush against the topbar) --}}
-<div class="-mx-6 lg:-mx-10 -mt-6 lg:-mt-10 sticky top-0 z-20 bg-white border-b border-slate-200">
+@section('admin-header')
+<div class="sticky top-0 z-20 bg-white border-b border-slate-200">
     <div class="px-6 lg:px-10 py-3 flex flex-wrap items-center gap-4">
         <div class="mr-auto flex items-baseline gap-3 flex-wrap">
             <h2 class="text-base font-bold text-slate-800">Users</h2>
@@ -40,7 +39,9 @@
         </button>
     </div>
 </div>
+@endsection
 
+@section('admin')
 {{-- LISTING --}}
 <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
     <div class="overflow-x-auto">
@@ -113,13 +114,13 @@
     </div>
 </div>
 
-{{-- SLIDE-IN PANEL (sits below sidebar/topbar via lower z-index) --}}
+{{-- SLIDE-IN PANEL (offset below topbar) --}}
 <aside id="slidePanel" class="fixed inset-0 z-30 hidden" aria-hidden="true">
     <div class="absolute inset-0 bg-slate-900/30 opacity-0 transition-opacity duration-200" id="slidePanelBackdrop" onclick="UsersPanel.close()"></div>
     <div id="slidePanelCard"
-         class="absolute right-0 top-0 bottom-0 w-full max-w-md bg-white border-l border-slate-200 flex flex-col translate-x-full transition-transform duration-300 ease-out">
+         class="absolute right-0 top-16 bottom-0 w-full max-w-md bg-white border-l border-slate-200 flex flex-col translate-x-full transition-transform duration-300 ease-out">
 
-        <div class="px-5 py-3.5 border-b border-slate-200 flex items-center justify-between sticky top-0 bg-white z-10">
+        <div class="px-5 py-3 border-b border-slate-200 flex items-center justify-between bg-white">
             <h3 id="panelTitle" class="text-sm font-bold text-slate-800">User</h3>
             <button type="button" onclick="UsersPanel.close()"
                     class="w-8 h-8 rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-700 inline-flex items-center justify-center transition">

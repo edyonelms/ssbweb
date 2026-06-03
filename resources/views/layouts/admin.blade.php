@@ -142,8 +142,11 @@
         </header>
 
         {{-- PAGE BODY --}}
-        <div class="flex-1 overflow-y-auto p-6 lg:p-10 space-y-8">
-            @yield('admin')
+        <div class="flex-1 overflow-y-auto">
+            @yield('admin-header')
+            <div class="p-6 lg:p-10 space-y-8">
+                @yield('admin')
+            </div>
         </div>
     </main>
 </div>
