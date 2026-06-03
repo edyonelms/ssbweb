@@ -19,6 +19,7 @@
 <div>
     <label class="block text-sm font-semibold text-slate-700 mb-1.5">Name <span class="text-rose-500">*</span></label>
     <input name="name" type="text" required
+           autocomplete="off" autocorrect="off" spellcheck="false"
            value="{{ old('panel_mode') === $mode ? old('name') : '' }}"
            placeholder="Full name"
            class="w-full px-4 py-2.5 bg-slate-50/70 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 outline-none transition text-slate-800 placeholder-slate-400">
@@ -28,6 +29,7 @@
 <div>
     <label class="block text-sm font-semibold text-slate-700 mb-1.5">Mobile <span class="text-rose-500">*</span></label>
     <input name="mobile" type="tel" required
+           autocomplete="off"
            value="{{ old('panel_mode') === $mode ? old('mobile') : '' }}"
            placeholder="10-digit mobile"
            class="w-full px-4 py-2.5 bg-slate-50/70 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 outline-none transition text-slate-800 placeholder-slate-400">
@@ -37,6 +39,7 @@
 <div>
     <label class="block text-sm font-semibold text-slate-700 mb-1.5">Email</label>
     <input name="email" type="email"
+           autocomplete="off" autocorrect="off" spellcheck="false"
            value="{{ old('panel_mode') === $mode ? old('email') : '' }}"
            placeholder="user@example.com"
            class="w-full px-4 py-2.5 bg-slate-50/70 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 outline-none transition text-slate-800 placeholder-slate-400">
@@ -48,6 +51,7 @@
         Password @if ($passwordRequired)<span class="text-rose-500">*</span>@endif
     </label>
     <input name="password" type="password" {{ $passwordRequired ? 'required' : '' }}
+           autocomplete="new-password"
            placeholder="{{ $passwordRequired ? 'Login password' : 'Leave blank to keep current' }}"
            class="w-full px-4 py-2.5 bg-slate-50/70 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 outline-none transition text-slate-800 placeholder-slate-400">
     @if (old('panel_mode') === $mode) @error('password')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror @endif

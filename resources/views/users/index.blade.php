@@ -207,9 +207,13 @@
 
             {{-- CREATE FORM --}}
             <form id="createForm" method="POST" action="{{ route('users.store') }}" enctype="multipart/form-data"
+                  autocomplete="off"
                   class="panel-mode hidden p-6 space-y-5">
                 @csrf
                 <input type="hidden" name="panel_mode" value="create">
+                {{-- Honeypot fields absorb the browser's saved-login autofill so the real fields stay empty. --}}
+                <input type="text" name="_hp_user" tabindex="-1" autocomplete="username" aria-hidden="true" class="hidden" value="">
+                <input type="password" name="_hp_pass" tabindex="-1" autocomplete="current-password" aria-hidden="true" class="hidden" value="">
                 @include('users._fields', ['mode' => 'create'])
                 <div class="flex justify-end gap-2 pt-2">
                     <button type="button" onclick="UsersPanel.close()"
@@ -221,11 +225,14 @@
 
             {{-- EDIT FORM --}}
             <form id="editForm" method="POST" action="" enctype="multipart/form-data"
+                  autocomplete="off"
                   class="panel-mode hidden p-6 space-y-5">
                 @csrf
                 @method('PUT')
                 <input type="hidden" name="panel_mode" value="edit">
                 <input type="hidden" name="user_id" id="editUserId" value="">
+                <input type="text" name="_hp_user" tabindex="-1" autocomplete="username" aria-hidden="true" class="hidden" value="">
+                <input type="password" name="_hp_pass" tabindex="-1" autocomplete="current-password" aria-hidden="true" class="hidden" value="">
                 @include('users._fields', ['mode' => 'edit'])
                 <div class="flex justify-end gap-2 pt-2">
                     <button type="button" onclick="UsersPanel.close()"
