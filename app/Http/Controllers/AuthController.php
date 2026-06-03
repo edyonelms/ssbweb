@@ -37,6 +37,12 @@ class AuthController extends Controller
             ]);
         }
 
+        if (! $user->active) {
+            throw ValidationException::withMessages([
+                'mobile' => 'Your account is inactive. Please contact your administrator.',
+            ]);
+        }
+
         Auth::login($user);
         $request->session()->regenerate();
 

@@ -2,10 +2,12 @@
 
 @section('content')
 @php
-    $nav = [
+    $isAdmin = auth()->check() && auth()->user()->isAdmin();
+
+    $nav = $isAdmin ? [
         ['label' => 'Dashboard',     'href' => route('dashboard'),       'route' => 'dashboard',  'icon' => 'grid'],
         ['label' => 'Master Data',   'href' => '#',                      'route' => null,         'icon' => 'database'],
-        ['label' => 'Users',         'href' => '#',                      'route' => null,         'icon' => 'users'],
+        ['label' => 'Users',         'href' => route('users.index'),     'route' => 'users.*',    'icon' => 'users'],
         ['label' => 'Students',      'href' => '#',                      'route' => null,         'icon' => 'graduation'],
         ['label' => 'Announcements', 'href' => '#',                      'route' => null,         'icon' => 'megaphone'],
         ['label' => 'Accounts',      'href' => '#',                      'route' => null,         'icon' => 'cards'],
@@ -13,6 +15,12 @@
         ['label' => 'Enquiries',     'href' => '#',                      'route' => null,         'icon' => 'enquiries'],
         ['label' => 'Fee Calculator','href' => '#',                      'route' => null,         'icon' => 'calculator'],
         ['label' => 'Profile',       'href' => route('profile.index'),   'route' => 'profile.*',  'icon' => 'user'],
+    ] : [
+        ['label' => 'Dashboard',     'href' => route('dashboard'),       'route' => 'dashboard',  'icon' => 'grid'],
+        ['label' => 'Wallet',        'href' => '#',                      'route' => null,         'icon' => 'wallet'],
+        ['label' => 'Enquiries',     'href' => '#',                      'route' => null,         'icon' => 'enquiries'],
+        ['label' => 'Fee Calculator','href' => '#',                      'route' => null,         'icon' => 'calculator'],
+        ['label' => 'My Account',    'href' => route('account.index'),   'route' => 'account.*',  'icon' => 'user'],
     ];
 
     $icons = [
@@ -86,7 +94,9 @@
             </button>
 
             <div class="hidden md:flex items-center gap-2 shrink-0">
-                <span class="text-base text-slate-700">Welcome! SSB EDUCATION ADMIN</span>
+                <span class="text-base text-slate-700">
+                    Welcome! {{ $isAdmin ? 'SSB EDUCATION ADMIN' : auth()->user()->name }}
+                </span>
                 <span class="text-xs font-semibold text-pink-600 bg-pink-50 border border-pink-100 px-2 py-0.5 rounded-md">2026–27</span>
             </div>
 
@@ -110,7 +120,7 @@
                     ₹{{ number_format($walletAmount) }}
                 </div>
 
-                <a href="{{ route('profile.index') }}" title="Profile"
+                <a href="{{ $isAdmin ? route('profile.index') : route('account.index') }}" title="Profile"
                    class="w-10 h-10 rounded-full bg-pink-50 border border-pink-100 text-pink-600 hover:bg-pink-100 hover:text-pink-700 flex items-center justify-center transition">
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
                         {!! $icons['user'] !!}

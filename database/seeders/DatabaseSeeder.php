@@ -18,6 +18,8 @@ class DatabaseSeeder extends Seeder
                 'name'     => 'Test Student',
                 'email'    => 'test@ssbeducation.local',
                 'password' => 'Ssb@jattari',
+                'role'     => User::ROLE_ADMIN,
+                'active'   => true,
             ]
         );
     }
