@@ -5,31 +5,16 @@
 @section('content')
 <div class="h-screen w-full overflow-hidden flex">
 
-    {{-- LEFT PANEL : soft pink/lavender bg with floating white card holding the logo --}}
-    <div class="hidden lg:flex w-1/2 items-center justify-center px-12 relative bg-gradient-to-br from-pink-100/50 via-rose-50/40 to-purple-100/40">
-
-        <div class="relative w-full max-w-md">
-            {{-- depth shadow card (tilted behind) --}}
-            <div class="absolute -bottom-4 -right-4 w-full h-full rounded-[2.25rem] bg-gradient-to-br from-purple-200/40 to-pink-200/40 ring-1 ring-purple-100/40"></div>
-
-            {{-- main white card --}}
-            <div class="relative bg-white rounded-[2.25rem] shadow-xl shadow-purple-200/30 ring-1 ring-purple-100/40 px-10 py-14 flex flex-col items-center justify-center min-h-[460px]">
-                <img src="{{ asset('images/logo.png') }}" alt="SSB Education" class="w-56 h-56 object-contain drop-shadow-md">
-                <div class="mt-4 text-center">
-                    <div class="text-xl font-extrabold bg-gradient-to-r from-fuchsia-500/85 via-pink-500/85 to-rose-500/85 bg-clip-text text-transparent tracking-wide">
-                        SSB EDUCATION
-                    </div>
-                    <div class="text-[11px] text-slate-400 tracking-[0.3em] uppercase mt-1.5">Learning Portal</div>
-                </div>
-            </div>
-        </div>
+    {{-- LEFT PANEL : plain white, just the big logo --}}
+    <div class="hidden lg:flex w-1/2 items-center justify-center px-12 bg-white">
+        <img src="{{ asset('images/logo.png') }}" alt="SSB Education" class="max-w-[420px] w-full h-auto object-contain drop-shadow-md">
     </div>
 
-    {{-- RIGHT PANEL : white with form --}}
-    <div class="w-full lg:w-1/2 bg-white flex items-center justify-center px-6 py-8">
+    {{-- RIGHT PANEL : soft pink/lavender gradient with form --}}
+    <div class="w-full lg:w-1/2 flex items-center justify-center px-6 py-8 bg-gradient-to-br from-pink-100/50 via-rose-50/40 to-purple-100/40">
         <div class="w-full max-w-md">
             <div class="text-center mb-6">
-                <img src="{{ asset('images/logo.png') }}" alt="SSB Education" class="w-20 h-20 mx-auto mb-2 drop-shadow object-contain">
+                <img src="{{ asset('images/logo.png') }}" alt="SSB Education" class="w-20 h-20 mx-auto mb-2 drop-shadow object-contain lg:hidden">
                 <div class="text-[11px] font-semibold tracking-[0.3em] text-pink-500/80">SSB EDUCATION</div>
             </div>
 
@@ -58,7 +43,7 @@
                         required
                         autofocus
                         placeholder="10-digit mobile number"
-                        class="w-full px-4 py-3 bg-slate-50/60 border border-slate-200/70 rounded-xl focus:bg-white focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 transition outline-none text-slate-800 placeholder-slate-400"
+                        class="w-full px-4 py-3 bg-white/80 border border-white/80 rounded-xl focus:bg-white focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 transition outline-none text-slate-800 placeholder-slate-400 shadow-sm"
                     >
                 </div>
 
@@ -71,7 +56,7 @@
                             type="password"
                             required
                             placeholder="Enter your password"
-                            class="w-full px-4 pr-12 py-3 bg-slate-50/60 border border-slate-200/70 rounded-xl focus:bg-white focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 transition outline-none text-slate-800 placeholder-slate-400"
+                            class="w-full px-4 pr-12 py-3 bg-white/80 border border-white/80 rounded-xl focus:bg-white focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 transition outline-none text-slate-800 placeholder-slate-400 shadow-sm"
                         >
                         <button type="button" onclick="const p=document.getElementById('password');p.type=p.type==='password'?'text':'password'" class="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-pink-500/80">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
