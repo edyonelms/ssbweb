@@ -383,14 +383,25 @@
         });
     });
 
-    // Reopen panel on validation error
+    // Reopen panel on validation error, or open from ?panel= query param
     (function () {
         const mode = @json($reopenMode);
         const editId = @json($reopenUserId);
         if (mode === 'create') {
             UsersPanel.openCreate();
-        } else if (mode === 'edit' && editId) {
+            return;
+        }
+        if (mode === 'edit' && editId) {
             UsersPanel.openEdit(parseInt(editId, 10));
+            return;
+        }
+        const params = new URLSearchParams(window.location.search);
+        const panel = params.get('panel');
+        if (panel === 'create') {
+            UsersPanel.openCreate();
+        } else if (panel === 'edit') {
+            const id = parseInt(params.get('id'), 10);
+            if (id && window.USERS_DATA[id]) UsersPanel.openEdit(id);
         }
     })();
 </script>

@@ -32,6 +32,14 @@ Route::middleware('auth')->group(function () {
             Route::post('/logo', [ProfileController::class, 'updateLogo'])->name('update.logo');
         });
 
-        Route::resource('users', UsersController::class)->only(['index', 'store', 'update', 'destroy']);
+        // Old links (e.g. /users/create, /users/{id}/edit) now open the slide-in
+        // panel on the listing instead of taking the user to a dead URL.
+        Route::redirect('/users/create', '/users?panel=create');
+        Route::get('/users/{user}/edit', fn ($user) => redirect('/users?panel=edit&id='.$user))
+            ->whereNumber('user');
+
+        Route::resource('users', UsersController::class)
+            ->only(['index', 'store', 'update', 'destroy'])
+            ->whereNumber('user');
     });
 });
