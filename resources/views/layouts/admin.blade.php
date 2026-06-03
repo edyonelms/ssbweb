@@ -169,6 +169,31 @@
     </script>
 @endif
 
+{{-- DELETE CONFIRMATION MODAL (used by any form via confirmAction()) --}}
+<div id="confirmModal" class="hidden fixed inset-0 z-[55] items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm" onclick="if(event.target===this)closeConfirmModal()">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 ring-1 ring-slate-100">
+        <div class="flex items-start gap-4 mb-5">
+            <div class="w-11 h-11 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center shrink-0 ring-1 ring-rose-100">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3"/></svg>
+            </div>
+            <div class="pt-0.5">
+                <h3 id="confirmTitle" class="font-bold text-slate-800 text-base">Are you sure?</h3>
+                <p id="confirmMessage" class="text-sm text-slate-500 mt-1 leading-snug">This action cannot be undone.</p>
+            </div>
+        </div>
+        <div class="flex gap-2">
+            <button type="button" onclick="closeConfirmModal()"
+                    class="flex-1 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold transition">
+                Cancel
+            </button>
+            <button type="button" id="confirmYes"
+                    class="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-sm font-semibold transition">
+                Delete
+            </button>
+        </div>
+    </div>
+</div>
+
 {{-- LOGOUT CONFIRMATION MODAL --}}
 <div id="logoutModal" class="hidden fixed inset-0 z-50 items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm" onclick="if(event.target===this)closeLogoutModal()">
     <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 ring-1 ring-slate-100">
@@ -212,8 +237,48 @@
         m.classList.remove('flex');
         document.body.style.overflow = '';
     }
+
+    // Reusable delete-confirmation modal — call confirmAction(formEl, message, title?)
+    // from a form's onsubmit and return false; the modal's Yes button submits the form.
+    function openConfirmModal(form, message, title) {
+        document.getElementById('confirmTitle').textContent   = title   || 'Are you sure?';
+        document.getElementById('confirmMessage').textContent = message || 'This action cannot be undone.';
+        const yes = document.getElementById('confirmYes');
+        yes.onclick = () => { closeConfirmModal(); form.submit(); };
+        const m = document.getElementById('confirmModal');
+        m.classList.remove('hidden');
+        m.classList.add('flex');
+        document.body.style.overflow = 'hidden';
+    }
+    function closeConfirmModal() {
+        const m = document.getElementById('confirmModal');
+        m.classList.add('hidden');
+        m.classList.remove('flex');
+        document.body.style.overflow = '';
+    }
+    function confirmAction(form, message, title) {
+        openConfirmModal(form, message, title);
+        return false; // block native form submit
+    }
+
     document.addEventListener('keydown', e => {
-        if (e.key === 'Escape') closeLogoutModal();
+        if (e.key === 'Escape') {
+            closeLogoutModal();
+            closeConfirmModal();
+        }
     });
+
+    // Measure the topbar's real height and expose it as --topbar-h so slide-in
+    // panels can sit flush against its bottom edge regardless of zoom / wrap.
+    (function () {
+        const topbar = document.querySelector('main > header');
+        if (!topbar) return;
+        const update = () => {
+            document.documentElement.style.setProperty('--topbar-h', topbar.offsetHeight + 'px');
+        };
+        update();
+        window.addEventListener('resize', update);
+        new ResizeObserver(update).observe(topbar);
+    })();
 </script>
 @endsection
