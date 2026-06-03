@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AccountController;
+use App\Http\Controllers\AnnouncementsController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProfileController;
@@ -22,6 +23,17 @@ Route::middleware('auth')->group(function () {
         Route::get('/', [AccountController::class, 'index'])->name('index');
         Route::post('/details', [AccountController::class, 'updateDetails'])->name('update.details');
         Route::post('/password', [AccountController::class, 'updatePassword'])->name('update.password');
+    });
+
+    // Listing is open to admin (CRUD view) and subadmin (received view).
+    Route::get('/announcements', [AnnouncementsController::class, 'index'])->name('announcements.index');
+
+    Route::middleware('admin')->group(function () {
+        Route::post('/announcements', [AnnouncementsController::class, 'store'])->name('announcements.store');
+        Route::put('/announcements/{announcement}', [AnnouncementsController::class, 'update'])
+            ->whereNumber('announcement')->name('announcements.update');
+        Route::delete('/announcements/{announcement}', [AnnouncementsController::class, 'destroy'])
+            ->whereNumber('announcement')->name('announcements.destroy');
     });
 
     Route::middleware('admin')->group(function () {
