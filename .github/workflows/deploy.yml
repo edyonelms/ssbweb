@@ -19,12 +19,18 @@ jobs:
           host: ${{ secrets.SERVER_IP }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          command_timeout: 30m
           script: |
+            set -e
             cd ~/ssbweb
+
             git pull origin main
+
+            docker compose up -d --remove-orphans --wait
 
             docker compose exec -T laravel.test composer install --no-dev --optimize-autoloader
             docker compose exec -T laravel.test php artisan config:clear
             docker compose exec -T laravel.test php artisan route:clear
             docker compose exec -T laravel.test php artisan view:clear
             docker compose exec -T laravel.test php artisan migrate --force
+            docker compose exec -T laravel.test php artisan db:seed --force
