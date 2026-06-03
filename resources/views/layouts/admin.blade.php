@@ -12,7 +12,7 @@
         ['label' => 'Announcements', 'href' => route('announcements.index'), 'route' => 'announcements.*', 'icon' => 'megaphone'],
         ['label' => 'Accounts',      'href' => '#',                      'route' => null,         'icon' => 'cards'],
         ['label' => 'Wallet',        'href' => '#',                      'route' => null,         'icon' => 'wallet'],
-        ['label' => 'Support',       'href' => '#',                      'route' => null,         'icon' => 'support'],
+        ['label' => 'Support',       'href' => route('support.index'),    'route' => 'support.*',  'icon' => 'support'],
         ['label' => 'Enquiries',     'href' => '#',                      'route' => null,         'icon' => 'enquiries'],
         ['label' => 'Fee Calculator','href' => '#',                      'route' => null,         'icon' => 'calculator'],
         ['label' => 'Profile',       'href' => route('profile.index'),   'route' => 'profile.*',  'icon' => 'user'],
@@ -23,7 +23,7 @@
         ['label' => 'Announcements', 'href' => route('announcements.index'), 'route' => 'announcements.*', 'icon' => 'megaphone'],
         ['label' => 'Accounts',      'href' => '#',                      'route' => null,         'icon' => 'cards'],
         ['label' => 'Wallet',        'href' => '#',                      'route' => null,         'icon' => 'wallet'],
-        ['label' => 'Support',       'href' => '#',                      'route' => null,         'icon' => 'support'],
+        ['label' => 'Support',       'href' => route('support.index'),    'route' => 'support.*',  'icon' => 'support'],
         ['label' => 'Fee Calculator','href' => '#',                      'route' => null,         'icon' => 'calculator'],
     ];
 

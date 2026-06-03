@@ -5,6 +5,7 @@ use App\Http\Controllers\AnnouncementsController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\SupportController;
 use App\Http\Controllers\UsersController;
 use Illuminate\Support\Facades\Route;
 
@@ -27,6 +28,14 @@ Route::middleware('auth')->group(function () {
 
     // Listing is open to admin (CRUD view) and subadmin (received view).
     Route::get('/announcements', [AnnouncementsController::class, 'index'])->name('announcements.index');
+
+    // Support — open to everyone; admin sees all, subadmin sees own.
+    Route::get('/support', [SupportController::class, 'index'])->name('support.index');
+    Route::post('/support', [SupportController::class, 'store'])->name('support.store');
+    Route::middleware('admin')->group(function () {
+        Route::post('/support/{query}/reply', [SupportController::class, 'reply'])
+            ->whereNumber('query')->name('support.reply');
+    });
 
     Route::middleware('admin')->group(function () {
         Route::post('/announcements', [AnnouncementsController::class, 'store'])->name('announcements.store');
