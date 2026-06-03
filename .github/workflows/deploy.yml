@@ -30,7 +30,7 @@ jobs:
 
             docker compose exec -T laravel.test composer install --no-dev --optimize-autoloader
 
-            docker compose up -d --remove-orphans --wait
+            docker compose up -d --remove-orphans --wait || (echo "==== MYSQL LOGS ====" && docker compose logs mysql && echo "==== REDIS LOGS ====" && docker compose logs redis && echo "==== LARAVEL LOGS ====" && docker compose logs laravel.test && exit 1)
 
             docker compose exec -T laravel.test php artisan config:clear
             docker compose exec -T laravel.test php artisan route:clear
