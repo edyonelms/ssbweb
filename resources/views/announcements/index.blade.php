@@ -8,7 +8,7 @@
     /** @var \Illuminate\Support\Collection $subadmins */
     /** @var bool $isAdmin */
 
-    $reopenMode = old('panel_mode'); // 'create' or 'edit'
+    $reopenMode = old('panel_mode');
     $reopenAnnouncementId = old('announcement_id');
 
     $announcementsData = $announcements->map(function ($a) {
@@ -26,88 +26,71 @@
     })->keyBy('id');
 @endphp
 
-{{-- STICKY FULL-WIDTH HEADER --}}
-<div class="-mx-6 lg:-mx-10 -mt-6 lg:-mt-10 sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-slate-200 shadow-sm">
-    <div class="px-6 lg:px-10 py-4 flex flex-wrap items-center gap-4">
-        <div class="mr-auto">
-            <h2 class="text-lg font-extrabold text-slate-800 leading-tight">Announcements</h2>
-            <p class="text-xs text-slate-500 mt-0.5">
-                {{ $isAdmin ? 'Broadcast to all sub-admins or a selected few.' : 'Updates from the admin team.' }}
+{{-- STICKY MINIMAL HEADER --}}
+<div class="-mx-6 lg:-mx-10 -mt-6 lg:-mt-10 sticky top-0 z-20 bg-white border-b border-slate-200">
+    <div class="px-6 lg:px-10 py-3 flex flex-wrap items-center gap-4">
+        <div class="mr-auto flex items-baseline gap-3 flex-wrap">
+            <h2 class="text-base font-bold text-slate-800">Announcements</h2>
+            <p class="text-xs text-slate-500">
+                <span class="text-slate-800 font-semibold">{{ $announcements->count() }}</span> total
             </p>
-        </div>
-
-        <div class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200">
-            <span class="w-7 h-7 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center">
-                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/></svg>
-            </span>
-            <div class="leading-none">
-                <div class="text-[10px] font-semibold tracking-wider uppercase text-slate-500">Total</div>
-                <div class="text-base font-extrabold text-slate-800">{{ $announcements->count() }}</div>
-            </div>
         </div>
 
         @if ($isAdmin)
             <button type="button" onclick="AnnouncementsPanel.openCreate()"
-                    class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-fuchsia-500/90 via-pink-500/90 to-rose-500/90 hover:from-fuchsia-500 hover:via-pink-500 hover:to-rose-500 text-white text-sm font-semibold shadow-lg shadow-pink-500/20 transition">
-                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
-                New Announcement
+                    class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-pink-600 hover:bg-pink-700 text-white text-sm font-semibold transition">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                New
             </button>
         @endif
     </div>
 </div>
 
 {{-- LISTING --}}
-<div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+<div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
     @if ($announcements->isEmpty())
-        <div class="px-6 py-16 text-center text-slate-500">
-            <div class="flex flex-col items-center gap-2">
-                <svg class="w-10 h-10 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/></svg>
-                <p class="text-sm">
-                    @if ($isAdmin)
-                        No announcements yet. Click <span class="font-semibold text-pink-600">New Announcement</span> to create one.
-                    @else
-                        No announcements yet.
-                    @endif
-                </p>
-            </div>
+        <div class="px-6 py-16 text-center text-sm text-slate-500">
+            @if ($isAdmin)
+                No announcements yet. Click <span class="font-semibold text-pink-600">New</span> to create one.
+            @else
+                No announcements yet.
+            @endif
         </div>
     @else
         <ul class="divide-y divide-slate-100">
             @foreach ($announcements as $a)
-                <li class="announcement-row hover:bg-pink-50/40 transition cursor-pointer px-6 py-4"
+                <li class="announcement-row hover:bg-slate-50 transition cursor-pointer px-6 py-4"
                     data-announcement-id="{{ $a->id }}">
-                    <div class="flex items-start gap-4">
-                        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-fuchsia-100 to-pink-100 text-pink-600 flex items-center justify-center shrink-0">
-                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/></svg>
+                    <div class="flex items-start gap-3">
+                        <div class="w-8 h-8 rounded-md bg-pink-50 text-pink-600 flex items-center justify-center shrink-0 mt-0.5">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/></svg>
                         </div>
                         <div class="flex-1 min-w-0">
                             <div class="flex items-center gap-2 flex-wrap">
-                                <h3 class="font-semibold text-slate-800 truncate">{{ $a->heading }}</h3>
+                                <h3 class="text-sm font-semibold text-slate-800 truncate">{{ $a->heading }}</h3>
                                 @if ($a->isForAll())
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-700 text-[10px] font-bold uppercase tracking-wider">All</span>
+                                    <span class="text-[10px] font-medium text-emerald-700">· All</span>
                                 @else
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-amber-50 border border-amber-100 text-amber-700 text-[10px] font-bold uppercase tracking-wider">
-                                        Selected · {{ $a->recipients->count() }}
-                                    </span>
+                                    <span class="text-[10px] font-medium text-amber-700">· {{ $a->recipients->count() }} selected</span>
                                 @endif
                                 @if ($a->file_path)
-                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 border border-slate-200 text-slate-600 text-[10px] font-semibold">
+                                    <span class="text-[10px] font-medium text-slate-500 inline-flex items-center gap-0.5">
                                         <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
-                                        Attachment
+                                        Attached
                                     </span>
                                 @endif
                             </div>
                             @if ($a->description)
-                                <p class="text-sm text-slate-500 mt-1 line-clamp-2">{{ $a->description }}</p>
+                                <p class="text-sm text-slate-500 mt-0.5 line-clamp-2">{{ $a->description }}</p>
                             @endif
-                            <p class="text-xs text-slate-400 mt-1">{{ $a->created_at?->format('d M Y, h:i A') }}</p>
+                            <p class="text-[11px] text-slate-400 mt-1">{{ $a->created_at?->format('d M Y · h:i A') }}</p>
                         </div>
 
                         @if ($isAdmin)
-                            <div class="flex items-center gap-1.5" onclick="event.stopPropagation()">
+                            <div class="flex items-center gap-1" onclick="event.stopPropagation()">
                                 <button type="button" onclick="AnnouncementsPanel.openEdit({{ $a->id }})"
                                         title="Edit"
-                                        class="w-8 h-8 rounded-lg bg-pink-50 hover:bg-pink-100 text-pink-600 inline-flex items-center justify-center transition">
+                                        class="w-8 h-8 rounded-md text-slate-500 hover:bg-slate-100 hover:text-pink-600 inline-flex items-center justify-center transition">
                                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                                 </button>
                                 <form method="POST" action="{{ route('announcements.destroy', $a) }}"
@@ -115,7 +98,7 @@
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" title="Delete"
-                                            class="w-8 h-8 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 inline-flex items-center justify-center transition">
+                                            class="w-8 h-8 rounded-md text-slate-500 hover:bg-slate-100 hover:text-rose-600 inline-flex items-center justify-center transition">
                                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3"/></svg>
                                     </button>
                                 </form>
@@ -129,15 +112,15 @@
 </div>
 
 {{-- SLIDE-IN PANEL --}}
-<aside id="slidePanel" class="fixed inset-0 z-50 hidden" aria-hidden="true">
-    <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm opacity-0 transition-opacity duration-200" id="slidePanelBackdrop" onclick="AnnouncementsPanel.close()"></div>
+<aside id="slidePanel" class="fixed inset-0 z-30 hidden" aria-hidden="true">
+    <div class="absolute inset-0 bg-slate-900/30 opacity-0 transition-opacity duration-200" id="slidePanelBackdrop" onclick="AnnouncementsPanel.close()"></div>
     <div id="slidePanelCard"
-         class="absolute right-0 top-0 bottom-0 w-full max-w-md bg-white shadow-2xl flex flex-col translate-x-full transition-transform duration-300 ease-out">
+         class="absolute right-0 top-0 bottom-0 w-full max-w-md bg-white border-l border-slate-200 flex flex-col translate-x-full transition-transform duration-300 ease-out">
 
-        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-white sticky top-0 z-10">
-            <h3 id="panelTitle" class="text-base font-extrabold text-slate-800">Announcement</h3>
+        <div class="px-5 py-3.5 border-b border-slate-200 flex items-center justify-between sticky top-0 bg-white z-10">
+            <h3 id="panelTitle" class="text-sm font-bold text-slate-800">Announcement</h3>
             <button type="button" onclick="AnnouncementsPanel.close()"
-                    class="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 inline-flex items-center justify-center transition">
+                    class="w-8 h-8 rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-700 inline-flex items-center justify-center transition">
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
         </div>
@@ -146,35 +129,35 @@
 
             {{-- VIEW MODE --}}
             <div id="panelView" class="panel-mode hidden p-6 space-y-5">
-                <div>
-                    <span id="viewAudience" class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider"></span>
-                    <h4 id="viewHeading" class="mt-2 text-lg font-extrabold text-slate-800"></h4>
-                    <p id="viewCreated" class="text-xs text-slate-500 mt-1"></p>
+                <div class="pb-5 border-b border-slate-100">
+                    <span id="viewAudience" class="text-[11px] font-semibold uppercase tracking-wider"></span>
+                    <h4 id="viewHeading" class="mt-1.5 text-base font-bold text-slate-800"></h4>
+                    <p id="viewCreated" class="text-xs text-slate-400 mt-1"></p>
                 </div>
 
                 <div id="viewDescriptionWrap">
-                    <dt class="text-[11px] font-semibold text-pink-500 uppercase tracking-wider">Description</dt>
-                    <dd id="viewDescription" class="mt-1 text-slate-800 whitespace-pre-line"></dd>
+                    <dt class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Description</dt>
+                    <dd id="viewDescription" class="mt-1 text-sm text-slate-800 whitespace-pre-line"></dd>
                 </div>
 
                 <div id="viewFileWrap" class="hidden">
-                    <dt class="text-[11px] font-semibold text-pink-500 uppercase tracking-wider">Attachment</dt>
+                    <dt class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Attachment</dt>
                     <a id="viewFileLink" href="" target="_blank" rel="noopener"
-                       class="mt-1 inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 text-sm font-semibold transition">
+                       class="mt-1 inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-medium transition">
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
                         <span id="viewFileName">Download</span>
                     </a>
                 </div>
 
                 <div id="viewRecipientsWrap" class="hidden">
-                    <dt class="text-[11px] font-semibold text-pink-500 uppercase tracking-wider">Recipients</dt>
-                    <div id="viewRecipients" class="mt-1 flex flex-wrap gap-1.5"></div>
+                    <dt class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Recipients</dt>
+                    <div id="viewRecipients" class="mt-1.5 flex flex-wrap gap-1.5"></div>
                 </div>
 
                 @if ($isAdmin)
-                    <div class="flex items-center gap-2 pt-2 border-t border-slate-100">
+                    <div class="flex items-center gap-2 pt-4 border-t border-slate-100">
                         <button type="button" id="viewEditBtn"
-                                class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-pink-50 hover:bg-pink-100 text-pink-700 text-sm font-semibold transition">
+                                class="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-semibold transition">
                             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                             Edit
                         </button>
@@ -183,7 +166,7 @@
                             @csrf
                             @method('DELETE')
                             <button type="submit"
-                                    class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 text-sm font-semibold transition">
+                                    class="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg border border-slate-200 hover:bg-rose-50 hover:border-rose-200 text-rose-600 text-sm font-semibold transition">
                                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3"/></svg>
                                 Delete
                             </button>
@@ -196,32 +179,32 @@
                 {{-- CREATE FORM --}}
                 <form id="createForm" method="POST" action="{{ route('announcements.store') }}"
                       enctype="multipart/form-data" autocomplete="off"
-                      class="panel-mode hidden p-6 space-y-5">
+                      class="panel-mode hidden p-6 space-y-4">
                     @csrf
                     <input type="hidden" name="panel_mode" value="create">
                     @include('announcements._fields', ['mode' => 'create', 'subadmins' => $subadmins])
-                    <div class="flex justify-end gap-2 pt-2">
+                    <div class="flex justify-end gap-2 pt-3 border-t border-slate-100">
                         <button type="button" onclick="AnnouncementsPanel.close()"
-                                class="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold transition">Cancel</button>
+                                class="px-4 py-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-semibold transition">Cancel</button>
                         <button type="submit"
-                                class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-fuchsia-500/90 via-pink-500/90 to-rose-500/90 hover:from-fuchsia-500 hover:via-pink-500 hover:to-rose-500 text-white text-sm font-semibold shadow-lg shadow-pink-500/20 transition">Send</button>
+                                class="px-4 py-2 rounded-lg bg-pink-600 hover:bg-pink-700 text-white text-sm font-semibold transition">Send</button>
                     </div>
                 </form>
 
                 {{-- EDIT FORM --}}
                 <form id="editForm" method="POST" action=""
                       enctype="multipart/form-data" autocomplete="off"
-                      class="panel-mode hidden p-6 space-y-5">
+                      class="panel-mode hidden p-6 space-y-4">
                     @csrf
                     @method('PUT')
                     <input type="hidden" name="panel_mode" value="edit">
                     <input type="hidden" name="announcement_id" id="editAnnouncementId" value="">
                     @include('announcements._fields', ['mode' => 'edit', 'subadmins' => $subadmins])
-                    <div class="flex justify-end gap-2 pt-2">
+                    <div class="flex justify-end gap-2 pt-3 border-t border-slate-100">
                         <button type="button" onclick="AnnouncementsPanel.close()"
-                                class="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold transition">Cancel</button>
+                                class="px-4 py-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-semibold transition">Cancel</button>
                         <button type="submit"
-                                class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-fuchsia-500/90 via-pink-500/90 to-rose-500/90 hover:from-fuchsia-500 hover:via-pink-500 hover:to-rose-500 text-white text-sm font-semibold shadow-lg shadow-pink-500/20 transition">Save Changes</button>
+                                class="px-4 py-2 rounded-lg bg-pink-600 hover:bg-pink-700 text-white text-sm font-semibold transition">Save Changes</button>
                     </div>
                 </form>
             @endif
@@ -253,7 +236,6 @@
                 backdrop.classList.remove('opacity-0');
                 card.classList.remove('translate-x-full');
             });
-            document.body.style.overflow = 'hidden';
         }
 
         function close() {
@@ -263,7 +245,6 @@
             setTimeout(() => {
                 panel.classList.add('hidden');
                 panel.setAttribute('aria-hidden', 'true');
-                document.body.style.overflow = '';
             }, 250);
         }
 
@@ -281,18 +262,17 @@
 
             const audience = document.getElementById('viewAudience');
             if (a.audience === 'all') {
-                audience.className = 'inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-50 border border-emerald-100 text-emerald-700';
+                audience.className = 'text-[11px] font-semibold uppercase tracking-wider text-emerald-700';
                 audience.textContent = 'Sent to all sub-admins';
             } else {
-                audience.className = 'inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-50 border border-amber-100 text-amber-700';
+                audience.className = 'text-[11px] font-semibold uppercase tracking-wider text-amber-700';
                 audience.textContent = 'Sent to ' + (a.recipient_ids || []).length + ' sub-admin(s)';
             }
 
             const fileWrap = document.getElementById('viewFileWrap');
             if (a.file_url) {
                 fileWrap.classList.remove('hidden');
-                const link = document.getElementById('viewFileLink');
-                link.href = a.file_url;
+                document.getElementById('viewFileLink').href = a.file_url;
                 document.getElementById('viewFileName').textContent = a.file_original_name || 'Download';
             } else {
                 fileWrap.classList.add('hidden');
@@ -304,7 +284,7 @@
                 recipients.innerHTML = '';
                 a.recipient_names.forEach(n => {
                     const chip = document.createElement('span');
-                    chip.className = 'inline-flex items-center px-2 py-0.5 rounded-full bg-pink-50 border border-pink-100 text-pink-700 text-xs font-semibold';
+                    chip.className = 'inline-flex items-center px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 text-xs font-medium';
                     chip.textContent = n;
                     recipients.appendChild(chip);
                 });
@@ -380,14 +360,10 @@
         };
     })();
 
-    // Row click → view panel
     document.querySelectorAll('.announcement-row').forEach(row => {
-        row.addEventListener('click', () => {
-            AnnouncementsPanel.openView(parseInt(row.dataset.announcementId, 10));
-        });
+        row.addEventListener('click', () => AnnouncementsPanel.openView(parseInt(row.dataset.announcementId, 10)));
     });
 
-    // Audience toggle inside forms
     document.querySelectorAll('[data-audience-input]').forEach(radio => {
         radio.addEventListener('change', () => {
             const form = radio.closest('form');
@@ -396,14 +372,12 @@
         });
     });
 
-    // ESC closes
     document.addEventListener('keydown', e => {
         if (e.key === 'Escape' && !document.getElementById('slidePanel').classList.contains('hidden')) {
             AnnouncementsPanel.close();
         }
     });
 
-    // Reopen on validation error or ?panel= query
     (function () {
         const mode = @json($reopenMode);
         const editId = @json($reopenAnnouncementId);

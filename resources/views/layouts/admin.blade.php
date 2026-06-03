@@ -50,7 +50,7 @@
 <div class="h-screen overflow-hidden flex bg-gradient-to-br from-slate-50 via-pink-50/40 to-slate-50">
 
     {{-- SIDEBAR --}}
-    <aside class="hidden md:flex md:w-64 bg-white border-r border-slate-200 flex-col">
+    <aside class="hidden md:flex md:w-64 bg-white border-r border-slate-200 flex-col relative z-40">
         <div class="px-6 py-6 border-b border-slate-100 flex flex-col items-center text-center">
             <img src="{{ $logoUrl }}" alt="SSB Education" class="w-20 h-20 object-contain drop-shadow mb-2">
             <div class="font-extrabold text-slate-800 leading-tight text-base">SSB EDUCATION</div>
@@ -88,7 +88,7 @@
     <main class="flex-1 flex flex-col overflow-hidden">
 
         {{-- TOPBAR --}}
-        <header class="bg-white border-b border-slate-200 px-4 lg:px-6 py-3 flex items-center gap-3 lg:gap-4">
+        <header class="bg-white border-b border-slate-200 px-4 lg:px-6 py-3 flex items-center gap-3 lg:gap-4 relative z-40">
 
             <button type="button" onclick="history.back()"
                     class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 text-sm font-medium transition shadow-sm shrink-0">
@@ -143,16 +143,28 @@
 
         {{-- PAGE BODY --}}
         <div class="flex-1 overflow-y-auto p-6 lg:p-10 space-y-8">
-            @if (session('status'))
-                <div class="rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 text-sm font-medium">
-                    {{ session('status') }}
-                </div>
-            @endif
-
             @yield('admin')
         </div>
     </main>
 </div>
+
+{{-- BOTTOM STATUS TOAST --}}
+@if (session('status'))
+    <div id="statusToast"
+         class="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] px-4 py-2.5 rounded-lg bg-slate-900 text-white text-sm font-medium shadow-lg flex items-center gap-2 transition-all duration-300">
+        <svg class="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+        <span>{{ session('status') }}</span>
+    </div>
+    <script>
+        setTimeout(() => {
+            const t = document.getElementById('statusToast');
+            if (!t) return;
+            t.style.opacity = '0';
+            t.style.transform = 'translate(-50%, 20px)';
+            setTimeout(() => t.remove(), 350);
+        }, 3000);
+    </script>
+@endif
 
 {{-- LOGOUT CONFIRMATION MODAL --}}
 <div id="logoutModal" class="hidden fixed inset-0 z-50 items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm" onclick="if(event.target===this)closeLogoutModal()">
