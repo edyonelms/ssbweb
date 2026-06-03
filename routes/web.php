@@ -32,6 +32,6 @@ Route::middleware('auth')->group(function () {
             Route::post('/logo', [ProfileController::class, 'updateLogo'])->name('update.logo');
         });
 
-        Route::resource('users', UsersController::class)->except(['show']);
+        Route::resource('users', UsersController::class)->only(['index', 'store', 'update', 'destroy']);
     });
 });
