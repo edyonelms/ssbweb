@@ -52,11 +52,21 @@
             @endforeach
         </nav>
 
-        <div class="p-3 border-t border-slate-100">
-            <form method="POST" action="{{ route('logout') }}">
+        <div class="p-3 border-t border-slate-100 space-y-2">
+            <div class="flex items-center gap-3 px-3 py-2 rounded-xl bg-gradient-to-r from-pink-50 to-fuchsia-50 border border-pink-100/60">
+                <div class="w-9 h-9 rounded-full bg-gradient-to-br from-fuchsia-500 via-pink-500 to-rose-500 text-white flex items-center justify-center font-bold text-sm shadow-md shadow-pink-500/30 shrink-0">
+                    {{ strtoupper(substr($user->name, 0, 1)) }}
+                </div>
+                <div class="min-w-0 leading-tight">
+                    <div class="text-sm font-semibold text-slate-800 truncate">{{ $user->name }}</div>
+                    <div class="text-[11px] text-slate-500 truncate">{{ $user->mobile }}</div>
+                </div>
+            </div>
+
+            <form method="POST" action="{{ route('logout') }}" onsubmit="return confirm('Aap sure ho logout karna chahte ho?');">
                 @csrf
-                <button type="submit" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-600 hover:bg-rose-50 hover:text-rose-600 transition">
-                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+                <button type="submit" class="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-semibold text-rose-600 bg-rose-50/60 border border-rose-100 hover:bg-rose-100 hover:text-rose-700 hover:border-rose-200 transition group">
+                    <svg class="w-5 h-5 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         {!! $icons['logout'] !!}
                     </svg>
                     Logout
