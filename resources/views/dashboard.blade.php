@@ -32,7 +32,7 @@
     $walletAmount = 3260;
 @endphp
 
-<div class="min-h-screen flex bg-gradient-to-br from-slate-50 via-pink-50/40 to-slate-50">
+<div class="h-screen overflow-hidden flex bg-gradient-to-br from-slate-50 via-pink-50/40 to-slate-50">
 
     {{-- SIDEBAR --}}
     <aside class="hidden md:flex md:w-64 bg-white border-r border-slate-200 flex-col">
@@ -60,15 +60,12 @@
                 </a>
             @endforeach
 
-            <form method="POST" action="{{ route('logout') }}" onsubmit="return confirm('Are you sure you want to logout?');">
-                @csrf
-                <button type="submit" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-600 hover:bg-rose-50 hover:text-rose-600 transition">
-                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
-                        {!! $icons['logout'] !!}
-                    </svg>
-                    Logout
-                </button>
-            </form>
+            <button type="button" onclick="openLogoutModal()" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-600 hover:bg-rose-50 hover:text-rose-600 transition">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+                    {!! $icons['logout'] !!}
+                </svg>
+                Logout
+            </button>
         </nav>
     </aside>
 
@@ -79,7 +76,7 @@
         <header class="bg-white border-b border-slate-200 px-4 lg:px-6 py-3 flex items-center gap-3 lg:gap-4">
 
             <button type="button" onclick="history.back()"
-                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm font-medium transition shrink-0">
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 text-sm font-medium transition shadow-sm shrink-0">
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     {!! $icons['arrowLeft'] !!}
                 </svg>
@@ -87,7 +84,7 @@
             </button>
 
             <div class="hidden md:flex items-center gap-2 shrink-0">
-                <span class="text-base font-bold text-slate-800">Welcome! SSB EDUCATION ADMIN</span>
+                <span class="text-base text-slate-700">Welcome! SSB EDUCATION ADMIN</span>
                 <span class="text-xs font-semibold text-pink-600 bg-pink-50 border border-pink-100 px-2 py-0.5 rounded-md">2026–27</span>
             </div>
 
@@ -118,15 +115,12 @@
                     </svg>
                 </button>
 
-                <form method="POST" action="{{ route('logout') }}" onsubmit="return confirm('Are you sure you want to logout?');">
-                    @csrf
-                    <button type="submit" title="Logout"
-                            class="w-10 h-10 rounded-full bg-rose-50 border border-rose-100 text-rose-600 hover:bg-rose-100 hover:text-rose-700 flex items-center justify-center transition">
-                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
-                            {!! $icons['logout'] !!}
-                        </svg>
-                    </button>
-                </form>
+                <button type="button" onclick="openLogoutModal()" title="Logout"
+                        class="w-10 h-10 rounded-full bg-rose-50 border border-rose-100 text-rose-600 hover:bg-rose-100 hover:text-rose-700 flex items-center justify-center transition">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+                        {!! $icons['logout'] !!}
+                    </svg>
+                </button>
             </div>
         </header>
 
@@ -197,4 +191,52 @@
         </div>
     </main>
 </div>
+
+{{-- LOGOUT CONFIRMATION MODAL --}}
+<div id="logoutModal" class="hidden fixed inset-0 z-50 items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm" onclick="if(event.target===this)closeLogoutModal()">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 ring-1 ring-slate-100">
+        <div class="flex items-start gap-4 mb-5">
+            <div class="w-11 h-11 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center shrink-0 ring-1 ring-rose-100">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    {!! $icons['logout'] !!}
+                </svg>
+            </div>
+            <div class="pt-0.5">
+                <h3 class="font-bold text-slate-800 text-base">Confirm Logout</h3>
+                <p class="text-sm text-slate-500 mt-1 leading-snug">Are you sure you want to log out of your account?</p>
+            </div>
+        </div>
+        <div class="flex gap-2">
+            <button type="button" onclick="closeLogoutModal()"
+                    class="flex-1 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold transition">
+                Cancel
+            </button>
+            <form method="POST" action="{{ route('logout') }}" class="flex-1">
+                @csrf
+                <button type="submit"
+                        class="w-full py-2.5 rounded-xl bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 text-white text-sm font-semibold shadow-md shadow-rose-500/20 transition">
+                    Yes, Logout
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openLogoutModal() {
+        const m = document.getElementById('logoutModal');
+        m.classList.remove('hidden');
+        m.classList.add('flex');
+        document.body.style.overflow = 'hidden';
+    }
+    function closeLogoutModal() {
+        const m = document.getElementById('logoutModal');
+        m.classList.add('hidden');
+        m.classList.remove('flex');
+        document.body.style.overflow = '';
+    }
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') closeLogoutModal();
+    });
+</script>
 @endsection
