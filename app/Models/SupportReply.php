@@ -18,7 +18,7 @@ class SupportReply extends Model
 
     protected $appends = ['file_url'];
 
-    public function query(): BelongsTo
+    public function supportQuery(): BelongsTo
     {
         return $this->belongsTo(SupportQuery::class, 'support_query_id');
     }
