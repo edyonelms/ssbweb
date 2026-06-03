@@ -28,9 +28,26 @@ jobs:
 
             sudo rm -rf vendor/laravel/sail/database/mysql/create-testing-database.sh
 
+            echo "==== PORT 80/443 BEFORE FREEING ===="
+            sudo ss -tlnp 'sport = :80 or sport = :443' || true
+
+            # Caddy needs host ports 80 + 443. Stop any host web server that may
+            # be holding them so the container can bind cleanly.
+            for svc in nginx apache2 httpd lighttpd; do
+              sudo systemctl stop "$svc" 2>/dev/null || true
+              sudo systemctl disable "$svc" 2>/dev/null || true
+            done
+
+            echo "==== PORT 80/443 AFTER STOP ===="
+            sudo ss -tlnp 'sport = :80 or sport = :443' || true
+
+            # Ensure base services are up so we can run composer install inside
+            # the laravel.test container (vendor/ is volume-mounted from host).
+            docker compose up -d laravel.test mysql redis
+
             docker compose exec -T laravel.test composer install --no-dev --optimize-autoloader
 
-            docker compose up -d --remove-orphans --wait || (echo "==== MYSQL LOGS ====" && docker compose logs mysql && echo "==== REDIS LOGS ====" && docker compose logs redis && echo "==== LARAVEL LOGS ====" && docker compose logs laravel.test && exit 1)
+            docker compose up -d --remove-orphans --wait || (echo "==== PORT 80/443 ====" && sudo ss -tlnp 'sport = :80 or sport = :443' && echo "==== MYSQL LOGS ====" && docker compose logs mysql && echo "==== REDIS LOGS ====" && docker compose logs redis && echo "==== LARAVEL LOGS ====" && docker compose logs laravel.test && echo "==== CADDY LOGS ====" && docker compose logs caddy && exit 1)
 
             docker compose exec -T laravel.test php artisan config:clear
             docker compose exec -T laravel.test php artisan route:clear
