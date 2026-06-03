@@ -54,3 +54,19 @@ jobs:
             docker compose exec -T laravel.test php artisan view:clear
             docker compose exec -T laravel.test php artisan migrate --force
             docker compose exec -T laravel.test php artisan db:seed --force
+
+            # ---- Post-deploy diagnostics (always print so we can see reality) ----
+            echo "==== docker compose ps ===="
+            docker compose ps || true
+
+            echo "==== PORT 80/443 (host) AFTER UP ===="
+            sudo ss -tlnp 'sport = :80 or sport = :443' || true
+
+            echo "==== curl localhost:80 (host -> Caddy) ===="
+            curl -sS -o /dev/null -w "HTTP_CODE=%{http_code}  REDIRECT=%{redirect_url}\n" -H "Host: ssbeducation.in" http://127.0.0.1:80/ || true
+
+            echo "==== caddy -> laravel.test:80 (internal proxy reachability) ===="
+            docker compose exec -T caddy wget -qO- --timeout=5 -S http://laravel.test/ 2>&1 | head -20 || true
+
+            echo "==== CADDY LOGS (last 80) ===="
+            docker compose logs --tail=80 caddy || true
