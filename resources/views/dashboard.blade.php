@@ -63,7 +63,7 @@
                 </div>
             </div>
 
-            <form method="POST" action="{{ route('logout') }}" onsubmit="return confirm('Aap sure ho logout karna chahte ho?');">
+            <form method="POST" action="{{ route('logout') }}" onsubmit="return confirm('Are you sure you want to logout?');">
                 @csrf
                 <button type="submit" class="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-semibold text-rose-600 bg-rose-50/60 border border-rose-100 hover:bg-rose-100 hover:text-rose-700 hover:border-rose-200 transition group">
                     <svg class="w-5 h-5 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">

@@ -22,13 +22,18 @@ class AuthController extends Controller
         $credentials = $request->validate([
             'mobile'   => ['required', 'string', 'regex:/^[0-9]{10,15}$/'],
             'password' => ['required', 'string', 'min:4'],
+        ], [
+            'mobile.required'  => 'Please enter your mobile number.',
+            'mobile.regex'     => 'Please enter a valid 10-digit mobile number.',
+            'password.required'=> 'Please enter your password.',
+            'password.min'     => 'Password must be at least 4 characters.',
         ]);
 
         $user = User::where('mobile', $credentials['mobile'])->first();
 
         if (! $user || ! Hash::check($credentials['password'], $user->password)) {
             throw ValidationException::withMessages([
-                'mobile' => 'Mobile number ya password galat hai.',
+                'mobile' => 'Invalid mobile number or password.',
             ]);
         }
 

@@ -21,12 +21,6 @@
             <h1 class="text-4xl font-extrabold text-slate-800 text-center mb-2">Welcome Back!</h1>
             <p class="text-slate-500 text-center mb-6">Login to continue to your dashboard</p>
 
-            @if ($errors->any())
-                <div class="mb-5 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-sm">
-                    {{ $errors->first() }}
-                </div>
-            @endif
-
             <form method="POST" action="{{ route('login') }}" class="space-y-5">
                 @csrf
 
@@ -66,6 +60,15 @@
                         </button>
                     </div>
                 </div>
+
+                @if ($errors->any())
+                    <div class="flex items-start gap-2 text-sm text-rose-600">
+                        <svg class="w-4 h-4 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/>
+                        </svg>
+                        <span>{{ $errors->first() }}</span>
+                    </div>
+                @endif
 
                 <button
                     type="submit"
