@@ -6,6 +6,9 @@
     /** @var \Illuminate\Support\Collection $announcements */
     /** @var \Illuminate\Support\Collection $subadmins */
     /** @var bool $isAdmin */
+    /** @var string $period */
+    /** @var string $audienceFilter */
+    /** @var array $stats */
 
     $reopenMode = old('panel_mode');
     $reopenAnnouncementId = old('announcement_id');
@@ -23,24 +26,95 @@
             'created_at'          => $a->created_at?->format('d M Y, h:i A'),
         ];
     })->keyBy('id');
+
+    $periodChips = [
+        'all' => 'All',
+        '7'   => '7d',
+        '15'  => '15d',
+        '30'  => '30d',
+        '60'  => '60d',
+    ];
+
+    $audienceChips = [
+        'all'       => 'All',
+        'broadcast' => 'Broadcast',
+        'targeted'  => 'Targeted',
+    ];
+
+    $buildUrl = function (array $overrides) use ($period, $audienceFilter) {
+        $params = array_filter(array_merge([
+            'period'   => $period === 'all' ? null : $period,
+            'audience' => $audienceFilter === 'all' ? null : $audienceFilter,
+        ], $overrides), fn ($v) => $v !== null && $v !== '');
+        return route('announcements.index').($params ? '?'.http_build_query($params) : '');
+    };
 @endphp
 
 @section('admin-header')
 <div class="sticky top-0 z-20 bg-white border-b border-slate-200">
-    <div class="px-6 lg:px-10 py-3 flex flex-wrap items-center gap-4">
-        <div class="mr-auto flex items-baseline gap-3 flex-wrap">
+    {{-- Title + stats + action --}}
+    <div class="px-6 lg:px-10 py-3 flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-slate-100">
+        <div class="mr-auto">
             <h2 class="text-base font-bold text-slate-800">Announcements</h2>
-            <p class="text-xs text-slate-500">
-                <span class="text-slate-800 font-semibold">{{ $announcements->count() }}</span> total
-            </p>
+            <p class="text-xs text-slate-500 mt-0.5">Manage and publish announcements for your organization</p>
+        </div>
+
+        <div class="flex items-center gap-x-6 gap-y-1 text-xs text-slate-500 flex-wrap">
+            <span>Total: <span class="text-slate-800 font-semibold ml-1">{{ $stats['total'] }}</span></span>
+            <span>This Month: <span class="text-pink-600 font-semibold ml-1">{{ $stats['this_month'] }}</span></span>
+            <span>Last Month: <span class="text-slate-800 font-semibold ml-1">{{ $stats['last_month'] }}</span></span>
         </div>
 
         @if ($isAdmin)
             <button type="button" onclick="AnnouncementsPanel.openCreate()"
                     class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-pink-600 hover:bg-pink-700 text-white text-sm font-semibold transition">
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
-                New
+                Add Announcement
             </button>
+        @endif
+    </div>
+
+    {{-- Filter row --}}
+    <div class="px-6 lg:px-10 py-2.5 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs">
+        <div class="flex items-center gap-1.5 text-slate-500">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
+            </svg>
+            <span class="font-semibold text-slate-600">Filter by:</span>
+        </div>
+
+        <div class="flex items-center gap-1.5">
+            <span class="text-slate-500">Period:</span>
+            <div class="flex items-center gap-1">
+                @foreach ($periodChips as $key => $label)
+                    @php $isActive = $period === $key; @endphp
+                    <a href="{{ $buildUrl(['period' => $key === 'all' ? null : $key]) }}"
+                       class="px-3 py-1 rounded-full text-xs font-semibold transition
+                              {{ $isActive
+                                    ? 'bg-pink-600 text-white shadow-sm shadow-pink-500/30'
+                                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200' }}">
+                        {{ $label }}
+                    </a>
+                @endforeach
+            </div>
+        </div>
+
+        @if ($isAdmin)
+            <div class="flex items-center gap-1.5">
+                <span class="text-slate-500">Audience:</span>
+                <div class="flex items-center gap-1">
+                    @foreach ($audienceChips as $key => $label)
+                        @php $isActive = $audienceFilter === $key; @endphp
+                        <a href="{{ $buildUrl(['audience' => $key === 'all' ? null : $key]) }}"
+                           class="px-3 py-1 rounded-full text-xs font-semibold transition border
+                                  {{ $isActive
+                                        ? 'bg-pink-50 border-pink-300 text-pink-700'
+                                        : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300' }}">
+                            {{ $label }}
+                        </a>
+                    @endforeach
+                </div>
+            </div>
         @endif
     </div>
 </div>
@@ -50,12 +124,29 @@
 {{-- LISTING --}}
 <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
     @if ($announcements->isEmpty())
-        <div class="px-6 py-16 text-center text-sm text-slate-500">
-            @if ($isAdmin)
-                No announcements yet. Click <span class="font-semibold text-pink-600">New</span> to create one.
-            @else
-                No announcements yet.
-            @endif
+        <div class="px-6 py-20 text-center">
+            <div class="flex flex-col items-center gap-3">
+                <div class="w-14 h-14 rounded-full bg-pink-50 text-pink-500 flex items-center justify-center">
+                    <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/>
+                    </svg>
+                </div>
+                <h3 class="text-base font-bold text-slate-800">No announcements yet</h3>
+                <p class="text-sm text-slate-500">
+                    @if ($isAdmin)
+                        Create your first announcement to share important information.
+                    @else
+                        New announcements from the admin will appear here.
+                    @endif
+                </p>
+                @if ($isAdmin)
+                    <button type="button" onclick="AnnouncementsPanel.openCreate()"
+                            class="mt-2 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-pink-600 hover:bg-pink-700 text-white text-sm font-semibold transition">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                        Create Announcement
+                    </button>
+                @endif
+            </div>
         </div>
     @else
         <ul class="divide-y divide-slate-100">
@@ -63,16 +154,16 @@
                 <li class="announcement-row hover:bg-slate-50 transition cursor-pointer px-6 py-4"
                     data-announcement-id="{{ $a->id }}">
                     <div class="flex items-start gap-3">
-                        <div class="w-8 h-8 rounded-md bg-pink-50 text-pink-600 flex items-center justify-center shrink-0 mt-0.5">
+                        <div class="w-9 h-9 rounded-lg bg-pink-50 text-pink-600 flex items-center justify-center shrink-0 mt-0.5">
                             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/></svg>
                         </div>
                         <div class="flex-1 min-w-0">
                             <div class="flex items-center gap-2 flex-wrap">
                                 <h3 class="text-sm font-semibold text-slate-800 truncate">{{ $a->heading }}</h3>
                                 @if ($a->isForAll())
-                                    <span class="text-[10px] font-medium text-emerald-700">· All</span>
+                                    <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700">All</span>
                                 @else
-                                    <span class="text-[10px] font-medium text-amber-700">· {{ $a->recipients->count() }} selected</span>
+                                    <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-50 text-amber-700">{{ $a->recipients->count() }} selected</span>
                                 @endif
                                 @if ($a->file_path)
                                     <span class="text-[10px] font-medium text-slate-500 inline-flex items-center gap-0.5">
@@ -181,7 +272,7 @@
                 {{-- CREATE FORM --}}
                 <form id="createForm" method="POST" action="{{ route('announcements.store') }}"
                       enctype="multipart/form-data" autocomplete="off"
-                      class="panel-mode hidden p-6 space-y-4">
+                      class="panel-mode hidden p-6 space-y-5">
                     @csrf
                     <input type="hidden" name="panel_mode" value="create">
                     @include('announcements._fields', ['mode' => 'create', 'subadmins' => $subadmins])
@@ -189,14 +280,14 @@
                         <button type="button" onclick="AnnouncementsPanel.close()"
                                 class="px-4 py-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-semibold transition">Cancel</button>
                         <button type="submit"
-                                class="px-4 py-2 rounded-lg bg-pink-600 hover:bg-pink-700 text-white text-sm font-semibold transition">Send</button>
+                                class="px-4 py-2 rounded-lg bg-pink-600 hover:bg-pink-700 text-white text-sm font-semibold transition">Create Announcement</button>
                     </div>
                 </form>
 
                 {{-- EDIT FORM --}}
                 <form id="editForm" method="POST" action=""
                       enctype="multipart/form-data" autocomplete="off"
-                      class="panel-mode hidden p-6 space-y-4">
+                      class="panel-mode hidden p-6 space-y-5">
                     @csrf
                     @method('PUT')
                     <input type="hidden" name="panel_mode" value="edit">
@@ -322,6 +413,8 @@
             });
             const fileInput = f.querySelector('[name="file"]');
             if (fileInput) fileInput.value = '';
+            const fileName = f.querySelector('[data-file-name]');
+            if (fileName) fileName.textContent = '';
             const current = f.querySelector('[data-current-file]');
             if (current) {
                 if (a.file_url) {
@@ -339,6 +432,8 @@
             if (!f) return;
             f.reset();
             setAudienceUI(f, 'all');
+            const fileName = f.querySelector('[data-file-name]');
+            if (fileName) fileName.textContent = '';
         }
 
         return {
@@ -350,7 +445,7 @@
             },
             openCreate: function () {
                 clearCreateForm();
-                show('createForm', 'New Announcement');
+                show('createForm', 'Add Announcement');
             },
             openEdit: function (id) {
                 const a = window.ANNOUNCEMENTS_DATA[id];
@@ -371,6 +466,15 @@
             const form = radio.closest('form');
             const block = form.querySelector('[data-recipients-block]');
             if (block) block.classList.toggle('hidden', radio.value !== 'selected');
+        });
+    });
+
+    // Show the chosen file name inside the upload drop zone.
+    document.querySelectorAll('[data-file-input]').forEach(input => {
+        input.addEventListener('change', () => {
+            const form = input.closest('form');
+            const label = form.querySelector('[data-file-name]');
+            if (label) label.textContent = input.files[0]?.name || '';
         });
     });
 
