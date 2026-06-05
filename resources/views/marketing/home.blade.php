@@ -415,7 +415,7 @@
         <div class="grid grid-cols-1 md:grid-cols-12 gap-10">
 
             {{-- Brand + description + social --}}
-            <div class="md:col-span-4">
+            <div class="md:col-span-5">
                 <div class="flex items-center gap-3">
                     <img src="{{ $logo }}" alt="SSB Education" class="w-12 h-12 object-contain">
                     <p class="text-lg font-extrabold text-slate-800">SSB Education</p>
@@ -440,7 +440,7 @@
             </div>
 
             {{-- Quick Links --}}
-            <div class="md:col-span-2">
+            <div class="md:col-span-3">
                 <p class="text-xs font-bold text-slate-800 uppercase tracking-wider">Quick Links</p>
                 <ul class="mt-4 space-y-2.5 text-sm">
                     <li><a href="#top"          class="text-slate-600 hover:text-pink-600 transition">→ Home</a></li>
@@ -449,16 +449,6 @@
                     <li><a href="#courses"      class="text-slate-600 hover:text-pink-600 transition">→ Courses</a></li>
                     <li><a href="#founders"     class="text-slate-600 hover:text-pink-600 transition">→ Founder</a></li>
                     <li><a href="#contact"      class="text-slate-600 hover:text-pink-600 transition">→ Contact Us</a></li>
-                </ul>
-            </div>
-
-            {{-- Legal --}}
-            <div class="md:col-span-2">
-                <p class="text-xs font-bold text-slate-800 uppercase tracking-wider">Legal</p>
-                <ul class="mt-4 space-y-2.5 text-sm">
-                    <li><a href="#" class="text-slate-600 hover:text-pink-600 transition">→ Privacy Policy</a></li>
-                    <li><a href="#" class="text-slate-600 hover:text-pink-600 transition">→ Terms of Use</a></li>
-                    <li><a href="#" class="text-slate-600 hover:text-pink-600 transition">→ Terms &amp; Conditions</a></li>
                 </ul>
             </div>
 
@@ -485,17 +475,12 @@
             </div>
         </div>
 
-        <div class="mt-12 pt-6 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
+        <div class="mt-12 pt-6 border-t border-slate-200 text-center text-xs text-slate-500">
             <p>
                 © {{ date('Y') }} SSB Education. All rights reserved. Made with
                 <span class="text-rose-500">♥</span>
                 in India.
             </p>
-            <div class="flex items-center gap-5">
-                <a href="#" class="hover:text-pink-600 transition">Privacy Policy</a>
-                <a href="#" class="hover:text-pink-600 transition">Terms of Use</a>
-                <a href="#" class="hover:text-pink-600 transition">Terms &amp; Conditions</a>
-            </div>
         </div>
     </div>
 </footer>
