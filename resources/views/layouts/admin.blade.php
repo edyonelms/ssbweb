@@ -11,7 +11,7 @@
         ['label' => 'Students',      'href' => route('students.index'),  'route' => 'students.*', 'icon' => 'graduation'],
         ['label' => 'Announcements', 'href' => route('announcements.index'), 'route' => 'announcements.*', 'icon' => 'megaphone'],
         ['label' => 'Accounts',      'href' => '#',                      'route' => null,         'icon' => 'cards'],
-        ['label' => 'Wallet',        'href' => '#',                      'route' => null,         'icon' => 'wallet'],
+        ['label' => 'Wallet',        'href' => route('wallet.index'),    'route' => 'wallet.*',   'icon' => 'wallet'],
         ['label' => 'Support',       'href' => route('support.index'),    'route' => 'support.*',  'icon' => 'support'],
         ['label' => 'Enquiries',     'href' => '#',                      'route' => null,         'icon' => 'enquiries'],
         ['label' => 'Fee Calculator','href' => '#',                      'route' => null,         'icon' => 'calculator'],
@@ -22,7 +22,7 @@
         ['label' => 'Students',      'href' => route('students.index'),  'route' => 'students.*', 'icon' => 'graduation'],
         ['label' => 'Announcements', 'href' => route('announcements.index'), 'route' => 'announcements.*', 'icon' => 'megaphone'],
         ['label' => 'Accounts',      'href' => '#',                      'route' => null,         'icon' => 'cards'],
-        ['label' => 'Wallet',        'href' => '#',                      'route' => null,         'icon' => 'wallet'],
+        ['label' => 'Wallet',        'href' => route('wallet.index'),    'route' => 'wallet.*',   'icon' => 'wallet'],
         ['label' => 'Support',       'href' => route('support.index'),    'route' => 'support.*',  'icon' => 'support'],
         ['label' => 'Fee Calculator','href' => '#',                      'route' => null,         'icon' => 'calculator'],
     ];
@@ -45,7 +45,15 @@
         'bell'       => '<path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>',
     ];
 
-    $walletAmount = 3260;
+    // Live wallet balance for the topbar pill — falls back to 0 if the
+    // wallet_transactions table doesn't exist yet (e.g. before migrate).
+    try {
+        $walletAmount = auth()->check() && \Illuminate\Support\Facades\Schema::hasTable('wallet_transactions')
+            ? (float) \App\Models\WalletTransaction::where('user_id', auth()->id())->sum('amount')
+            : 0;
+    } catch (\Throwable $e) {
+        $walletAmount = 0;
+    }
 @endphp
 
 <div class="h-screen overflow-hidden flex bg-gradient-to-br from-slate-50 via-pink-50/40 to-slate-50">

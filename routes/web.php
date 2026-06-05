@@ -9,6 +9,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\StudentsController;
 use App\Http\Controllers\SupportController;
 use App\Http\Controllers\UsersController;
+use App\Http\Controllers\WalletController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn () => view('welcome'))->name('welcome');
@@ -36,6 +37,12 @@ Route::middleware('auth')->group(function () {
     Route::resource('students', StudentsController::class)
         ->only(['index', 'store', 'update', 'destroy'])
         ->whereNumber('student');
+
+    // Wallet — both roles see the listing; admin alone may update wallets.
+    Route::get('/wallet', [WalletController::class, 'index'])->name('wallet.index');
+    Route::middleware('admin')->group(function () {
+        Route::post('/wallet', [WalletController::class, 'store'])->name('wallet.store');
+    });
 
     // Master Data — admin manages universities/courses/fees, sub-admin reads only.
     Route::prefix('master-data')->name('master.')->group(function () {
