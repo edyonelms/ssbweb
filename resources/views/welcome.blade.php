@@ -25,15 +25,17 @@
     <style>
         body { font-family: 'Inter', sans-serif; margin: 0; padding: 0; }
         html, body { height: 100%; overflow: hidden; }
+        /* Keep the banner sharp when the browser scales it up to fill the viewport. */
+        .splash-img { image-rendering: -webkit-optimize-contrast; image-rendering: crisp-edges; }
     </style>
 </head>
 <body>
     <div class="relative w-screen h-screen bg-white">
         <img src="{{ $welcomeDataUri }}" alt="Manglayatan University"
              decoding="sync" fetchpriority="high"
-             class="absolute inset-0 w-full h-full object-cover">
+             class="splash-img absolute inset-0 w-full h-full object-cover">
 
-        <a href="{{ route('login') }}"
+        <a href="{{ route('login.form') }}"
            class="absolute bottom-10 sm:bottom-14 left-1/2 -translate-x-1/2 inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-fuchsia-500/90 via-pink-500/90 to-rose-500/90 hover:from-fuchsia-500 hover:via-pink-500 hover:to-rose-500 text-white font-semibold text-base sm:text-lg rounded-full shadow-2xl shadow-pink-500/30 hover:shadow-pink-500/50 transition-all duration-200 transform hover:-translate-y-0.5 hover:scale-105">
             Continue to Login
             <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">

@@ -54,12 +54,12 @@ class MarketingController extends Controller
     }
 
     /**
-     * Marketing's Login CTA points at the splash screen rather than the
-     * raw login form so visitors see the campus image first and click
-     * "Continue to Login" to actually sign in.
+     * Marketing's Login CTA points at /login, which now renders the
+     * campus splash screen. The splash's Continue to Login button takes
+     * the visitor to /signin where the actual form is.
      */
     private function loginUrl(): string
     {
-        return route('welcome');
+        return route('login');
     }
 }

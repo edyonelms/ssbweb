@@ -50,19 +50,21 @@ if (app()->environment('production')) {
 //  here and be served on the same domain.
 // ─────────────────────────────────────────────────────────────────────
 
-// Splash screen that bridges the marketing site and the login form.
-// Visitors land here from the marketing navbar's Login CTA, see the
-// university image full-bleed, and click "Continue to Login" to reach
-// the actual form at /login.
-Route::get('/welcome', fn () => view('welcome'))->name('welcome');
-
 // Non-apex hosts (localhost, www.* before DNS, etc.) don't have a
-// marketing handler at `/`, so bounce them onto the splash so something
+// marketing handler at `/`, so bounce them onto /login so something
 // always renders at the root.
-Route::get('/', fn () => redirect()->route('welcome'));
+Route::get('/', fn () => redirect()->route('login'));
 
 Route::middleware('guest')->group(function () {
-    Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
+    // /login is the splash screen — campus image full-bleed + a
+    // "Continue to Login" button. Anything that hits route('login')
+    // (direct URL, marketing CTA, the auth redirect for unauthenticated
+    // pages) lands here first.
+    Route::get('/login', fn () => view('welcome'))->name('login');
+
+    // The actual sign-in form lives at /signin; the splash button
+    // takes the user here, and the form posts back to /login.
+    Route::get('/signin', [AuthController::class, 'showLogin'])->name('login.form');
     Route::post('/login', [AuthController::class, 'login']);
 });
 
