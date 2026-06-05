@@ -5,8 +5,9 @@
 @section('content')
 <div class="h-screen w-full overflow-hidden flex">
 
-    {{-- LEFT PANEL : full-bleed campus image --}}
-    <div class="hidden lg:block w-1/2 h-screen bg-cover bg-center" style="background-image: url('{{ asset('images/welcome.jpg') }}');">
+    {{-- LEFT PANEL : Mangalayatan University brand block --}}
+    <div class="hidden lg:flex w-1/2 h-screen items-center justify-center bg-white px-10"
+         style="background-image: url('{{ asset('images/login-left.webp') }}'); background-size: contain; background-position: center; background-repeat: no-repeat;">
     </div>
 
     {{-- RIGHT PANEL : soft pink/lavender gradient with form --}}
