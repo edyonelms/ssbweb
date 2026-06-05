@@ -14,7 +14,9 @@
     <div class="w-full lg:w-1/2 flex items-center justify-center px-6 py-8 bg-gradient-to-br from-pink-100/50 via-rose-50/40 to-purple-100/40">
         <div class="w-full max-w-md">
             <div class="text-center mb-6">
-                <img src="{{ asset('images/logo.png') }}" alt="SSB Education" class="w-20 h-20 mx-auto mb-2 drop-shadow object-contain">
+                <img src="{{ asset('images/logo.png') }}" alt="SSB Education"
+                     width="80" height="80" decoding="async" fetchpriority="high"
+                     class="w-20 h-20 mx-auto mb-2 drop-shadow object-contain">
                 <div class="text-[11px] font-semibold tracking-[0.3em] text-pink-500/80">SSB EDUCATION</div>
             </div>
 
