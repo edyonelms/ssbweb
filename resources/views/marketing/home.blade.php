@@ -14,28 +14,11 @@
             : asset('images/login-left.png')
     );
 
-    $founders = [
-        [
-            'name'  => 'Founder & CEO',
-            'role'  => 'Visionary · Education Strategist',
-            'bio'   => 'A career educator who set up SSB Education with one promise — make a recognised online degree as straightforward and affordable as walking into a campus. Has spent over a decade designing learning programs for first-generation students across Tier-2 and Tier-3 India, and personally still answers admission queries every Saturday morning.',
-            'initial' => 'S',
-            'tint'  => 'from-pink-100 to-rose-100 text-pink-600',
-        ],
-        [
-            'name'  => 'Co-Founder & Director',
-            'role'  => 'Academic Partnerships · Operations',
-            'bio'   => 'Holds the relationships with Mangalayatan University and the other UGC-recognised institutions whose programs SSB delivers online. Owns curriculum alignment, exam logistics and the day-to-day operations that keep cohorts moving — from admission paperwork to convocation. Background in academic administration with on-campus experience.',
-            'initial' => 'B',
-            'tint'  => 'from-violet-100 to-fuchsia-100 text-violet-600',
-        ],
-        [
-            'name'  => 'Co-Founder & Head of Mentorship',
-            'role'  => 'Student Success · Career Guidance',
-            'bio'   => 'Leads the mentor network that handles every student touchpoint after admission — weekly study check-ins, exam prep, internship leads and post-graduation career support. Counsels students 1:1 on choosing the right program for the life they\'re trying to build, not the one a brochure tells them to want.',
-            'initial' => 'B',
-            'tint'  => 'from-emerald-100 to-teal-100 text-emerald-600',
-        ],
+    $founder = [
+        'name'    => 'Founder & CEO',
+        'role'    => 'Visionary · Education Strategist',
+        'initial' => 'S',
+        'tint'    => 'from-pink-100 to-rose-100 text-pink-600',
     ];
 @endphp
 <!DOCTYPE html>
@@ -75,6 +58,7 @@
         </a>
 
         <nav class="hidden md:flex items-center gap-7 text-sm font-medium text-slate-600">
+            <a href="#top"        class="hover:text-pink-600 transition">Home</a>
             <a href="#about"      class="hover:text-pink-600 transition">About</a>
             <a href="#universities" class="hover:text-pink-600 transition">Universities</a>
             <a href="#courses"    class="hover:text-pink-600 transition">Courses</a>
@@ -288,28 +272,44 @@
         </div>
     </section>
 
-    {{-- ─── FOUNDERS ─── --}}
+    {{-- ─── FOUNDER ─── --}}
     <section id="founders" class="py-20 lg:py-24 bg-slate-50 border-y border-slate-100">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="max-w-2xl">
-                <span class="inline-block px-3 py-1 rounded-full bg-pink-50 text-xs font-semibold text-pink-700 mb-3">Founders</span>
-                <h2 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900">Built by educators who've been on both sides of the classroom.</h2>
+                <span class="inline-block px-3 py-1 rounded-full bg-pink-50 text-xs font-semibold text-pink-700 mb-3">Founder</span>
+                <h2 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900">Built by an educator who's been on both sides of the classroom.</h2>
             </div>
 
-            <div class="mt-10 grid grid-cols-1 md:grid-cols-3 gap-6">
-                @foreach ($founders as $f)
-                    <div class="bg-white rounded-2xl p-6 border border-slate-100 hover:shadow-md transition flex flex-col">
-                        <div class="relative w-28 h-28 rounded-full bg-gradient-to-br {{ $f['tint'] }} flex items-center justify-center overflow-hidden ring-4 ring-white shadow-md">
-                            <span class="text-4xl font-extrabold">{{ $f['initial'] }}</span>
-                            <svg class="absolute bottom-0 w-16 h-16 opacity-30" fill="currentColor" viewBox="0 0 24 24">
+            <div class="mt-12 bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+                <div class="grid grid-cols-1 lg:grid-cols-5 gap-0">
+                    {{-- Image (left) --}}
+                    <div class="lg:col-span-2 bg-gradient-to-br {{ $founder['tint'] }} p-10 lg:p-12 flex items-center justify-center">
+                        <div class="relative w-48 h-48 sm:w-56 sm:h-56 rounded-full bg-white/80 ring-8 ring-white shadow-xl flex items-center justify-center overflow-hidden">
+                            <span class="text-7xl font-extrabold">{{ $founder['initial'] }}</span>
+                            <svg class="absolute bottom-0 w-32 h-32 opacity-25" fill="currentColor" viewBox="0 0 24 24">
                                 <path d="M12 12c2.7 0 5-2.3 5-5s-2.3-5-5-5-5 2.3-5 5 2.3 5 5 5zm0 2c-3.3 0-10 1.7-10 5v3h20v-3c0-3.3-6.7-5-10-5z"/>
                             </svg>
                         </div>
-                        <h3 class="mt-5 text-base font-bold text-slate-800">{{ $f['name'] }}</h3>
-                        <p class="text-xs font-semibold text-pink-600 mt-0.5">{{ $f['role'] }}</p>
-                        <p class="mt-3 text-sm text-slate-600 leading-relaxed">{{ $f['bio'] }}</p>
                     </div>
-                @endforeach
+
+                    {{-- Description (right) --}}
+                    <div class="lg:col-span-3 p-8 lg:p-12 flex flex-col justify-center">
+                        <p class="text-xs font-semibold uppercase tracking-wider text-pink-600">{{ $founder['role'] }}</p>
+                        <h3 class="mt-2 text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">{{ $founder['name'] }}</h3>
+
+                        <div class="mt-5 space-y-4 text-slate-600 leading-relaxed">
+                            <p>
+                                A career educator who set up SSB Education with one promise — make a recognised online degree as straightforward and affordable as walking into a campus. Over a decade of designing learning programs for first-generation students across Tier-2 and Tier-3 India shaped the way SSB works today: simple paperwork, transparent fees, and a real person at the other end of every query.
+                            </p>
+                            <p>
+                                Through the partnership with Mangalayatan University, SSB Education brings UGC-recognised online degree, diploma and certification programs to learners who can't put their life on hold to attend campus — working professionals, family caregivers, students rebuilding after a gap year. Every cohort is supported end-to-end: admissions, exam scheduling, fee planning, mentor check-ins, and career guidance after graduation.
+                            </p>
+                            <p>
+                                The philosophy is simple — a degree should open doors, not close them. SSB Education is built on the belief that quality higher education is a right, not a privilege, and the team works every day to make sure that belief shows up in how students are treated, from the first enquiry call to the day they hold their convocation certificate.
+                            </p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </section>
@@ -340,16 +340,16 @@
                         </div>
                         <div>
                             <p class="text-xs text-slate-500 uppercase tracking-wider font-semibold">Email</p>
-                            <p class="text-sm font-bold text-slate-800">hello@ssbeducation.in</p>
+                            <p class="text-sm font-bold text-slate-800">ssbofficejattari@gmail.com</p>
                         </div>
                     </div>
                     <div class="flex items-start gap-3">
-                        <div class="w-10 h-10 rounded-xl bg-pink-50 text-pink-600 flex items-center justify-center shrink-0">
+                        <div class="w-10 h-10 rounded-xl bg-pink-50 text-pink-600 flex items-center justify-center shrink-0 mt-0.5">
                             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                         </div>
                         <div>
                             <p class="text-xs text-slate-500 uppercase tracking-wider font-semibold">Address</p>
-                            <p class="text-sm font-bold text-slate-800">SSB Education,<br>Aligarh, Uttar Pradesh</p>
+                            <p class="text-sm font-bold text-slate-800 leading-relaxed">Office no 01, Braj Vihar colony,<br>Jattari, Khair, Aligarh,<br>Uttar Pradesh — 202141</p>
                         </div>
                     </div>
                 </div>
@@ -412,8 +412,8 @@
 {{-- ─── FOOTER (light/cool) ─── --}}
 <footer class="bg-gradient-to-br from-slate-50 via-white to-pink-50/50 border-t border-slate-200 text-slate-700">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-10">
-            <div class="md:col-span-2">
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-10">
+            <div class="md:col-span-5">
                 <div class="flex items-center gap-3">
                     <img src="{{ $logo }}" alt="SSB Education" class="w-14 h-14 object-contain">
                     <div class="leading-tight">
@@ -421,8 +421,11 @@
                         <p class="text-[11px] text-slate-500 -mt-0.5">in partnership with Mangalayatan</p>
                     </div>
                 </div>
-                <p class="mt-5 text-sm text-slate-600 max-w-md leading-relaxed">
-                    SSB Education makes UGC-recognised online degree, diploma and certification programs accessible to every learner — whether you're starting out or going back to school.
+                <p class="mt-5 text-sm text-slate-600 leading-relaxed">
+                    SSB Education is an authorised academic partner of <span class="font-semibold text-slate-800">Mangalayatan University</span>, helping students earn UGC-recognised online degree, diploma and certification programs without putting their lives on hold. We work with first-generation learners, working professionals and parents who want a real, recognised qualification on a flexible schedule.
+                </p>
+                <p class="mt-3 text-sm text-slate-600 leading-relaxed">
+                    From the first admission call to convocation, our team handles paperwork, fees, exam scheduling and mentor support — so students can focus on actually learning. A degree should open doors; we make sure the path to it is clear and honest.
                 </p>
                 <div class="mt-6 flex items-center gap-3">
                     {{-- Instagram --}}
@@ -436,21 +439,55 @@
                         <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347zM12.05 21.785h-.008c-1.77 0-3.506-.477-5.022-1.378l-.36-.214-3.737.98.998-3.648-.235-.374a9.864 9.864 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.886-9.885 9.886zm8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
                     </a>
                     {{-- Email --}}
-                    <a href="mailto:hello@ssbeducation.in"
+                    <a href="mailto:ssbofficejattari@gmail.com"
                        class="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-600 hover:text-sky-600 hover:border-sky-200 hover:shadow-md transition" aria-label="Email">
                         <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
                     </a>
                 </div>
             </div>
 
-            <div>
+            <div class="md:col-span-3">
                 <p class="text-xs font-bold text-slate-800 uppercase tracking-wider">Explore</p>
                 <ul class="mt-4 space-y-2.5 text-sm">
+                    <li><a href="#top"          class="text-slate-600 hover:text-pink-600 transition">Home</a></li>
                     <li><a href="#about"        class="text-slate-600 hover:text-pink-600 transition">About us</a></li>
                     <li><a href="#universities" class="text-slate-600 hover:text-pink-600 transition">Universities</a></li>
                     <li><a href="#courses"      class="text-slate-600 hover:text-pink-600 transition">Courses</a></li>
-                    <li><a href="#founders"     class="text-slate-600 hover:text-pink-600 transition">Founders</a></li>
+                    <li><a href="#founders"     class="text-slate-600 hover:text-pink-600 transition">Founder</a></li>
                     <li><a href="#contact"      class="text-slate-600 hover:text-pink-600 transition">Contact</a></li>
+                </ul>
+            </div>
+
+            <div class="md:col-span-4">
+                <p class="text-xs font-bold text-slate-800 uppercase tracking-wider">Get in touch</p>
+                <ul class="mt-4 space-y-4 text-sm">
+                    <li class="flex items-start gap-3">
+                        <div class="w-9 h-9 rounded-lg bg-white border border-slate-200 text-pink-600 flex items-center justify-center shrink-0">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-[11px] uppercase tracking-wider text-slate-500 font-semibold">Email</p>
+                            <a href="mailto:ssbofficejattari@gmail.com" class="text-slate-800 font-semibold hover:text-pink-600 transition break-all">ssbofficejattari@gmail.com</a>
+                        </div>
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <div class="w-9 h-9 rounded-lg bg-white border border-slate-200 text-pink-600 flex items-center justify-center shrink-0">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                        </div>
+                        <div>
+                            <p class="text-[11px] uppercase tracking-wider text-slate-500 font-semibold">Address</p>
+                            <p class="text-slate-700 leading-relaxed">Office no 01, Braj Vihar colony,<br>Jattari, Khair, Aligarh,<br>Uttar Pradesh — 202141</p>
+                        </div>
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <div class="w-9 h-9 rounded-lg bg-white border border-slate-200 text-pink-600 flex items-center justify-center shrink-0">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+                        </div>
+                        <div>
+                            <p class="text-[11px] uppercase tracking-wider text-slate-500 font-semibold">Phone</p>
+                            <a href="tel:+919012346006" class="text-slate-800 font-semibold hover:text-pink-600 transition">+91 90123 46006</a>
+                        </div>
+                    </li>
                 </ul>
             </div>
         </div>
