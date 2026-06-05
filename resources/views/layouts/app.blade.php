@@ -12,13 +12,11 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="dns-prefetch" href="https://cdn.tailwindcss.com">
 
-    {{-- Preload brand assets so they paint with the first frame --}}
-    <link rel="preload" as="image" href="{{ asset('images/logo.png') }}" fetchpriority="high">
-    <link rel="preload" as="image" href="{{ asset('images/login-left.png') }}">
-
-    <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}">
-    <link rel="shortcut icon" type="image/png" href="{{ asset('images/logo.png') }}">
-    <link rel="apple-touch-icon" href="{{ asset('images/logo.png') }}">
+    {{-- Favicon is inlined as a data URI so the tab icon paints with the
+         HTML — no /images/logo.png round-trip on any page. --}}
+    <link rel="icon" type="image/png" href="{{ $logoDataUri }}">
+    <link rel="shortcut icon" type="image/png" href="{{ $logoDataUri }}">
+    <link rel="apple-touch-icon" href="{{ $logoDataUri }}">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style> body { font-family: 'Inter', sans-serif; } </style>

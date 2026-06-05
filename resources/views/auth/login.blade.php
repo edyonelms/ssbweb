@@ -5,17 +5,19 @@
 @section('content')
 <div class="h-screen w-full overflow-hidden flex">
 
-    {{-- LEFT PANEL : Mangalayatan University brand block --}}
-    <div class="hidden lg:flex w-1/2 h-screen items-center justify-center bg-white px-10"
-         style="background-image: url('{{ asset('images/login-left.png') }}'); background-size: contain; background-position: center; background-repeat: no-repeat;">
+    {{-- LEFT PANEL : Mangalayatan University brand block (inlined data URI) --}}
+    <div class="hidden lg:block w-1/2 h-screen bg-white">
+        <img src="{{ $loginLeftDataUri }}" alt="Mangalayatan University"
+             width="602" height="414" decoding="sync" fetchpriority="high"
+             class="w-full h-full object-contain p-10">
     </div>
 
     {{-- RIGHT PANEL : soft pink/lavender gradient with form --}}
     <div class="w-full lg:w-1/2 flex items-center justify-center px-6 py-8 bg-gradient-to-br from-pink-100/50 via-rose-50/40 to-purple-100/40">
         <div class="w-full max-w-md">
             <div class="text-center mb-6">
-                <img src="{{ asset('images/logo.png') }}" alt="SSB Education"
-                     width="80" height="80" decoding="async" fetchpriority="high"
+                <img src="{{ $logoDataUri }}" alt="SSB Education"
+                     width="80" height="80" decoding="sync" fetchpriority="high"
                      class="w-20 h-20 mx-auto mb-2 drop-shadow object-contain">
                 <div class="text-[11px] font-semibold tracking-[0.3em] text-pink-500/80">SSB EDUCATION</div>
             </div>

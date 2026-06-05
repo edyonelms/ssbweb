@@ -54,13 +54,13 @@
     <aside class="hidden md:flex md:w-64 bg-white border-r border-slate-200 flex-col relative z-40">
         <div class="px-6 py-6 border-b border-slate-100 flex flex-col items-center text-center">
             @if ($isAdmin)
-                <img src="{{ asset('images/logo.png') }}" alt="SSB Education"
-                     width="80" height="80" decoding="async" fetchpriority="high"
+                <img src="{{ $logoDataUri }}" alt="SSB Education"
+                     width="80" height="80" decoding="sync" fetchpriority="high"
                      class="w-20 h-20 object-contain drop-shadow mb-2">
                 <div class="font-extrabold text-slate-800 leading-tight text-base">SSB EDUCATION</div>
             @else
-                <img src="{{ asset('images/login-left.png') }}" alt="Mangalayatan University"
-                     width="602" height="414" decoding="async" fetchpriority="high"
+                <img src="{{ $loginLeftDataUri }}" alt="Mangalayatan University"
+                     width="602" height="414" decoding="sync" fetchpriority="high"
                      class="max-w-full h-auto max-h-28 object-contain drop-shadow">
             @endif
         </div>
