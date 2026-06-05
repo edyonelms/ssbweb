@@ -14,18 +14,18 @@
     ];
 @endphp
 
-{{-- HEADER CARD --}}
-<div class="bg-white rounded-2xl border border-slate-100 shadow-sm px-6 py-8 flex flex-col items-center text-center">
-    <div class="w-24 h-24 rounded-full bg-gradient-to-br from-pink-100 to-rose-100 ring-4 ring-white shadow-md flex items-center justify-center text-pink-600 font-extrabold text-2xl">
-        {{ strtoupper(mb_substr($user->name, 0, 1)) }}
+{{-- PAGE HEADER --}}
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div>
+        <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-800 tracking-tight">My Account</h1>
+        <p class="text-sm text-slate-500 mt-1">View your details, update your info & change your password</p>
     </div>
-    <h2 class="mt-4 text-xl font-extrabold text-slate-800">{{ $user->name }}</h2>
-    <p class="text-sm text-slate-500 mt-1">{{ $user->mobile }}</p>
 </div>
 
-{{-- TABS CARD --}}
+{{-- TABS + CONTENT CARD --}}
 <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
 
+    {{-- Tab triggers --}}
     <div class="border-b border-slate-100 px-2 sm:px-4 flex gap-1 overflow-x-auto" role="tablist">
         @foreach (['profile' => 'Profile', 'edit' => 'Edit', 'password' => 'Change Password'] as $key => $label)
             <button type="button"
@@ -38,6 +38,17 @@
                 <span class="account-tab-indicator absolute left-2 right-2 sm:left-4 sm:right-4 bottom-0 h-0.5 rounded-full bg-pink-500 scale-x-0 transition-transform origin-center"></span>
             </button>
         @endforeach
+    </div>
+
+    {{-- Compact identity strip --}}
+    <div class="flex items-center gap-4 px-6 sm:px-8 py-4 border-b border-slate-100 bg-gradient-to-r from-pink-50/60 via-rose-50/30 to-transparent">
+        <div class="w-14 h-14 rounded-full bg-gradient-to-br from-pink-100 to-rose-100 ring-2 ring-white shadow-sm flex items-center justify-center text-pink-600 font-extrabold text-lg shrink-0">
+            {{ strtoupper(mb_substr($user->name, 0, 1)) }}
+        </div>
+        <div class="min-w-0">
+            <h2 class="text-base font-extrabold text-slate-800 leading-tight truncate">{{ $user->name }}</h2>
+            <p class="text-xs text-slate-500 mt-0.5">{{ $user->mobile }}</p>
+        </div>
     </div>
 
     <div class="p-6 sm:p-8">

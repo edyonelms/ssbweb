@@ -24,36 +24,15 @@
     $activeTab = in_array(request('tab'), ['profile', 'edit', 'password'], true) ? request('tab') : 'profile';
 @endphp
 
-{{-- LOGO HEADER CARD --}}
-<div class="bg-white rounded-2xl border border-slate-100 shadow-sm px-6 py-8 flex flex-col items-center text-center">
-    <form method="POST" action="{{ route('profile.update.logo') }}" enctype="multipart/form-data" id="logoUploadForm" class="relative inline-block">
-        @csrf
-        <div class="w-32 h-32 rounded-full bg-gradient-to-br from-pink-50 to-rose-50 ring-4 ring-white shadow-md flex items-center justify-center overflow-hidden">
-            <img src="{{ $logoUrl }}" alt="Logo" class="w-full h-full object-contain p-3">
-        </div>
-        <label for="logoFile"
-               class="absolute -bottom-1 -right-1 w-10 h-10 rounded-full bg-gradient-to-br from-fuchsia-500 to-pink-500 text-white flex items-center justify-center shadow-lg shadow-pink-500/30 cursor-pointer hover:from-fuchsia-600 hover:to-pink-600 transition ring-2 ring-white"
-               title="Change logo">
-            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
-            </svg>
-        </label>
-        <input id="logoFile" type="file" name="logo" accept="image/*" class="hidden"
-               onchange="if(this.files.length){document.getElementById('logoUploadForm').submit();}">
-    </form>
-
-    <h2 class="mt-4 text-xl font-extrabold text-slate-800">
-        {{ $settings->platform_name ?: 'SSB Education' }}
-    </h2>
-    <p class="text-sm text-slate-500 mt-1">Organization Profile</p>
-
-    @if ($errors->has('logo'))
-        <p class="mt-3 text-sm text-rose-600">{{ $errors->first('logo') }}</p>
-    @endif
+{{-- PAGE HEADER --}}
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div>
+        <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-800 tracking-tight">Organization Profile</h1>
+        <p class="text-sm text-slate-500 mt-1">Manage your platform details, bank info & login password</p>
+    </div>
 </div>
 
-{{-- TABS CARD --}}
+{{-- TABS + CONTENT CARD --}}
 <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
 
     {{-- Tab triggers --}}
@@ -69,6 +48,21 @@
                 <span class="profile-tab-indicator absolute left-2 right-2 sm:left-4 sm:right-4 bottom-0 h-0.5 rounded-full bg-pink-500 scale-x-0 transition-transform origin-center"></span>
             </button>
         @endforeach
+    </div>
+
+    {{-- Compact brand strip — uses the same logo as the sidebar --}}
+    <div class="flex items-center gap-4 px-6 sm:px-8 py-4 border-b border-slate-100 bg-gradient-to-r from-pink-50/60 via-rose-50/30 to-transparent">
+        <div class="w-14 h-14 rounded-full bg-white ring-2 ring-pink-100 shadow-sm flex items-center justify-center overflow-hidden shrink-0">
+            <img src="{{ $logoDataUri }}" alt="Logo"
+                 width="56" height="56" decoding="sync" fetchpriority="high"
+                 class="w-full h-full object-contain p-1">
+        </div>
+        <div class="min-w-0">
+            <h2 class="text-base font-extrabold text-slate-800 leading-tight truncate">
+                {{ $settings->platform_name ?: 'SSB Education' }}
+            </h2>
+            <p class="text-xs text-slate-500 mt-0.5">Organization profile</p>
+        </div>
     </div>
 
     {{-- Panels --}}
