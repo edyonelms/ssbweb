@@ -8,7 +8,7 @@
         ['label' => 'Dashboard',     'href' => route('dashboard'),       'route' => 'dashboard',  'icon' => 'grid'],
         ['label' => 'Master Data',   'href' => '#',                      'route' => null,         'icon' => 'database'],
         ['label' => 'Users',         'href' => route('users.index'),     'route' => 'users.*',    'icon' => 'users'],
-        ['label' => 'Students',      'href' => '#',                      'route' => null,         'icon' => 'graduation'],
+        ['label' => 'Students',      'href' => route('students.index'),  'route' => 'students.*', 'icon' => 'graduation'],
         ['label' => 'Announcements', 'href' => route('announcements.index'), 'route' => 'announcements.*', 'icon' => 'megaphone'],
         ['label' => 'Accounts',      'href' => '#',                      'route' => null,         'icon' => 'cards'],
         ['label' => 'Wallet',        'href' => '#',                      'route' => null,         'icon' => 'wallet'],
@@ -19,7 +19,7 @@
     ] : [
         ['label' => 'Dashboard',     'href' => route('dashboard'),       'route' => 'dashboard',  'icon' => 'grid'],
         ['label' => 'Master Data',   'href' => '#',                      'route' => null,         'icon' => 'database'],
-        ['label' => 'Students',      'href' => '#',                      'route' => null,         'icon' => 'graduation'],
+        ['label' => 'Students',      'href' => route('students.index'),  'route' => 'students.*', 'icon' => 'graduation'],
         ['label' => 'Announcements', 'href' => route('announcements.index'), 'route' => 'announcements.*', 'icon' => 'megaphone'],
         ['label' => 'Accounts',      'href' => '#',                      'route' => null,         'icon' => 'cards'],
         ['label' => 'Wallet',        'href' => '#',                      'route' => null,         'icon' => 'wallet'],

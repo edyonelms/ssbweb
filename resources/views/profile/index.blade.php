@@ -26,7 +26,7 @@
 
 @section('admin-header')
 <div class="sticky top-0 z-20 bg-white border-b border-slate-200">
-    <div class="px-6 lg:px-10 pt-4 pb-2 flex flex-wrap items-baseline gap-x-4 gap-y-1">
+    <div class="px-6 lg:px-10 py-3 flex flex-wrap items-baseline gap-x-4 gap-y-1 border-b border-slate-100">
         <h2 class="text-base font-bold text-slate-800">Organization Profile</h2>
         <p class="text-xs text-slate-500">Manage your platform details, bank info &amp; login password</p>
     </div>

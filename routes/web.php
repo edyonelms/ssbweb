@@ -5,6 +5,7 @@ use App\Http\Controllers\AnnouncementsController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\StudentsController;
 use App\Http\Controllers\SupportController;
 use App\Http\Controllers\UsersController;
 use Illuminate\Support\Facades\Route;
@@ -28,6 +29,12 @@ Route::middleware('auth')->group(function () {
 
     // Listing is open to admin (CRUD view) and subadmin (received view).
     Route::get('/announcements', [AnnouncementsController::class, 'index'])->name('announcements.index');
+
+    // Students — admin sees every record, sub-admin only sees their own.
+    Route::get('/students/export', [StudentsController::class, 'export'])->name('students.export');
+    Route::resource('students', StudentsController::class)
+        ->only(['index', 'store', 'update', 'destroy'])
+        ->whereNumber('student');
 
     // Support — open to everyone; admin sees all, subadmin sees own.
     Route::get('/support', [SupportController::class, 'index'])->name('support.index');
