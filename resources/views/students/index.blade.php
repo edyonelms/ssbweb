@@ -411,5 +411,13 @@
     document.addEventListener('keydown', e => {
         if (e.key === 'Escape') StudentsPanel.close();
     });
+
+    // Open the create panel when arriving via dashboard quick link (?panel=create).
+    (function () {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('panel') === 'create') {
+            StudentsPanel.openCreate();
+        }
+    })();
 </script>
 @endsection
