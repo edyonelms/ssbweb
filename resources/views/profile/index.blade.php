@@ -2,7 +2,6 @@
 
 @section('title', 'Profile - SSB Education')
 
-@section('admin')
 @php
     $platformFields = [
         ['key' => 'platform_name',       'label' => 'Name',             'type' => 'text',  'placeholder' => 'Organization name'],
@@ -22,75 +21,102 @@
     ];
 
     $activeTab = in_array(request('tab'), ['profile', 'edit', 'password'], true) ? request('tab') : 'profile';
+    $tabs = ['profile' => 'Profile', 'edit' => 'Edit', 'password' => 'Change Password'];
 @endphp
 
-{{-- PAGE HEADER --}}
-<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-    <div>
-        <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-800 tracking-tight">Organization Profile</h1>
-        <p class="text-sm text-slate-500 mt-1">Manage your platform details, bank info & login password</p>
+@section('admin-header')
+<div class="sticky top-0 z-20 bg-white border-b border-slate-200">
+    <div class="px-6 lg:px-10 pt-4 pb-2 flex flex-wrap items-baseline gap-x-4 gap-y-1">
+        <h2 class="text-base font-bold text-slate-800">Organization Profile</h2>
+        <p class="text-xs text-slate-500">Manage your platform details, bank info &amp; login password</p>
     </div>
-</div>
-
-{{-- TABS + CONTENT CARD --}}
-<div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-
-    {{-- Tab triggers --}}
-    <div class="border-b border-slate-100 px-2 sm:px-4 flex gap-1 overflow-x-auto" role="tablist">
-        @foreach (['profile' => 'Profile', 'edit' => 'Edit', 'password' => 'Change Password'] as $key => $label)
+    <div class="px-4 lg:px-8 flex gap-0 overflow-x-auto" role="tablist">
+        @foreach ($tabs as $key => $label)
             <button type="button"
                     role="tab"
                     data-tab="{{ $key }}"
-                    class="profile-tab-btn relative px-4 sm:px-6 py-4 text-sm font-semibold whitespace-nowrap transition
+                    class="profile-tab-btn relative px-3 sm:px-4 py-2.5 text-sm font-medium whitespace-nowrap transition
                            text-slate-500 hover:text-pink-600
-                           data-[active=true]:text-pink-600">
+                           data-[active=true]:text-pink-600 data-[active=true]:font-semibold">
                 {{ $label }}
-                <span class="profile-tab-indicator absolute left-2 right-2 sm:left-4 sm:right-4 bottom-0 h-0.5 rounded-full bg-pink-500 scale-x-0 transition-transform origin-center"></span>
+                <span class="profile-tab-indicator absolute left-3 right-3 sm:left-4 sm:right-4 bottom-0 h-0.5 rounded-full bg-pink-500 scale-x-0 transition-transform origin-center"></span>
             </button>
         @endforeach
     </div>
+</div>
+@endsection
 
-    {{-- Compact brand strip — uses the same logo as the sidebar --}}
-    <div class="flex items-center gap-4 px-6 sm:px-8 py-4 border-b border-slate-100 bg-gradient-to-r from-pink-50/60 via-rose-50/30 to-transparent">
-        <div class="w-14 h-14 rounded-full bg-white ring-2 ring-pink-100 shadow-sm flex items-center justify-center overflow-hidden shrink-0">
-            <img src="{{ $logoDataUri }}" alt="Logo"
-                 width="56" height="56" decoding="sync" fetchpriority="high"
-                 class="w-full h-full object-contain p-1">
+@section('admin')
+<div class="bg-white rounded-xl border border-slate-200 p-6 sm:p-8">
+
+    {{-- PROFILE (read-only) --}}
+    <div id="panel-profile" class="profile-tab-panel space-y-8">
+        <div>
+            <div class="flex items-center gap-2 mb-4">
+                <div class="w-1 h-5 rounded-full bg-gradient-to-b from-fuchsia-500 to-pink-500"></div>
+                <h3 class="text-base font-bold text-slate-800">Platform Details</h3>
+            </div>
+            <dl class="grid grid-cols-1 sm:grid-cols-2 gap-y-5 gap-x-8">
+                @foreach ($platformFields as $f)
+                    <div>
+                        <dt class="text-[11px] font-semibold text-pink-500 uppercase tracking-wider">{{ $f['label'] }}</dt>
+                        <dd class="mt-1 text-slate-800 break-words">{{ $settings->{$f['key']} ?: '—' }}</dd>
+                    </div>
+                @endforeach
+                <div class="sm:col-span-2">
+                    <dt class="text-[11px] font-semibold text-pink-500 uppercase tracking-wider">Address</dt>
+                    <dd class="mt-1 text-slate-800 whitespace-pre-line">{{ $settings->address ?: '—' }}</dd>
+                </div>
+            </dl>
         </div>
-        <div class="min-w-0">
-            <h2 class="text-base font-extrabold text-slate-800 leading-tight truncate">
-                {{ $settings->platform_name ?: 'SSB Education' }}
-            </h2>
-            <p class="text-xs text-slate-500 mt-0.5">Organization profile</p>
+
+        <div class="border-t border-slate-100 pt-8">
+            <div class="flex items-center gap-2 mb-4">
+                <div class="w-1 h-5 rounded-full bg-gradient-to-b from-emerald-500 to-teal-500"></div>
+                <h3 class="text-base font-bold text-slate-800">Bank Details</h3>
+            </div>
+            <dl class="grid grid-cols-1 sm:grid-cols-2 gap-y-5 gap-x-8">
+                @foreach ($bankFields as $f)
+                    <div>
+                        <dt class="text-[11px] font-semibold text-emerald-500 uppercase tracking-wider">{{ $f['label'] }}</dt>
+                        <dd class="mt-1 text-slate-800 break-words">{{ $settings->{$f['key']} ?: '—' }}</dd>
+                    </div>
+                @endforeach
+            </dl>
         </div>
     </div>
 
-    {{-- Panels --}}
-    <div class="p-6 sm:p-8">
+    {{-- EDIT --}}
+    <div id="panel-edit" class="profile-tab-panel hidden">
+        <form method="POST" action="{{ route('profile.update.details') }}" class="space-y-8">
+            @csrf
 
-        {{-- PROFILE (read-only) --}}
-        <div id="panel-profile" class="profile-tab-panel space-y-8">
             <div>
                 <div class="flex items-center gap-2 mb-4">
                     <div class="w-1 h-5 rounded-full bg-gradient-to-b from-fuchsia-500 to-pink-500"></div>
                     <h3 class="text-base font-bold text-slate-800">Platform Details</h3>
                 </div>
-                <dl class="grid grid-cols-1 sm:grid-cols-2 gap-y-5 gap-x-8">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     @foreach ($platformFields as $f)
                         <div>
-                            <dt class="text-[11px] font-semibold text-pink-500 uppercase tracking-wider">{{ $f['label'] }}</dt>
-                            <dd class="mt-1 text-slate-800 break-words">
-                                {{ $settings->{$f['key']} ?: '—' }}
-                            </dd>
+                            <label for="{{ $f['key'] }}" class="block text-sm font-semibold text-slate-700 mb-1.5">{{ $f['label'] }}</label>
+                            <input id="{{ $f['key'] }}"
+                                   name="{{ $f['key'] }}"
+                                   type="{{ $f['type'] }}"
+                                   value="{{ old($f['key'], $settings->{$f['key']}) }}"
+                                   placeholder="{{ $f['placeholder'] }}"
+                                   class="w-full px-4 py-2.5 bg-slate-50/70 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 outline-none transition text-slate-800 placeholder-slate-400">
+                            @error($f['key'])<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror
                         </div>
                     @endforeach
                     <div class="sm:col-span-2">
-                        <dt class="text-[11px] font-semibold text-pink-500 uppercase tracking-wider">Address</dt>
-                        <dd class="mt-1 text-slate-800 whitespace-pre-line">
-                            {{ $settings->address ?: '—' }}
-                        </dd>
+                        <label for="address" class="block text-sm font-semibold text-slate-700 mb-1.5">Address</label>
+                        <textarea id="address" name="address" rows="3"
+                                  placeholder="Full address"
+                                  class="w-full px-4 py-2.5 bg-slate-50/70 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 outline-none transition text-slate-800 placeholder-slate-400">{{ old('address', $settings->address) }}</textarea>
+                        @error('address')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror
                     </div>
-                </dl>
+                </div>
             </div>
 
             <div class="border-t border-slate-100 pt-8">
@@ -98,121 +124,69 @@
                     <div class="w-1 h-5 rounded-full bg-gradient-to-b from-emerald-500 to-teal-500"></div>
                     <h3 class="text-base font-bold text-slate-800">Bank Details</h3>
                 </div>
-                <dl class="grid grid-cols-1 sm:grid-cols-2 gap-y-5 gap-x-8">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     @foreach ($bankFields as $f)
                         <div>
-                            <dt class="text-[11px] font-semibold text-emerald-500 uppercase tracking-wider">{{ $f['label'] }}</dt>
-                            <dd class="mt-1 text-slate-800 break-words">
-                                {{ $settings->{$f['key']} ?: '—' }}
-                            </dd>
+                            <label for="{{ $f['key'] }}" class="block text-sm font-semibold text-slate-700 mb-1.5">{{ $f['label'] }}</label>
+                            <input id="{{ $f['key'] }}"
+                                   name="{{ $f['key'] }}"
+                                   type="{{ $f['type'] }}"
+                                   value="{{ old($f['key'], $settings->{$f['key']}) }}"
+                                   placeholder="{{ $f['placeholder'] }}"
+                                   class="w-full px-4 py-2.5 bg-slate-50/70 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-300/60 focus:border-emerald-300/60 outline-none transition text-slate-800 placeholder-slate-400">
+                            @error($f['key'])<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror
                         </div>
                     @endforeach
-                </dl>
+                </div>
             </div>
-        </div>
 
-        {{-- EDIT --}}
-        <div id="panel-edit" class="profile-tab-panel hidden">
-            <form method="POST" action="{{ route('profile.update.details') }}" class="space-y-8">
-                @csrf
-
-                <div>
-                    <div class="flex items-center gap-2 mb-4">
-                        <div class="w-1 h-5 rounded-full bg-gradient-to-b from-fuchsia-500 to-pink-500"></div>
-                        <h3 class="text-base font-bold text-slate-800">Platform Details</h3>
-                    </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                        @foreach ($platformFields as $f)
-                            <div>
-                                <label for="{{ $f['key'] }}" class="block text-sm font-semibold text-slate-700 mb-1.5">{{ $f['label'] }}</label>
-                                <input id="{{ $f['key'] }}"
-                                       name="{{ $f['key'] }}"
-                                       type="{{ $f['type'] }}"
-                                       value="{{ old($f['key'], $settings->{$f['key']}) }}"
-                                       placeholder="{{ $f['placeholder'] }}"
-                                       class="w-full px-4 py-2.5 bg-slate-50/70 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 outline-none transition text-slate-800 placeholder-slate-400">
-                                @error($f['key'])<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror
-                            </div>
-                        @endforeach
-                        <div class="sm:col-span-2">
-                            <label for="address" class="block text-sm font-semibold text-slate-700 mb-1.5">Address</label>
-                            <textarea id="address" name="address" rows="3"
-                                      placeholder="Full address"
-                                      class="w-full px-4 py-2.5 bg-slate-50/70 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 outline-none transition text-slate-800 placeholder-slate-400">{{ old('address', $settings->address) }}</textarea>
-                            @error('address')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror
-                        </div>
-                    </div>
-                </div>
-
-                <div class="border-t border-slate-100 pt-8">
-                    <div class="flex items-center gap-2 mb-4">
-                        <div class="w-1 h-5 rounded-full bg-gradient-to-b from-emerald-500 to-teal-500"></div>
-                        <h3 class="text-base font-bold text-slate-800">Bank Details</h3>
-                    </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                        @foreach ($bankFields as $f)
-                            <div>
-                                <label for="{{ $f['key'] }}" class="block text-sm font-semibold text-slate-700 mb-1.5">{{ $f['label'] }}</label>
-                                <input id="{{ $f['key'] }}"
-                                       name="{{ $f['key'] }}"
-                                       type="{{ $f['type'] }}"
-                                       value="{{ old($f['key'], $settings->{$f['key']}) }}"
-                                       placeholder="{{ $f['placeholder'] }}"
-                                       class="w-full px-4 py-2.5 bg-slate-50/70 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-300/60 focus:border-emerald-300/60 outline-none transition text-slate-800 placeholder-slate-400">
-                                @error($f['key'])<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror
-                            </div>
-                        @endforeach
-                    </div>
-                </div>
-
-                <div class="flex justify-end pt-2">
-                    <button type="submit"
-                            class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-fuchsia-500/90 via-pink-500/90 to-rose-500/90 hover:from-fuchsia-500 hover:via-pink-500 hover:to-rose-500 text-white text-sm font-semibold shadow-lg shadow-pink-500/20 transition">
-                        Save Changes
-                    </button>
-                </div>
-            </form>
-        </div>
-
-        {{-- CHANGE PASSWORD --}}
-        <div id="panel-password" class="profile-tab-panel hidden">
-            <form method="POST" action="{{ route('profile.update.password') }}" class="max-w-md mx-auto space-y-5">
-                @csrf
-
-                <div>
-                    <label for="current_password" class="block text-sm font-semibold text-slate-700 mb-1.5">Old Password</label>
-                    <input id="current_password" name="current_password" type="password" required
-                           placeholder="Enter your current password"
-                           class="w-full px-4 py-2.5 bg-slate-50/70 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 outline-none transition text-slate-800 placeholder-slate-400">
-                    @error('current_password')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror
-                </div>
-
-                <div>
-                    <label for="password" class="block text-sm font-semibold text-slate-700 mb-1.5">New Password</label>
-                    <input id="password" name="password" type="password" required
-                           placeholder="Enter a new password"
-                           class="w-full px-4 py-2.5 bg-slate-50/70 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 outline-none transition text-slate-800 placeholder-slate-400">
-                    <p class="mt-1.5 text-xs text-slate-500">8-16 characters, with at least one letter and one special character.</p>
-                    @error('password')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror
-                </div>
-
-                <div>
-                    <label for="password_confirmation" class="block text-sm font-semibold text-slate-700 mb-1.5">Confirm New Password</label>
-                    <input id="password_confirmation" name="password_confirmation" type="password" required
-                           placeholder="Re-enter the new password"
-                           class="w-full px-4 py-2.5 bg-slate-50/70 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 outline-none transition text-slate-800 placeholder-slate-400">
-                </div>
-
-                <div class="pt-2">
-                    <button type="submit"
-                            class="w-full py-3 rounded-xl bg-gradient-to-r from-fuchsia-500/90 via-pink-500/90 to-rose-500/90 hover:from-fuchsia-500 hover:via-pink-500 hover:to-rose-500 text-white text-sm font-semibold shadow-lg shadow-pink-500/20 transition">
-                        Change Password
-                    </button>
-                </div>
-            </form>
-        </div>
-
+            <div class="flex justify-end pt-2">
+                <button type="submit"
+                        class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-fuchsia-500/90 via-pink-500/90 to-rose-500/90 hover:from-fuchsia-500 hover:via-pink-500 hover:to-rose-500 text-white text-sm font-semibold shadow-lg shadow-pink-500/20 transition">
+                    Save Changes
+                </button>
+            </div>
+        </form>
     </div>
+
+    {{-- CHANGE PASSWORD --}}
+    <div id="panel-password" class="profile-tab-panel hidden">
+        <form method="POST" action="{{ route('profile.update.password') }}" class="max-w-md mx-auto space-y-5">
+            @csrf
+
+            <div>
+                <label for="current_password" class="block text-sm font-semibold text-slate-700 mb-1.5">Old Password</label>
+                <input id="current_password" name="current_password" type="password" required
+                       placeholder="Enter your current password"
+                       class="w-full px-4 py-2.5 bg-slate-50/70 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 outline-none transition text-slate-800 placeholder-slate-400">
+                @error('current_password')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror
+            </div>
+
+            <div>
+                <label for="password" class="block text-sm font-semibold text-slate-700 mb-1.5">New Password</label>
+                <input id="password" name="password" type="password" required
+                       placeholder="Enter a new password"
+                       class="w-full px-4 py-2.5 bg-slate-50/70 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 outline-none transition text-slate-800 placeholder-slate-400">
+                <p class="mt-1.5 text-xs text-slate-500">8-16 characters, with at least one letter and one special character.</p>
+                @error('password')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror
+            </div>
+
+            <div>
+                <label for="password_confirmation" class="block text-sm font-semibold text-slate-700 mb-1.5">Confirm New Password</label>
+                <input id="password_confirmation" name="password_confirmation" type="password" required
+                       placeholder="Re-enter the new password"
+                       class="w-full px-4 py-2.5 bg-slate-50/70 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 outline-none transition text-slate-800 placeholder-slate-400">
+            </div>
+
+            <div class="pt-2">
+                <button type="submit"
+                        class="w-full py-3 rounded-xl bg-gradient-to-r from-fuchsia-500/90 via-pink-500/90 to-rose-500/90 hover:from-fuchsia-500 hover:via-pink-500 hover:to-rose-500 text-white text-sm font-semibold shadow-lg shadow-pink-500/20 transition">
+                    Change Password
+                </button>
+            </div>
+        </form>
+    </div>
+
 </div>
 
 <script>
