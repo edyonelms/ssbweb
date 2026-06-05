@@ -82,28 +82,23 @@
 
 @section('admin-header')
 <div class="sticky top-0 z-20 bg-white border-b border-slate-200">
-    {{-- Title + tabs row --}}
-    <div class="px-6 lg:px-10 pt-3 pb-0 flex flex-wrap items-baseline gap-x-6 gap-y-2 border-b border-slate-100">
-        <h2 class="text-base font-bold text-slate-800 mr-auto">Master Data</h2>
-        <div class="flex items-center gap-1 -mb-px overflow-x-auto">
-            @foreach ($tabs as $key => $label)
-                @php $isActive = $tab === $key; @endphp
-                <a href="{{ $tabUrl($key) }}"
-                   class="relative px-3 sm:px-4 py-2.5 text-sm font-medium whitespace-nowrap transition
-                          {{ $isActive ? 'text-pink-600 font-semibold' : 'text-slate-500 hover:text-pink-600' }}">
-                    {{ $label }}
-                    @if ($isActive)
-                        <span class="absolute left-2 right-2 bottom-0 h-0.5 rounded-full bg-pink-500"></span>
-                    @endif
-                </a>
-            @endforeach
-        </div>
-    </div>
 
-    {{-- Per-tab analytics + Add button --}}
+    {{-- ROW 1 — Header: title + subtitle + per-tab analytics + Add button --}}
     <div class="px-6 lg:px-10 py-3 flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-slate-100">
+        <div class="mr-auto">
+            <h2 class="text-base font-bold text-slate-800">Master Data</h2>
+            <p class="text-xs text-slate-500 mt-0.5">
+                @if ($tab === 'university')
+                    Manage universities &amp; boards used across the platform
+                @elseif ($tab === 'courses')
+                    Programs offered by each university or board
+                @else
+                    Per-semester fee per course; total auto-calculated from duration
+                @endif
+            </p>
+        </div>
+
         @if ($tab === 'university')
-            <p class="text-xs text-slate-500 mr-auto">Manage universities & boards used across the platform</p>
             <div class="flex items-center gap-x-6 gap-y-1 text-xs text-slate-500 flex-wrap">
                 <span>Total: <span class="text-slate-800 font-semibold ml-1">{{ $stats['universities']['total'] }}</span></span>
                 <span>Universities: <span class="text-pink-600 font-semibold ml-1">{{ $stats['universities']['university'] }}</span></span>
@@ -117,7 +112,6 @@
                 </button>
             @endif
         @elseif ($tab === 'courses')
-            <p class="text-xs text-slate-500 mr-auto">Programs offered by each university or board</p>
             <div class="flex items-center gap-x-6 gap-y-1 text-xs text-slate-500 flex-wrap">
                 <span>Total: <span class="text-slate-800 font-semibold ml-1">{{ $stats['courses']['total'] }}</span></span>
                 <span>Universities: <span class="text-pink-600 font-semibold ml-1">{{ $stats['courses']['universities'] }}</span></span>
@@ -131,7 +125,6 @@
                 </button>
             @endif
         @else
-            <p class="text-xs text-slate-500 mr-auto">Per-semester fee per course; total auto-calculated from duration</p>
             <div class="flex items-center gap-x-6 gap-y-1 text-xs text-slate-500 flex-wrap">
                 <span>Total: <span class="text-slate-800 font-semibold ml-1">{{ $stats['fees']['total'] }}</span></span>
                 <span>Priced: <span class="text-pink-600 font-semibold ml-1">{{ $stats['fees']['priced'] }}</span></span>
@@ -147,7 +140,22 @@
         @endif
     </div>
 
-    {{-- Filter row (per tab) --}}
+    {{-- ROW 2 — Three tabs (University / Courses / Fee Structure) --}}
+    <div class="px-4 lg:px-8 flex gap-0 overflow-x-auto border-b border-slate-100" role="tablist">
+        @foreach ($tabs as $key => $label)
+            @php $isActive = $tab === $key; @endphp
+            <a href="{{ $tabUrl($key) }}"
+               class="relative px-3 sm:px-4 py-2.5 text-sm font-medium whitespace-nowrap transition
+                      {{ $isActive ? 'text-pink-600 font-semibold' : 'text-slate-500 hover:text-pink-600' }}">
+                {{ $label }}
+                @if ($isActive)
+                    <span class="absolute left-3 right-3 sm:left-4 sm:right-4 bottom-0 h-0.5 rounded-full bg-pink-500"></span>
+                @endif
+            </a>
+        @endforeach
+    </div>
+
+    {{-- ROW 3 — Filter row (per tab) --}}
     <div class="px-6 lg:px-10 py-2.5 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs">
         <div class="flex items-center gap-1.5 text-slate-500">
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
