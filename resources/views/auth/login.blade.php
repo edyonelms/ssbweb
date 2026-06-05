@@ -7,7 +7,7 @@
 
     {{-- LEFT PANEL : Mangalayatan University brand block --}}
     <div class="hidden lg:flex w-1/2 h-screen items-center justify-center bg-white px-10"
-         style="background-image: url('{{ asset('images/login-left.webp') }}'); background-size: contain; background-position: center; background-repeat: no-repeat;">
+         style="background-image: url('{{ asset('images/login-left.png') }}'); background-size: contain; background-position: center; background-repeat: no-repeat;">
     </div>
 
     {{-- RIGHT PANEL : soft pink/lavender gradient with form --}}
