@@ -54,12 +54,12 @@ class MarketingController extends Controller
     }
 
     /**
-     * Login lives on the same apex host as the marketing site
-     * (ssbeducation.in/login). Laravel resolves the right absolute
-     * URL because the /login route has no domain constraint.
+     * Marketing's Login CTA points at the splash screen rather than the
+     * raw login form so visitors see the campus image first and click
+     * "Continue to Login" to actually sign in.
      */
     private function loginUrl(): string
     {
-        return route('login');
+        return route('welcome');
     }
 }

@@ -50,7 +50,16 @@ if (app()->environment('production')) {
 //  here and be served on the same domain.
 // ─────────────────────────────────────────────────────────────────────
 
-Route::get('/', fn () => view('welcome'))->name('welcome');
+// Splash screen that bridges the marketing site and the login form.
+// Visitors land here from the marketing navbar's Login CTA, see the
+// university image full-bleed, and click "Continue to Login" to reach
+// the actual form at /login.
+Route::get('/welcome', fn () => view('welcome'))->name('welcome');
+
+// Non-apex hosts (localhost, www.* before DNS, etc.) don't have a
+// marketing handler at `/`, so bounce them onto the splash so something
+// always renders at the root.
+Route::get('/', fn () => redirect()->route('welcome'));
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
