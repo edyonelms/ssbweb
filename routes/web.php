@@ -5,6 +5,7 @@ use App\Http\Controllers\AnnouncementsController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EnquiriesController;
+use App\Http\Controllers\FeeCalculatorController;
 use App\Http\Controllers\MarketingController;
 use App\Http\Controllers\MasterDataController;
 use App\Http\Controllers\ProfileController;
@@ -86,6 +87,9 @@ Route::middleware('auth')->group(function () {
     Route::resource('students', StudentsController::class)
         ->only(['index', 'store', 'update', 'destroy'])
         ->whereNumber('student');
+
+    // Fee Calculator — both roles get the same client-side calculator.
+    Route::get('/fee-calculator', [FeeCalculatorController::class, 'index'])->name('fee-calculator');
 
     // Wallet — both roles see the listing; admin alone may update wallets.
     Route::get('/wallet', [WalletController::class, 'index'])->name('wallet.index');
