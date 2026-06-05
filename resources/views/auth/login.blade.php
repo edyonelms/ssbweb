@@ -5,16 +5,15 @@
 @section('content')
 <div class="h-screen w-full overflow-hidden flex">
 
-    {{-- LEFT PANEL : plain white, just the big logo --}}
-    <div class="hidden lg:flex w-1/2 items-center justify-center px-12 bg-white">
-        <img src="{{ $logoUrl }}" alt="SSB Education" class="max-w-[420px] w-full h-auto object-contain drop-shadow-md">
+    {{-- LEFT PANEL : full-bleed campus image --}}
+    <div class="hidden lg:block w-1/2 h-screen bg-cover bg-center" style="background-image: url('{{ asset('images/welcome.jpg') }}');">
     </div>
 
     {{-- RIGHT PANEL : soft pink/lavender gradient with form --}}
     <div class="w-full lg:w-1/2 flex items-center justify-center px-6 py-8 bg-gradient-to-br from-pink-100/50 via-rose-50/40 to-purple-100/40">
         <div class="w-full max-w-md">
             <div class="text-center mb-6">
-                <img src="{{ $logoUrl }}" alt="SSB Education" class="w-20 h-20 mx-auto mb-2 drop-shadow object-contain lg:hidden">
+                <img src="{{ asset('images/logo.png') }}" alt="SSB Education" class="w-20 h-20 mx-auto mb-2 drop-shadow object-contain">
                 <div class="text-[11px] font-semibold tracking-[0.3em] text-pink-500/80">SSB EDUCATION</div>
             </div>
 
