@@ -42,6 +42,7 @@
         'logout'     => '<path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>',
         'arrowLeft'  => '<path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>',
         'search'     => '<path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z"/>',
+        'bell'       => '<path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>',
     ];
 
     $walletAmount = 3260;
@@ -52,8 +53,13 @@
     {{-- SIDEBAR --}}
     <aside class="hidden md:flex md:w-64 bg-white border-r border-slate-200 flex-col relative z-40">
         <div class="px-6 py-6 border-b border-slate-100 flex flex-col items-center text-center">
-            <img src="{{ $logoUrl }}" alt="SSB Education" class="w-20 h-20 object-contain drop-shadow mb-2">
-            <div class="font-extrabold text-slate-800 leading-tight text-base">SSB EDUCATION</div>
+            @if ($isAdmin)
+                <img src="{{ asset('images/logo.png') }}" alt="SSB Education" class="w-20 h-20 object-contain drop-shadow mb-2">
+                <div class="font-extrabold text-slate-800 leading-tight text-base">SSB EDUCATION</div>
+            @else
+                <img src="{{ asset('images/login-left.png') }}" alt="Mangalayatan University"
+                     class="max-w-full h-auto max-h-28 object-contain drop-shadow">
+            @endif
         </div>
 
         <div class="px-6 pt-5 pb-2 text-[11px] font-semibold tracking-[0.2em] text-slate-400 uppercase">
@@ -124,6 +130,13 @@
                     </svg>
                     ₹{{ number_format($walletAmount) }}
                 </div>
+
+                <button type="button" title="Notifications"
+                        class="relative w-10 h-10 rounded-full bg-amber-50 border border-amber-100 text-amber-600 hover:bg-amber-100 hover:text-amber-700 flex items-center justify-center transition">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+                        {!! $icons['bell'] !!}
+                    </svg>
+                </button>
 
                 <a href="{{ $isAdmin ? route('profile.index') : route('account.index') }}" title="Profile"
                    class="w-10 h-10 rounded-full bg-pink-50 border border-pink-100 text-pink-600 hover:bg-pink-100 hover:text-pink-700 flex items-center justify-center transition">
