@@ -54,15 +54,12 @@ class MarketingController extends Controller
     }
 
     /**
-     * Pick the correct login URL based on environment. In production we
-     * send the visitor to the dedicated app subdomain; locally we point
-     * back at the same host.
+     * Login lives on the same apex host as the marketing site
+     * (ssbeducation.in/login). Laravel resolves the right absolute
+     * URL because the /login route has no domain constraint.
      */
     private function loginUrl(): string
     {
-        if (app()->environment('production')) {
-            return 'https://user.ssbeducation.in/login';
-        }
         return route('login');
     }
 }

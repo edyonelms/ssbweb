@@ -43,11 +43,11 @@ if (app()->environment('production')) {
 // ─────────────────────────────────────────────────────────────────────
 //  App (login + dashboard + everything else)
 //
-//  All app routes are registered without a domain constraint so they
-//  remain reachable on user.ssbeducation.in (production), on the apex
-//  as a fallback while DNS is being set up, and on localhost during
-//  development. The apex marketing routes above are evaluated first
-//  for `ssbeducation.in/` so the landing page wins there.
+//  App routes share the same apex host as the marketing site, so
+//  they're registered without a domain constraint. The apex marketing
+//  routes above are evaluated first and win at `ssbeducation.in/`,
+//  leaving every other path (e.g. /login, /dashboard) to fall through
+//  here and be served on the same domain.
 // ─────────────────────────────────────────────────────────────────────
 
 Route::get('/', fn () => view('welcome'))->name('welcome');
