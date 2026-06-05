@@ -4,6 +4,8 @@ use App\Http\Controllers\AccountController;
 use App\Http\Controllers\AnnouncementsController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\EnquiriesController;
+use App\Http\Controllers\MarketingController;
 use App\Http\Controllers\MasterDataController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\StudentsController;
@@ -11,6 +13,42 @@ use App\Http\Controllers\SupportController;
 use App\Http\Controllers\UsersController;
 use App\Http\Controllers\WalletController;
 use Illuminate\Support\Facades\Route;
+
+// ─────────────────────────────────────────────────────────────────────
+//  Marketing site
+//
+//  In production the public website lives on the bare domain
+//  ssbeducation.in. Locally we expose it under /marketing so devs can
+//  still hit it without setting up host aliases. Route names stay the
+//  same (`marketing.home`, `marketing.enquiry`) in both environments so
+//  view code doesn't have to care.
+// ─────────────────────────────────────────────────────────────────────
+
+if (app()->environment('production')) {
+    Route::domain('ssbeducation.in')->group(function () {
+        Route::get('/',         [MarketingController::class, 'home'])->name('marketing.home');
+        Route::post('/enquiry', [MarketingController::class, 'storeEnquiry'])->name('marketing.enquiry');
+    });
+    Route::domain('www.ssbeducation.in')->group(function () {
+        Route::get('/',         [MarketingController::class, 'home']);
+        Route::post('/enquiry', [MarketingController::class, 'storeEnquiry']);
+    });
+} else {
+    Route::prefix('marketing')->name('marketing.')->group(function () {
+        Route::get('/',         [MarketingController::class, 'home'])->name('home');
+        Route::post('/enquiry', [MarketingController::class, 'storeEnquiry'])->name('enquiry');
+    });
+}
+
+// ─────────────────────────────────────────────────────────────────────
+//  App (login + dashboard + everything else)
+//
+//  All app routes are registered without a domain constraint so they
+//  remain reachable on user.ssbeducation.in (production), on the apex
+//  as a fallback while DNS is being set up, and on localhost during
+//  development. The apex marketing routes above are evaluated first
+//  for `ssbeducation.in/` so the landing page wins there.
+// ─────────────────────────────────────────────────────────────────────
 
 Route::get('/', fn () => view('welcome'))->name('welcome');
 
@@ -77,6 +115,15 @@ Route::middleware('auth')->group(function () {
             ->whereNumber('announcement')->name('announcements.update');
         Route::delete('/announcements/{announcement}', [AnnouncementsController::class, 'destroy'])
             ->whereNumber('announcement')->name('announcements.destroy');
+    });
+
+    // Enquiries — admin reviews the leads captured by the marketing form.
+    Route::middleware('admin')->group(function () {
+        Route::get('/enquiries', [EnquiriesController::class, 'index'])->name('enquiries.index');
+        Route::put('/enquiries/{enquiry}', [EnquiriesController::class, 'update'])
+            ->whereNumber('enquiry')->name('enquiries.update');
+        Route::delete('/enquiries/{enquiry}', [EnquiriesController::class, 'destroy'])
+            ->whereNumber('enquiry')->name('enquiries.destroy');
     });
 
     Route::middleware('admin')->group(function () {

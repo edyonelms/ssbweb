@@ -34,6 +34,7 @@
         'support'      => '<path stroke-linecap="round" stroke-linejoin="round" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>',
         'fee'          => '<path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M5 6h14a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2z"/>',
         'university'   => '<path stroke-linecap="round" stroke-linejoin="round" d="M3 21h18M5 21V7l7-4 7 4v14M9 9h.01M9 13h.01M14 9h.01M14 13h.01"/>',
+        'enquiry'      => '<path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.86 9.86 0 01-4-.84L3 20l1.13-3.39A7.94 7.94 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>',
     ];
 
     $activityColorMap = [
@@ -42,6 +43,7 @@
         'support'      => 'bg-sky-50 text-sky-600',
         'fee'          => 'bg-emerald-50 text-emerald-600',
         'university'   => 'bg-violet-50 text-violet-600',
+        'enquiry'      => 'bg-rose-50 text-rose-600',
     ];
 @endphp
 
@@ -285,9 +287,11 @@
         <div class="flex items-center justify-between mb-4">
             <div>
                 <h3 class="text-sm font-bold text-slate-800">Enquiries</h3>
-                <p class="text-[11px] text-slate-500">External enquiries pipeline</p>
+                <p class="text-[11px] text-slate-500">Leads from the marketing site</p>
             </div>
-            <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-slate-100 text-slate-500">Soon</span>
+            @if ($isAdmin)
+                <a href="{{ route('enquiries.index') }}" class="text-xs font-semibold text-pink-600 hover:underline">Review →</a>
+            @endif
         </div>
 
         <div class="grid grid-cols-3 gap-3 mb-4">
@@ -305,8 +309,10 @@
             </div>
         </div>
 
-        <div class="rounded-lg bg-slate-50/60 border border-dashed border-slate-200 p-4 text-center">
-            <p class="text-xs text-slate-500">The enquiries module is wired into this dashboard slot. Once enquiries data is captured it will appear here.</p>
+        <div class="rounded-lg bg-pink-50/40 border border-pink-100 p-3 text-center">
+            <p class="text-xs text-slate-600">Visitors submitting the contact form on
+                <a href="https://ssbeducation.in" class="font-semibold text-pink-600 hover:underline">ssbeducation.in</a>
+                land here automatically.</p>
         </div>
     </div>
 </div>

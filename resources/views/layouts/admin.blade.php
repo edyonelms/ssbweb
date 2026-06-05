@@ -13,7 +13,7 @@
         ['label' => 'Accounts',      'href' => '#',                      'route' => null,         'icon' => 'cards'],
         ['label' => 'Wallet',        'href' => route('wallet.index'),    'route' => 'wallet.*',   'icon' => 'wallet'],
         ['label' => 'Support',       'href' => route('support.index'),    'route' => 'support.*',  'icon' => 'support'],
-        ['label' => 'Enquiries',     'href' => '#',                      'route' => null,         'icon' => 'enquiries'],
+        ['label' => 'Enquiries',     'href' => route('enquiries.index'),  'route' => 'enquiries.*', 'icon' => 'enquiries'],
         ['label' => 'Fee Calculator','href' => '#',                      'route' => null,         'icon' => 'calculator'],
         ['label' => 'Profile',       'href' => route('profile.index'),   'route' => 'profile.*',  'icon' => 'user'],
     ] : [

@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Announcement;
+use App\Models\Enquiry;
 use App\Models\FeeStructure;
 use App\Models\Student;
 use App\Models\SupportQuery;
 use App\Models\University;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -87,14 +89,15 @@ class DashboardController extends Controller
             'replied' => (clone $supportBase)->where('status', SupportQuery::STATUS_APPROVED)->count(),
         ];
 
-        // ───────────────────── Enquiries (placeholder) ─────────────────────
-        // No dedicated enquiries module yet — surface zeros so the card slot
-        // is wired up and ready when the module lands.
-        $enquiryStats = [
-            'total'    => 0,
-            'pending'  => 0,
-            'approved' => 0,
-        ];
+        // ───────────────────── Enquiries (admin only) ─────────────────────
+        $enquiryStats = ['total' => 0, 'pending' => 0, 'approved' => 0];
+        if ($isAdmin && Schema::hasTable('enquiries')) {
+            $enquiryStats = [
+                'total'    => Enquiry::count(),
+                'pending'  => Enquiry::where('status', Enquiry::STATUS_PENDING)->count(),
+                'approved' => Enquiry::where('status', Enquiry::STATUS_APPROVED)->count(),
+            ];
+        }
 
         // ───────────────────── Recent activity ─────────────────────
 
@@ -148,6 +151,19 @@ class DashboardController extends Controller
             });
 
         if ($isAdmin) {
+            if (Schema::hasTable('enquiries')) {
+                Enquiry::latest()->limit(5)->get(['id', 'name', 'subject', 'created_at'])
+                    ->each(function ($e) use (&$activities) {
+                        $activities->push([
+                            'type'  => 'enquiry',
+                            'title' => 'New enquiry',
+                            'meta'  => $e->name.($e->subject ? ' — '.$e->subject : ''),
+                            'at'    => $e->created_at,
+                            'href'  => route('enquiries.index'),
+                        ]);
+                    });
+            }
+
             FeeStructure::with('course:id,name')->latest()->limit(5)->get()
                 ->each(function ($f) use (&$activities) {
                     $activities->push([
