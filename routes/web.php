@@ -4,6 +4,7 @@ use App\Http\Controllers\AccountController;
 use App\Http\Controllers\AnnouncementsController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\MasterDataController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\StudentsController;
 use App\Http\Controllers\SupportController;
@@ -35,6 +36,25 @@ Route::middleware('auth')->group(function () {
     Route::resource('students', StudentsController::class)
         ->only(['index', 'store', 'update', 'destroy'])
         ->whereNumber('student');
+
+    // Master Data — admin manages universities/courses/fees, sub-admin reads only.
+    Route::prefix('master-data')->name('master.')->group(function () {
+        Route::get('/', [MasterDataController::class, 'index'])->name('index');
+
+        Route::middleware('admin')->group(function () {
+            Route::post('/universities',                [MasterDataController::class, 'storeUniversity'])->name('universities.store');
+            Route::put('/universities/{university}',    [MasterDataController::class, 'updateUniversity'])->whereNumber('university')->name('universities.update');
+            Route::delete('/universities/{university}', [MasterDataController::class, 'destroyUniversity'])->whereNumber('university')->name('universities.destroy');
+
+            Route::post('/courses',           [MasterDataController::class, 'storeCourse'])->name('courses.store');
+            Route::put('/courses/{course}',   [MasterDataController::class, 'updateCourse'])->whereNumber('course')->name('courses.update');
+            Route::delete('/courses/{course}',[MasterDataController::class, 'destroyCourse'])->whereNumber('course')->name('courses.destroy');
+
+            Route::post('/fees',          [MasterDataController::class, 'storeFee'])->name('fees.store');
+            Route::put('/fees/{fee}',     [MasterDataController::class, 'updateFee'])->whereNumber('fee')->name('fees.update');
+            Route::delete('/fees/{fee}',  [MasterDataController::class, 'destroyFee'])->whereNumber('fee')->name('fees.destroy');
+        });
+    });
 
     // Support — open to everyone; admin sees all, subadmin sees own.
     Route::get('/support', [SupportController::class, 'index'])->name('support.index');

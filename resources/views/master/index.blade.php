@@ -1,0 +1,616 @@
+@extends('layouts.admin')
+
+@section('title', 'Master Data - SSB Education')
+
+@php
+    /** @var string $tab */
+    /** @var string $search */
+    /** @var int|null|string $universityFilter */
+    /** @var \Illuminate\Support\Collection $universities */
+    /** @var \Illuminate\Support\Collection $courses */
+    /** @var \Illuminate\Support\Collection $fees */
+    /** @var \Illuminate\Support\Collection $allUniversities */
+    /** @var \Illuminate\Support\Collection $allCourses */
+    /** @var array $stats */
+    /** @var bool $isAdmin */
+
+    $tabs = [
+        'university' => 'University',
+        'courses'    => 'Courses',
+        'fees'       => 'Fee Structure',
+    ];
+
+    $tabUrl = function (string $key) {
+        return route('master.index', ['tab' => $key]);
+    };
+
+    $buildUrl = function (array $overrides) use ($tab, $search, $universityFilter) {
+        $params = array_filter(array_merge([
+            'tab'           => $tab,
+            'q'             => $search !== '' ? $search : null,
+            'university_id' => $universityFilter ?: null,
+        ], $overrides), fn ($v) => $v !== null && $v !== '');
+        return route('master.index').'?'.http_build_query($params);
+    };
+
+    // JSON blobs powering the slide-in panel.
+    $universitiesData = $universities->map(fn ($u) => [
+        'id'               => $u->id,
+        'name'             => $u->name,
+        'image_url'        => $u->image_url,
+        'address'          => $u->address,
+        'type'             => $u->type,
+        'website'          => $u->website,
+        'registration_fee' => (float) $u->registration_fee,
+        'created_at'       => $u->created_at?->format('d M Y'),
+    ])->keyBy('id');
+
+    $coursesData = $courses->map(fn ($c) => [
+        'id'             => $c->id,
+        'university_id'  => $c->university_id,
+        'university'     => $c->university?->name,
+        'name'           => $c->name,
+        'mode'           => $c->mode,
+        'duration_years' => (float) $c->duration_years,
+        'lateral_entry'  => (bool) $c->lateral_entry,
+        'subjects'       => $c->subjects,
+        'semesters'      => $c->semesterCount(),
+        'created_at'     => $c->created_at?->format('d M Y'),
+    ])->keyBy('id');
+
+    $allCoursesData = $allCourses->map(fn ($c) => [
+        'id'             => $c->id,
+        'university_id'  => $c->university_id,
+        'name'           => $c->name,
+        'duration_years' => (float) $c->duration_years,
+        'semesters'      => $c->semesterCount(),
+    ])->values();
+
+    $feesData = $fees->map(fn ($f) => [
+        'id'             => $f->id,
+        'university_id'  => $f->university_id,
+        'university'     => $f->university?->name,
+        'course_id'      => $f->course_id,
+        'course'         => $f->course?->name,
+        'duration_years' => (float) ($f->course?->duration_years ?? 0),
+        'semesters'      => $f->course?->semesterCount() ?? 0,
+        'fee_per_sem'    => (float) $f->fee_per_sem,
+        'total_fee'      => $f->totalFee(),
+        'created_at'     => $f->created_at?->format('d M Y'),
+    ])->keyBy('id');
+@endphp
+
+@section('admin-header')
+<div class="sticky top-0 z-20 bg-white border-b border-slate-200">
+    {{-- Title + tabs row --}}
+    <div class="px-6 lg:px-10 pt-3 pb-0 flex flex-wrap items-baseline gap-x-6 gap-y-2 border-b border-slate-100">
+        <h2 class="text-base font-bold text-slate-800 mr-auto">Master Data</h2>
+        <div class="flex items-center gap-1 -mb-px overflow-x-auto">
+            @foreach ($tabs as $key => $label)
+                @php $isActive = $tab === $key; @endphp
+                <a href="{{ $tabUrl($key) }}"
+                   class="relative px-3 sm:px-4 py-2.5 text-sm font-medium whitespace-nowrap transition
+                          {{ $isActive ? 'text-pink-600 font-semibold' : 'text-slate-500 hover:text-pink-600' }}">
+                    {{ $label }}
+                    @if ($isActive)
+                        <span class="absolute left-2 right-2 bottom-0 h-0.5 rounded-full bg-pink-500"></span>
+                    @endif
+                </a>
+            @endforeach
+        </div>
+    </div>
+
+    {{-- Per-tab analytics + Add button --}}
+    <div class="px-6 lg:px-10 py-3 flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-slate-100">
+        @if ($tab === 'university')
+            <p class="text-xs text-slate-500 mr-auto">Manage universities & boards used across the platform</p>
+            <div class="flex items-center gap-x-6 gap-y-1 text-xs text-slate-500 flex-wrap">
+                <span>Total: <span class="text-slate-800 font-semibold ml-1">{{ $stats['universities']['total'] }}</span></span>
+                <span>Universities: <span class="text-pink-600 font-semibold ml-1">{{ $stats['universities']['university'] }}</span></span>
+                <span>Boards: <span class="text-emerald-600 font-semibold ml-1">{{ $stats['universities']['board'] }}</span></span>
+            </div>
+            @if ($isAdmin)
+                <button type="button" onclick="MasterPanel.openCreate('university')"
+                        class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-pink-600 hover:bg-pink-700 text-white text-sm font-semibold transition">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                    Add University
+                </button>
+            @endif
+        @elseif ($tab === 'courses')
+            <p class="text-xs text-slate-500 mr-auto">Programs offered by each university or board</p>
+            <div class="flex items-center gap-x-6 gap-y-1 text-xs text-slate-500 flex-wrap">
+                <span>Total: <span class="text-slate-800 font-semibold ml-1">{{ $stats['courses']['total'] }}</span></span>
+                <span>Universities: <span class="text-pink-600 font-semibold ml-1">{{ $stats['courses']['universities'] }}</span></span>
+                <span>Lateral Entry: <span class="text-emerald-600 font-semibold ml-1">{{ $stats['courses']['lateral'] }}</span></span>
+            </div>
+            @if ($isAdmin)
+                <button type="button" onclick="MasterPanel.openCreate('course')"
+                        class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-pink-600 hover:bg-pink-700 text-white text-sm font-semibold transition">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                    Add Course
+                </button>
+            @endif
+        @else
+            <p class="text-xs text-slate-500 mr-auto">Per-semester fee per course; total auto-calculated from duration</p>
+            <div class="flex items-center gap-x-6 gap-y-1 text-xs text-slate-500 flex-wrap">
+                <span>Total: <span class="text-slate-800 font-semibold ml-1">{{ $stats['fees']['total'] }}</span></span>
+                <span>Priced: <span class="text-pink-600 font-semibold ml-1">{{ $stats['fees']['priced'] }}</span></span>
+                <span>Free: <span class="text-emerald-600 font-semibold ml-1">{{ $stats['fees']['free'] }}</span></span>
+            </div>
+            @if ($isAdmin)
+                <button type="button" onclick="MasterPanel.openCreate('fee')"
+                        class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-pink-600 hover:bg-pink-700 text-white text-sm font-semibold transition">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                    Add Fee Structure
+                </button>
+            @endif
+        @endif
+    </div>
+
+    {{-- Filter row (per tab) --}}
+    <div class="px-6 lg:px-10 py-2.5 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs">
+        <div class="flex items-center gap-1.5 text-slate-500">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
+            </svg>
+            <span class="font-semibold text-slate-600">Filter by:</span>
+        </div>
+
+        @if ($tab === 'courses' || $tab === 'fees')
+            <form method="GET" action="{{ route('master.index') }}" class="flex items-center gap-2">
+                <input type="hidden" name="tab" value="{{ $tab }}">
+                @if ($search !== '')
+                    <input type="hidden" name="q" value="{{ $search }}">
+                @endif
+                <span class="text-slate-500">University:</span>
+                <select name="university_id" onchange="this.form.submit()"
+                        class="px-3 py-1.5 bg-white border border-slate-200 rounded-full text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 transition">
+                    <option value="">All</option>
+                    @foreach ($allUniversities as $u)
+                        <option value="{{ $u->id }}" {{ (string) $universityFilter === (string) $u->id ? 'selected' : '' }}>{{ $u->name }}</option>
+                    @endforeach
+                </select>
+            </form>
+        @endif
+
+        <form method="GET" action="{{ route('master.index') }}" class="ml-auto flex items-center gap-2">
+            <input type="hidden" name="tab" value="{{ $tab }}">
+            @if (! empty($universityFilter))
+                <input type="hidden" name="university_id" value="{{ $universityFilter }}">
+            @endif
+            <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400">
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z"/>
+                    </svg>
+                </div>
+                <input type="text" name="q" value="{{ $search }}"
+                       placeholder="Search..."
+                       class="w-56 sm:w-64 pl-7 pr-3 py-1.5 bg-white border border-slate-200 rounded-full text-xs placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 transition">
+            </div>
+            <button type="submit"
+                    class="px-3 py-1.5 rounded-full text-xs font-semibold bg-pink-600 hover:bg-pink-700 text-white transition">
+                Search
+            </button>
+            @if ($search !== '')
+                <a href="{{ $buildUrl(['q' => null]) }}"
+                   class="px-2 py-1.5 rounded-full text-xs font-semibold text-slate-500 hover:bg-slate-100 transition" title="Clear search">
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                </a>
+            @endif
+        </form>
+    </div>
+</div>
+@endsection
+
+@section('admin')
+<div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+
+    {{-- ────────────── UNIVERSITY TAB ────────────── --}}
+    @if ($tab === 'university')
+        @if ($universities->isEmpty())
+            @include('master._empty', ['icon' => 'building', 'title' => 'No universities yet', 'subtitle' => 'Add your first university or board to get started.', 'action' => $isAdmin ? 'university' : null])
+        @else
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="text-[11px] font-semibold tracking-wider uppercase text-slate-500 border-b border-slate-200">
+                        <tr>
+                            <th class="text-left px-6 py-3">Name</th>
+                            <th class="text-left px-6 py-3">Type</th>
+                            <th class="text-left px-6 py-3">Website</th>
+                            <th class="text-right px-6 py-3">Reg. Fee</th>
+                            @if ($isAdmin)<th class="text-right px-6 py-3">Actions</th>@endif
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        @foreach ($universities as $u)
+                            <tr class="hover:bg-slate-50 transition cursor-pointer" onclick="MasterPanel.openView('university', {{ $u->id }})">
+                                <td class="px-6 py-3">
+                                    <div class="flex items-center gap-3">
+                                        @if ($u->image_url)
+                                            <img src="{{ $u->image_url }}" alt="" class="w-9 h-9 rounded-md object-cover bg-slate-100">
+                                        @else
+                                            <div class="w-9 h-9 rounded-md bg-pink-50 text-pink-600 font-bold text-sm flex items-center justify-center">{{ strtoupper(mb_substr($u->name, 0, 1)) }}</div>
+                                        @endif
+                                        <div>
+                                            <div class="font-medium text-slate-800">{{ $u->name }}</div>
+                                            @if ($u->address)<div class="text-xs text-slate-500 line-clamp-1">{{ $u->address }}</div>@endif
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-3">
+                                    @if ($u->type === 'board')
+                                        <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700">Board</span>
+                                    @else
+                                        <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-pink-50 text-pink-700">University</span>
+                                    @endif
+                                </td>
+                                <td class="px-6 py-3 text-slate-600 max-w-xs truncate">{{ $u->website ?: '—' }}</td>
+                                <td class="px-6 py-3 text-right text-slate-700 font-medium">₹{{ number_format((float) $u->registration_fee) }}</td>
+                                @if ($isAdmin)
+                                    <td class="px-6 py-3">
+                                        <div class="flex items-center justify-end gap-1" onclick="event.stopPropagation()">
+                                            <button type="button" onclick="MasterPanel.openEdit('university', {{ $u->id }})" title="Edit" class="w-8 h-8 rounded-md text-slate-500 hover:bg-slate-100 hover:text-pink-600 inline-flex items-center justify-center transition">
+                                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                            </button>
+                                            <form method="POST" action="{{ route('master.universities.destroy', $u) }}"
+                                                  onsubmit="return confirmAction(this, 'Delete this university? All linked courses and fee structures will also be removed.', 'Delete university');">
+                                                @csrf @method('DELETE')
+                                                <button type="submit" title="Delete" class="w-8 h-8 rounded-md text-slate-500 hover:bg-slate-100 hover:text-rose-600 inline-flex items-center justify-center transition">
+                                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3"/></svg>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                @endif
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @endif
+
+    {{-- ────────────── COURSES TAB ────────────── --}}
+    @elseif ($tab === 'courses')
+        @if ($courses->isEmpty())
+            @include('master._empty', ['icon' => 'cap', 'title' => 'No courses yet', 'subtitle' => 'Pick a university and add the courses it offers.', 'action' => $isAdmin ? 'course' : null])
+        @else
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="text-[11px] font-semibold tracking-wider uppercase text-slate-500 border-b border-slate-200">
+                        <tr>
+                            <th class="text-left px-6 py-3">Course</th>
+                            <th class="text-left px-6 py-3">University</th>
+                            <th class="text-left px-6 py-3">Mode</th>
+                            <th class="text-right px-6 py-3">Duration</th>
+                            <th class="text-left px-6 py-3">Lateral</th>
+                            @if ($isAdmin)<th class="text-right px-6 py-3">Actions</th>@endif
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        @foreach ($courses as $c)
+                            <tr class="hover:bg-slate-50 transition cursor-pointer" onclick="MasterPanel.openView('course', {{ $c->id }})">
+                                <td class="px-6 py-3">
+                                    <div class="font-medium text-slate-800">{{ $c->name }}</div>
+                                    @if ($c->subjects)<div class="text-xs text-slate-500 line-clamp-1">{{ $c->subjects }}</div>@endif
+                                </td>
+                                <td class="px-6 py-3 text-slate-600">{{ $c->university?->name ?: '—' }}</td>
+                                <td class="px-6 py-3 text-slate-600 capitalize">{{ $c->mode ?: '—' }}</td>
+                                <td class="px-6 py-3 text-right text-slate-700">{{ rtrim(rtrim(number_format((float) $c->duration_years, 1), '0'), '.') }} yrs · {{ $c->semesterCount() }} sem</td>
+                                <td class="px-6 py-3">
+                                    @if ($c->lateral_entry)
+                                        <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700">Yes</span>
+                                    @else
+                                        <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">No</span>
+                                    @endif
+                                </td>
+                                @if ($isAdmin)
+                                    <td class="px-6 py-3">
+                                        <div class="flex items-center justify-end gap-1" onclick="event.stopPropagation()">
+                                            <button type="button" onclick="MasterPanel.openEdit('course', {{ $c->id }})" title="Edit" class="w-8 h-8 rounded-md text-slate-500 hover:bg-slate-100 hover:text-pink-600 inline-flex items-center justify-center transition">
+                                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                            </button>
+                                            <form method="POST" action="{{ route('master.courses.destroy', $c) }}"
+                                                  onsubmit="return confirmAction(this, 'Delete this course? The linked fee structure will also be removed.', 'Delete course');">
+                                                @csrf @method('DELETE')
+                                                <button type="submit" title="Delete" class="w-8 h-8 rounded-md text-slate-500 hover:bg-slate-100 hover:text-rose-600 inline-flex items-center justify-center transition">
+                                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3"/></svg>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                @endif
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @endif
+
+    {{-- ────────────── FEE STRUCTURE TAB ────────────── --}}
+    @else
+        @if ($fees->isEmpty())
+            @include('master._empty', ['icon' => 'fee', 'title' => 'No fee structures yet', 'subtitle' => 'Define per-semester fees for each course.', 'action' => $isAdmin ? 'fee' : null])
+        @else
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="text-[11px] font-semibold tracking-wider uppercase text-slate-500 border-b border-slate-200">
+                        <tr>
+                            <th class="text-left px-6 py-3">University</th>
+                            <th class="text-left px-6 py-3">Course</th>
+                            <th class="text-right px-6 py-3">Semesters</th>
+                            <th class="text-right px-6 py-3">Fee / Sem</th>
+                            <th class="text-right px-6 py-3">Total Fee</th>
+                            @if ($isAdmin)<th class="text-right px-6 py-3">Actions</th>@endif
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        @foreach ($fees as $f)
+                            <tr class="hover:bg-slate-50 transition cursor-pointer" onclick="MasterPanel.openView('fee', {{ $f->id }})">
+                                <td class="px-6 py-3 text-slate-600">{{ $f->university?->name ?: '—' }}</td>
+                                <td class="px-6 py-3">
+                                    <div class="font-medium text-slate-800">{{ $f->course?->name ?: '—' }}</div>
+                                    <div class="text-xs text-slate-500">{{ rtrim(rtrim(number_format((float) ($f->course?->duration_years ?? 0), 1), '0'), '.') }} years</div>
+                                </td>
+                                <td class="px-6 py-3 text-right text-slate-700">{{ $f->course?->semesterCount() ?? 0 }}</td>
+                                <td class="px-6 py-3 text-right text-slate-700 font-medium">₹{{ number_format((float) $f->fee_per_sem) }}</td>
+                                <td class="px-6 py-3 text-right text-pink-600 font-semibold">₹{{ number_format($f->totalFee()) }}</td>
+                                @if ($isAdmin)
+                                    <td class="px-6 py-3">
+                                        <div class="flex items-center justify-end gap-1" onclick="event.stopPropagation()">
+                                            <button type="button" onclick="MasterPanel.openEdit('fee', {{ $f->id }})" title="Edit" class="w-8 h-8 rounded-md text-slate-500 hover:bg-slate-100 hover:text-pink-600 inline-flex items-center justify-center transition">
+                                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                            </button>
+                                            <form method="POST" action="{{ route('master.fees.destroy', $f) }}"
+                                                  onsubmit="return confirmAction(this, 'Delete this fee structure?', 'Delete fee structure');">
+                                                @csrf @method('DELETE')
+                                                <button type="submit" title="Delete" class="w-8 h-8 rounded-md text-slate-500 hover:bg-slate-100 hover:text-rose-600 inline-flex items-center justify-center transition">
+                                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3"/></svg>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                @endif
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @endif
+    @endif
+</div>
+
+@include('master._panel', [
+    'isAdmin'          => $isAdmin,
+    'allUniversities'  => $allUniversities,
+    'allCoursesData'   => $allCoursesData,
+])
+
+<script>
+    window.UNIVERSITIES_DATA = @json($universitiesData);
+    window.COURSES_DATA      = @json($coursesData);
+    window.FEES_DATA         = @json($feesData);
+    window.ALL_COURSES       = @json($allCoursesData);
+    window.IS_ADMIN          = @json($isAdmin);
+
+    const MasterPanel = (function () {
+        const panel    = document.getElementById('masterPanel');
+        const card     = document.getElementById('masterPanelCard');
+        const backdrop = document.getElementById('masterPanelBackdrop');
+        const title    = document.getElementById('masterPanelTitle');
+        const modes    = document.querySelectorAll('.master-mode');
+
+        function show(modeId, titleText) {
+            modes.forEach(m => m.classList.toggle('hidden', m.id !== modeId));
+            title.textContent = titleText;
+            panel.classList.remove('hidden');
+            panel.setAttribute('aria-hidden', 'false');
+            requestAnimationFrame(() => {
+                backdrop.classList.add('opacity-100');
+                backdrop.classList.remove('opacity-0');
+                card.classList.remove('translate-x-full');
+            });
+        }
+        function close() {
+            backdrop.classList.remove('opacity-100');
+            backdrop.classList.add('opacity-0');
+            card.classList.add('translate-x-full');
+            setTimeout(() => {
+                panel.classList.add('hidden');
+                panel.setAttribute('aria-hidden', 'true');
+            }, 250);
+        }
+
+        // ────── University ──────
+        function fillUniversityView(u) {
+            document.getElementById('viewUniversityName').textContent     = u.name;
+            document.getElementById('viewUniversityAddress').textContent  = u.address || '—';
+            document.getElementById('viewUniversityWebsite').textContent  = u.website || '—';
+            document.getElementById('viewUniversityFee').textContent      = '₹' + Number(u.registration_fee || 0).toLocaleString('en-IN');
+            const typeBadge = document.getElementById('viewUniversityType');
+            typeBadge.textContent = u.type === 'board' ? 'Board' : 'University';
+            typeBadge.className = 'inline-block text-[10px] font-semibold px-1.5 py-0.5 rounded ' +
+                (u.type === 'board' ? 'bg-emerald-50 text-emerald-700' : 'bg-pink-50 text-pink-700');
+            const img = document.getElementById('viewUniversityImage');
+            const init = document.getElementById('viewUniversityInitial');
+            if (u.image_url) {
+                img.src = u.image_url;
+                img.classList.remove('hidden');
+                init.classList.add('hidden');
+            } else {
+                img.classList.add('hidden');
+                init.classList.remove('hidden');
+                init.textContent = (u.name || '?').charAt(0).toUpperCase();
+            }
+            if (window.IS_ADMIN) {
+                document.getElementById('viewUniversityEdit').onclick = () => openEdit('university', u.id);
+                document.getElementById('viewUniversityDeleteForm').action = @json(url('/master-data/universities/__ID__')).replace('__ID__', u.id);
+            }
+        }
+        function fillUniversityForm(formId, u) {
+            const f = document.getElementById(formId);
+            f.querySelector('[name="name"]').value             = u?.name || '';
+            f.querySelector('[name="address"]').value          = u?.address || '';
+            f.querySelector('[name="website"]').value          = u?.website || '';
+            f.querySelector('[name="registration_fee"]').value = u?.registration_fee ?? '';
+            f.querySelectorAll('[name="type"]').forEach(r => r.checked = (r.value === (u?.type || 'university')));
+            const preview = f.querySelector('[data-image-preview]');
+            if (preview) {
+                if (u?.image_url) { preview.src = u.image_url; preview.classList.remove('hidden'); }
+                else preview.classList.add('hidden');
+            }
+            const fileLabel = f.querySelector('[data-file-name]');
+            if (fileLabel) fileLabel.textContent = '';
+        }
+
+        // ────── Course ──────
+        function fillCourseView(c) {
+            document.getElementById('viewCourseName').textContent       = c.name;
+            document.getElementById('viewCourseUniversity').textContent = c.university || '—';
+            document.getElementById('viewCourseMode').textContent       = c.mode || '—';
+            document.getElementById('viewCourseDuration').textContent   = (c.duration_years || 0) + ' yrs · ' + (c.semesters || 0) + ' sem';
+            document.getElementById('viewCourseLateral').textContent    = c.lateral_entry ? 'Yes' : 'No';
+            document.getElementById('viewCourseSubjects').textContent   = c.subjects || '—';
+            if (window.IS_ADMIN) {
+                document.getElementById('viewCourseEdit').onclick = () => openEdit('course', c.id);
+                document.getElementById('viewCourseDeleteForm').action = @json(url('/master-data/courses/__ID__')).replace('__ID__', c.id);
+            }
+        }
+        function fillCourseForm(formId, c) {
+            const f = document.getElementById(formId);
+            f.querySelector('[name="university_id"]').value  = c?.university_id || '';
+            f.querySelector('[name="name"]').value           = c?.name || '';
+            f.querySelector('[name="mode"]').value           = c?.mode || '';
+            f.querySelector('[name="duration_years"]').value = c?.duration_years || '';
+            f.querySelector('[name="lateral_entry"]').checked = !!c?.lateral_entry;
+            f.querySelector('[name="subjects"]').value       = c?.subjects || '';
+        }
+
+        // ────── Fee ──────
+        function recomputeFeeTotal(form) {
+            const courseId = parseInt(form.querySelector('[name="course_id"]').value || 0, 10);
+            const perSem   = parseFloat(form.querySelector('[name="fee_per_sem"]').value || 0);
+            const course   = window.ALL_COURSES.find(c => c.id === courseId);
+            const sems     = course?.semesters || 0;
+            const total    = perSem * sems;
+            form.querySelector('[data-semesters]').textContent = sems;
+            form.querySelector('[data-total-fee]').textContent = '₹' + total.toLocaleString('en-IN');
+        }
+        function rebuildFeeCourseSelect(form, universityId, selectedCourseId) {
+            const sel = form.querySelector('[name="course_id"]');
+            const uniId = parseInt(universityId || 0, 10);
+            sel.innerHTML = '<option value="">Select course</option>';
+            window.ALL_COURSES
+                .filter(c => !uniId || c.university_id === uniId)
+                .forEach(c => {
+                    const opt = document.createElement('option');
+                    opt.value = c.id;
+                    opt.textContent = c.name + ' · ' + c.duration_years + ' yrs';
+                    if (selectedCourseId && c.id === selectedCourseId) opt.selected = true;
+                    sel.appendChild(opt);
+                });
+            recomputeFeeTotal(form);
+        }
+        function fillFeeView(f) {
+            document.getElementById('viewFeeUniversity').textContent = f.university || '—';
+            document.getElementById('viewFeeCourse').textContent     = f.course || '—';
+            document.getElementById('viewFeeDuration').textContent   = (f.duration_years || 0) + ' yrs · ' + (f.semesters || 0) + ' sem';
+            document.getElementById('viewFeePerSem').textContent     = '₹' + Number(f.fee_per_sem || 0).toLocaleString('en-IN');
+            document.getElementById('viewFeeTotal').textContent      = '₹' + Number(f.total_fee || 0).toLocaleString('en-IN');
+            if (window.IS_ADMIN) {
+                document.getElementById('viewFeeEdit').onclick = () => openEdit('fee', f.id);
+                document.getElementById('viewFeeDeleteForm').action = @json(url('/master-data/fees/__ID__')).replace('__ID__', f.id);
+            }
+        }
+        function fillFeeForm(formId, f) {
+            const form = document.getElementById(formId);
+            const uniSel = form.querySelector('[name="university_id_picker"]');
+            uniSel.value = f?.university_id || '';
+            rebuildFeeCourseSelect(form, uniSel.value, f?.course_id);
+            form.querySelector('[name="fee_per_sem"]').value = f?.fee_per_sem ?? '';
+            recomputeFeeTotal(form);
+        }
+
+        function openCreate(entity) {
+            if (entity === 'university') {
+                fillUniversityForm('formUniversityCreate', null);
+                show('formUniversityCreate', 'Add University');
+            } else if (entity === 'course') {
+                fillCourseForm('formCourseCreate', null);
+                show('formCourseCreate', 'Add Course');
+            } else if (entity === 'fee') {
+                fillFeeForm('formFeeCreate', null);
+                show('formFeeCreate', 'Add Fee Structure');
+            }
+        }
+
+        function openEdit(entity, id) {
+            if (entity === 'university') {
+                const u = window.UNIVERSITIES_DATA[id]; if (!u) return;
+                const f = document.getElementById('formUniversityEdit');
+                f.action = @json(url('/master-data/universities/__ID__')).replace('__ID__', id);
+                fillUniversityForm('formUniversityEdit', u);
+                show('formUniversityEdit', 'Edit University');
+            } else if (entity === 'course') {
+                const c = window.COURSES_DATA[id]; if (!c) return;
+                const f = document.getElementById('formCourseEdit');
+                f.action = @json(url('/master-data/courses/__ID__')).replace('__ID__', id);
+                fillCourseForm('formCourseEdit', c);
+                show('formCourseEdit', 'Edit Course');
+            } else if (entity === 'fee') {
+                const fee = window.FEES_DATA[id]; if (!fee) return;
+                const f = document.getElementById('formFeeEdit');
+                f.action = @json(url('/master-data/fees/__ID__')).replace('__ID__', id);
+                fillFeeForm('formFeeEdit', fee);
+                show('formFeeEdit', 'Edit Fee Structure');
+            }
+        }
+
+        function openView(entity, id) {
+            if (entity === 'university') {
+                const u = window.UNIVERSITIES_DATA[id]; if (!u) return;
+                fillUniversityView(u);
+                show('viewUniversity', u.name);
+            } else if (entity === 'course') {
+                const c = window.COURSES_DATA[id]; if (!c) return;
+                fillCourseView(c);
+                show('viewCourse', c.name);
+            } else if (entity === 'fee') {
+                const fee = window.FEES_DATA[id]; if (!fee) return;
+                fillFeeView(fee);
+                show('viewFee', fee.course || 'Fee Structure');
+            }
+        }
+
+        return { openCreate, openEdit, openView, close, rebuildFeeCourseSelect, recomputeFeeTotal };
+    })();
+
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && !document.getElementById('masterPanel').classList.contains('hidden')) {
+            MasterPanel.close();
+        }
+    });
+
+    // Wire fee-form live recompute and university->course dependency.
+    document.querySelectorAll('.fee-form').forEach(form => {
+        const uniSel = form.querySelector('[name="university_id_picker"]');
+        uniSel?.addEventListener('change', () => MasterPanel.rebuildFeeCourseSelect(form, uniSel.value, null));
+        form.querySelector('[name="course_id"]')?.addEventListener('change', () => MasterPanel.recomputeFeeTotal(form));
+        form.querySelector('[name="fee_per_sem"]')?.addEventListener('input', () => MasterPanel.recomputeFeeTotal(form));
+    });
+
+    // File-name echo for image uploads.
+    document.querySelectorAll('[data-image-input]').forEach(input => {
+        input.addEventListener('change', () => {
+            const form = input.closest('form');
+            const label = form.querySelector('[data-file-name]');
+            if (label) label.textContent = input.files[0]?.name || '';
+            const preview = form.querySelector('[data-image-preview]');
+            if (preview && input.files.length) {
+                preview.src = URL.createObjectURL(input.files[0]);
+                preview.classList.remove('hidden');
+            }
+        });
+    });
+</script>
+@endsection
