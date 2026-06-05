@@ -11,19 +11,50 @@ use Illuminate\View\View;
 
 class UsersController extends Controller
 {
-    public function index(): View
-    {
-        $users = User::where('role', User::ROLE_SUBADMIN)
-            ->orderByDesc('id')
-            ->get();
+    private const STATUS_OPTIONS = ['all', 'active', 'pending'];
 
+    public function index(Request $request): View
+    {
+        $status = in_array($request->query('status'), self::STATUS_OPTIONS, true)
+            ? $request->query('status')
+            : 'all';
+
+        $search = trim((string) $request->query('q', ''));
+
+        $query = User::where('role', User::ROLE_SUBADMIN)->orderByDesc('id');
+
+        if ($status === 'active') {
+            $query->where('active', true);
+        } elseif ($status === 'pending') {
+            $query->where('active', false);
+        }
+
+        if ($search !== '') {
+            $like = '%'.$search.'%';
+            $query->where(function ($q) use ($like) {
+                $q->where('name', 'like', $like)
+                  ->orWhere('mobile', 'like', $like)
+                  ->orWhere('email', 'like', $like);
+            });
+        }
+
+        $users = $query->get();
+
+        // Stats stay scoped to the role only (not the active chip), so they
+        // stay stable as the user toggles between filters.
+        $allUsers = User::where('role', User::ROLE_SUBADMIN)->get(['id', 'active']);
         $stats = [
-            'total'   => $users->count(),
-            'active'  => $users->where('active', true)->count(),
-            'pending' => $users->where('active', false)->count(),
+            'total'   => $allUsers->count(),
+            'active'  => $allUsers->where('active', true)->count(),
+            'pending' => $allUsers->where('active', false)->count(),
         ];
 
-        return view('users.index', compact('users', 'stats'));
+        return view('users.index', [
+            'users'  => $users,
+            'stats'  => $stats,
+            'status' => $status,
+            'search' => $search,
+        ]);
     }
 
     public function store(Request $request): RedirectResponse

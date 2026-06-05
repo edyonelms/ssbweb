@@ -10,17 +10,52 @@ use Illuminate\View\View;
 
 class StudentsController extends Controller
 {
-    public function index(): View
-    {
-        $students = $this->scopedQuery()->orderByDesc('id')->get();
+    private const STATUS_OPTIONS = ['all', 'active', 'inactive'];
 
+    public function index(Request $request): View
+    {
+        $status = in_array($request->query('status'), self::STATUS_OPTIONS, true)
+            ? $request->query('status')
+            : 'all';
+
+        $search = trim((string) $request->query('q', ''));
+
+        $query = $this->scopedQuery()->orderByDesc('id');
+
+        if ($status === 'active') {
+            $query->where('active', true);
+        } elseif ($status === 'inactive') {
+            $query->where('active', false);
+        }
+
+        if ($search !== '') {
+            $like = '%'.$search.'%';
+            $query->where(function ($q) use ($like) {
+                $q->where('name', 'like', $like)
+                  ->orWhere('mobile', 'like', $like)
+                  ->orWhere('email', 'like', $like)
+                  ->orWhere('admission_no', 'like', $like)
+                  ->orWhere('class_name', 'like', $like)
+                  ->orWhere('parent_name', 'like', $like);
+            });
+        }
+
+        $students = $query->get();
+
+        // Stats reflect the full scoped set so they stay stable as chips toggle.
+        $allScoped = $this->scopedQuery()->get(['id', 'active']);
         $stats = [
-            'total'    => $students->count(),
-            'active'   => $students->where('active', true)->count(),
-            'inactive' => $students->where('active', false)->count(),
+            'total'    => $allScoped->count(),
+            'active'   => $allScoped->where('active', true)->count(),
+            'inactive' => $allScoped->where('active', false)->count(),
         ];
 
-        return view('students.index', compact('students', 'stats'));
+        return view('students.index', [
+            'students' => $students,
+            'stats'    => $stats,
+            'status'   => $status,
+            'search'   => $search,
+        ]);
     }
 
     public function store(Request $request): RedirectResponse
