@@ -6,6 +6,8 @@
     /** @var \Illuminate\Support\Collection $queries */
     /** @var array $stats */
     /** @var bool $isAdmin */
+    /** @var string $period */
+    /** @var string $status */
 
     $reopenMode = old('panel_mode'); // 'create' or 'reply'
     $reopenQueryId = old('query_id');
@@ -32,22 +34,49 @@
             ])->values()->all(),
         ];
     })->keyBy('id');
+
+    $statusChips = [
+        'all'     => 'All',
+        'pending' => 'Pending',
+        'replied' => 'Replied',
+    ];
+
+    $periodChips = [
+        'all' => 'All',
+        '7'   => '7d',
+        '15'  => '15d',
+        '30'  => '30d',
+    ];
+
+    $buildUrl = function (array $overrides) use ($period, $status) {
+        $params = array_filter(array_merge([
+            'period' => $period === 'all' ? null : $period,
+            'status' => $status === 'all' ? null : $status,
+        ], $overrides), fn ($v) => $v !== null && $v !== '');
+        return route('support.index').($params ? '?'.http_build_query($params) : '');
+    };
 @endphp
 
 @section('admin-header')
 <div class="sticky top-0 z-20 bg-white border-b border-slate-200">
-    <div class="px-6 lg:px-10 py-3 flex flex-wrap items-center gap-4">
-        <div class="mr-auto flex items-baseline gap-3 flex-wrap">
+    {{-- Title + stats + action --}}
+    <div class="px-6 lg:px-10 py-3 flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-slate-100">
+        <div class="mr-auto">
             <h2 class="text-base font-bold text-slate-800">Support</h2>
-            <p class="text-xs text-slate-500">
-                <span class="text-slate-800 font-semibold">{{ $stats['total'] }}</span> total
-                <span class="text-slate-300 mx-1">·</span>
-                <span class="text-slate-800 font-semibold">{{ $stats['month'] }}</span> this month
-                <span class="text-slate-300 mx-1">·</span>
-                <span class="text-amber-600 font-semibold">{{ $stats['pending'] }}</span> pending
-                <span class="text-slate-300 mx-1">·</span>
-                <span class="text-emerald-600 font-semibold">{{ $stats['approved'] }}</span> approved
+            <p class="text-xs text-slate-500 mt-0.5">
+                @if ($isAdmin)
+                    Review queries from your sub-admins and respond
+                @else
+                    Raise queries and track replies from the admin
+                @endif
             </p>
+        </div>
+
+        <div class="flex items-center gap-x-6 gap-y-1 text-xs text-slate-500 flex-wrap">
+            <span>Total: <span class="text-slate-800 font-semibold ml-1">{{ $stats['total'] }}</span></span>
+            <span>This Month: <span class="text-pink-600 font-semibold ml-1">{{ $stats['month'] }}</span></span>
+            <span>Pending: <span class="text-amber-600 font-semibold ml-1">{{ $stats['pending'] }}</span></span>
+            <span>Replied: <span class="text-emerald-600 font-semibold ml-1">{{ $stats['replied'] }}</span></span>
         </div>
 
         @if (! $isAdmin)
@@ -58,6 +87,48 @@
             </button>
         @endif
     </div>
+
+    {{-- Filter row --}}
+    <div class="px-6 lg:px-10 py-2.5 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs">
+        <div class="flex items-center gap-1.5 text-slate-500">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
+            </svg>
+            <span class="font-semibold text-slate-600">Filter by:</span>
+        </div>
+
+        <div class="flex items-center gap-1.5">
+            <span class="text-slate-500">Status:</span>
+            <div class="flex items-center gap-1">
+                @foreach ($statusChips as $key => $label)
+                    @php $isActive = $status === $key; @endphp
+                    <a href="{{ $buildUrl(['status' => $key === 'all' ? null : $key]) }}"
+                       class="px-3 py-1 rounded-full text-xs font-semibold transition
+                              {{ $isActive
+                                    ? 'bg-pink-600 text-white shadow-sm shadow-pink-500/30'
+                                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200' }}">
+                        {{ $label }}
+                    </a>
+                @endforeach
+            </div>
+        </div>
+
+        <div class="flex items-center gap-1.5">
+            <span class="text-slate-500">Period:</span>
+            <div class="flex items-center gap-1">
+                @foreach ($periodChips as $key => $label)
+                    @php $isActive = $period === $key; @endphp
+                    <a href="{{ $buildUrl(['period' => $key === 'all' ? null : $key]) }}"
+                       class="px-3 py-1 rounded-full text-xs font-semibold transition border
+                              {{ $isActive
+                                    ? 'bg-pink-50 border-pink-300 text-pink-700'
+                                    : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300' }}">
+                        {{ $label }}
+                    </a>
+                @endforeach
+            </div>
+        </div>
+    </div>
 </div>
 @endsection
 
@@ -65,12 +136,29 @@
 {{-- LISTING --}}
 <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
     @if ($queries->isEmpty())
-        <div class="px-6 py-16 text-center text-sm text-slate-500">
-            @if ($isAdmin)
-                No queries yet.
-            @else
-                You haven't raised any queries yet. Click <span class="font-semibold text-pink-600">Contact Admin</span> to start.
-            @endif
+        <div class="px-6 py-20 text-center">
+            <div class="flex flex-col items-center gap-3">
+                <div class="w-14 h-14 rounded-full bg-pink-50 text-pink-500 flex items-center justify-center">
+                    <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"/>
+                    </svg>
+                </div>
+                <h3 class="text-base font-bold text-slate-800">No queries found</h3>
+                <p class="text-sm text-slate-500">
+                    @if ($isAdmin)
+                        Nothing matches your current filters.
+                    @else
+                        You haven't raised any queries yet.
+                    @endif
+                </p>
+                @if (! $isAdmin)
+                    <button type="button" onclick="SupportPanel.openCreate()"
+                            class="mt-2 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-pink-600 hover:bg-pink-700 text-white text-sm font-semibold transition">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                        Contact Admin
+                    </button>
+                @endif
+            </div>
         </div>
     @else
         <ul class="divide-y divide-slate-100">
@@ -78,20 +166,16 @@
                 <li class="support-row hover:bg-slate-50 transition cursor-pointer px-6 py-4"
                     data-query-id="{{ $q->id }}">
                     <div class="flex items-start gap-3">
-                        <div class="w-8 h-8 rounded-md bg-slate-100 text-slate-600 flex items-center justify-center shrink-0 mt-0.5">
-                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                        <div class="w-9 h-9 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center shrink-0 mt-0.5">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.86 9.86 0 01-4-.84L3 20l1.13-3.39A7.94 7.94 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
                         </div>
                         <div class="flex-1 min-w-0">
                             <div class="flex items-center gap-2 flex-wrap">
                                 <h3 class="text-sm font-semibold text-slate-800 truncate">{{ $q->subject }}</h3>
                                 @if ($q->isPending())
-                                    <span class="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-amber-600">
-                                        <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Pending
-                                    </span>
+                                    <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-50 text-amber-700">Pending</span>
                                 @else
-                                    <span class="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-emerald-600">
-                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Approved
-                                    </span>
+                                    <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700">Replied</span>
                                 @endif
                                 @if ($q->file_path)
                                     <span class="text-[10px] font-medium text-slate-500 inline-flex items-center gap-0.5">
@@ -177,15 +261,17 @@
                             <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Reply</label>
                             <textarea name="message" rows="3" maxlength="5000"
                                       placeholder="Write your reply..."
-                                      class="w-full px-4 py-2.5 bg-slate-50/70 border border-slate-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 outline-none transition text-slate-800 placeholder-slate-400 text-sm">{{ old('panel_mode') === 'reply' ? old('message') : '' }}</textarea>
+                                      class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 outline-none transition text-slate-800 placeholder-slate-400 text-sm">{{ old('panel_mode') === 'reply' ? old('message') : '' }}</textarea>
                             @if (old('panel_mode') === 'reply') @error('message')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror @endif
                         </div>
 
-                        <label class="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-slate-50 border border-dashed border-slate-300 text-sm text-slate-500 hover:bg-slate-100 cursor-pointer transition">
-                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
-                            <span>Attach file</span>
-                            <span class="text-xs text-slate-400 ml-auto">PDF, image, DOC · 2MB max</span>
-                            <input type="file" name="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx" class="hidden">
+                        <label class="flex flex-col items-center justify-center gap-1 px-4 py-4 rounded-xl border-2 border-dashed border-slate-200 hover:border-pink-300 hover:bg-pink-50/20 cursor-pointer transition text-center">
+                            <svg class="w-5 h-5 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
+                            </svg>
+                            <span class="text-xs font-medium text-slate-600">Click to attach file</span>
+                            <span data-reply-file-name class="text-[11px] text-pink-600 font-semibold"></span>
+                            <input type="file" name="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx" data-reply-file-input class="hidden">
                         </label>
                         @if (old('panel_mode') === 'reply') @error('file')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror @endif
 
@@ -201,7 +287,7 @@
                 {{-- CREATE FORM (subadmin → admin) --}}
                 <form id="createForm" method="POST" action="{{ route('support.store') }}"
                       enctype="multipart/form-data" autocomplete="off"
-                      class="panel-mode hidden p-6 space-y-4">
+                      class="panel-mode hidden p-6 space-y-5">
                     @csrf
                     <input type="hidden" name="panel_mode" value="create">
 
@@ -211,7 +297,7 @@
                                autocomplete="off"
                                value="{{ old('panel_mode') === 'create' ? old('subject') : '' }}"
                                placeholder="What is this about?"
-                               class="w-full px-4 py-2.5 bg-slate-50/70 border border-slate-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 outline-none transition text-slate-800 placeholder-slate-400">
+                               class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 outline-none transition text-slate-800 placeholder-slate-400">
                         @if (old('panel_mode') === 'create') @error('subject')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror @endif
                     </div>
 
@@ -219,17 +305,21 @@
                         <label class="block text-sm font-semibold text-slate-700 mb-1.5">Description</label>
                         <textarea name="description" rows="5" maxlength="5000"
                                   placeholder="Describe your issue in detail..."
-                                  class="w-full px-4 py-2.5 bg-slate-50/70 border border-slate-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 outline-none transition text-slate-800 placeholder-slate-400 text-sm">{{ old('panel_mode') === 'create' ? old('description') : '' }}</textarea>
+                                  class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 outline-none transition text-slate-800 placeholder-slate-400 text-sm">{{ old('panel_mode') === 'create' ? old('description') : '' }}</textarea>
                         @if (old('panel_mode') === 'create') @error('description')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror @endif
                     </div>
 
                     <div>
-                        <label class="block text-sm font-semibold text-slate-700 mb-1.5">Attachment</label>
-                        <label class="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-slate-50 border border-dashed border-slate-300 text-sm text-slate-500 hover:bg-slate-100 cursor-pointer transition">
-                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
-                            <span>Choose file</span>
-                            <span class="text-xs text-slate-400 ml-auto">PDF, image, DOC · 2MB max</span>
-                            <input type="file" name="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx" class="hidden">
+                        <label class="block text-sm font-semibold text-slate-700 mb-1.5">
+                            Attachment <span class="text-xs font-normal text-slate-500">(Optional · Image or PDF, max 5MB)</span>
+                        </label>
+                        <label class="flex flex-col items-center justify-center gap-1 px-4 py-6 rounded-xl border-2 border-dashed border-slate-200 hover:border-pink-300 hover:bg-pink-50/20 cursor-pointer transition text-center">
+                            <svg class="w-6 h-6 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
+                            </svg>
+                            <span class="text-sm font-medium text-slate-600">Click to attach file</span>
+                            <span data-create-file-name class="text-xs text-pink-600 font-semibold"></span>
+                            <input type="file" name="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx" data-create-file-input class="hidden">
                         </label>
                         @if (old('panel_mode') === 'create') @error('file')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror @endif
                     </div>
@@ -238,7 +328,7 @@
                         <button type="button" onclick="SupportPanel.close()"
                                 class="px-4 py-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-semibold transition">Cancel</button>
                         <button type="submit"
-                                class="px-4 py-2 rounded-lg bg-pink-600 hover:bg-pink-700 text-white text-sm font-semibold transition">Submit</button>
+                                class="px-4 py-2 rounded-lg bg-pink-600 hover:bg-pink-700 text-white text-sm font-semibold transition">Submit Query</button>
                     </div>
                 </form>
             @endif
@@ -306,7 +396,7 @@
             const status = document.getElementById('viewStatus');
             if (q.status === 'approved') {
                 status.className = 'inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-emerald-600';
-                status.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Approved';
+                status.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Replied';
             } else {
                 status.className = 'inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-amber-600';
                 status.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Pending';
@@ -355,9 +445,10 @@
             const replyForm = document.getElementById('replyForm');
             if (replyForm) {
                 replyForm.action = window.SUPPORT_REPLY_URL_TEMPLATE.replace('__ID__', q.id);
-                document.getElementById('replyQueryId').value = q.id;
                 replyForm.reset();
                 document.getElementById('replyQueryId').value = q.id;
+                const fileName = replyForm.querySelector('[data-reply-file-name]');
+                if (fileName) fileName.textContent = '';
             }
         }
 
@@ -370,7 +461,11 @@
             },
             openCreate: function () {
                 const f = document.getElementById('createForm');
-                if (f) f.reset();
+                if (f) {
+                    f.reset();
+                    const fileName = f.querySelector('[data-create-file-name]');
+                    if (fileName) fileName.textContent = '';
+                }
                 show('createForm', 'Contact Admin');
             },
             close: close,
@@ -379,6 +474,22 @@
 
     document.querySelectorAll('.support-row').forEach(row => {
         row.addEventListener('click', () => SupportPanel.openView(parseInt(row.dataset.queryId, 10)));
+    });
+
+    // Show chosen file name inside the drop zones.
+    document.querySelectorAll('[data-create-file-input]').forEach(input => {
+        input.addEventListener('change', () => {
+            const form = input.closest('form');
+            const label = form.querySelector('[data-create-file-name]');
+            if (label) label.textContent = input.files[0]?.name || '';
+        });
+    });
+    document.querySelectorAll('[data-reply-file-input]').forEach(input => {
+        input.addEventListener('change', () => {
+            const form = input.closest('form');
+            const label = form.querySelector('[data-reply-file-name]');
+            if (label) label.textContent = input.files[0]?.name || '';
+        });
     });
 
     document.addEventListener('keydown', e => {

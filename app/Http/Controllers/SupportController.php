@@ -9,36 +9,64 @@ use Illuminate\View\View;
 
 class SupportController extends Controller
 {
+    /** Allowed values for the ?period= chip in the UI. */
+    private const PERIOD_OPTIONS = ['all', '7', '15', '30'];
+
+    /** Allowed values for the ?status= chip in the UI. "replied" maps to STATUS_APPROVED. */
+    private const STATUS_OPTIONS = ['all', 'pending', 'replied'];
+
     public function index(Request $request): View
     {
         $user = $request->user();
         $isAdmin = $user->isAdmin();
 
-        $baseQuery = SupportQuery::with(['user:id,name,mobile,avatar_path', 'replies.user:id,name,role']);
+        $period = in_array($request->query('period'), self::PERIOD_OPTIONS, true)
+            ? $request->query('period')
+            : 'all';
 
+        $status = in_array($request->query('status'), self::STATUS_OPTIONS, true)
+            ? $request->query('status')
+            : 'all';
+
+        // Base list — admin sees everyone, sub-admin only their own.
+        $list = SupportQuery::with(['user:id,name,mobile,avatar_path', 'replies.user:id,name,role']);
         if (! $isAdmin) {
-            $baseQuery->where('user_id', $user->id);
+            $list->where('user_id', $user->id);
         }
 
-        $queries = (clone $baseQuery)->orderByDesc('id')->get();
+        if ($period !== 'all') {
+            $list->where('created_at', '>=', now()->subDays((int) $period));
+        }
 
+        if ($status === 'pending') {
+            $list->where('status', SupportQuery::STATUS_PENDING);
+        } elseif ($status === 'replied') {
+            $list->where('status', SupportQuery::STATUS_APPROVED);
+        }
+
+        $queries = $list->orderByDesc('id')->get();
+
+        // Stats stay scoped to the user (or all for admin) — independent of
+        // the active chip so totals don't whip around when filtering.
         $statsScope = $isAdmin
             ? SupportQuery::query()
             : SupportQuery::where('user_id', $user->id);
 
         $stats = [
-            'total'     => (clone $statsScope)->count(),
-            'month'     => (clone $statsScope)->whereYear('created_at', now()->year)
-                                              ->whereMonth('created_at', now()->month)
-                                              ->count(),
-            'pending'   => (clone $statsScope)->where('status', SupportQuery::STATUS_PENDING)->count(),
-            'approved'  => (clone $statsScope)->where('status', SupportQuery::STATUS_APPROVED)->count(),
+            'total'   => (clone $statsScope)->count(),
+            'month'   => (clone $statsScope)->whereYear('created_at', now()->year)
+                                            ->whereMonth('created_at', now()->month)
+                                            ->count(),
+            'pending' => (clone $statsScope)->where('status', SupportQuery::STATUS_PENDING)->count(),
+            'replied' => (clone $statsScope)->where('status', SupportQuery::STATUS_APPROVED)->count(),
         ];
 
         return view('support.index', [
             'queries' => $queries,
             'stats'   => $stats,
             'isAdmin' => $isAdmin,
+            'period'  => $period,
+            'status'  => $status,
         ]);
     }
 
@@ -47,10 +75,10 @@ class SupportController extends Controller
         $data = $request->validate([
             'subject'     => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:5000'],
-            'file'        => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png,webp,doc,docx', 'max:2048'],
+            'file'        => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png,webp,doc,docx', 'max:5120'],
         ], [
             'file.mimes' => 'File must be a PDF, image (JPG/PNG/WEBP) or Word document.',
-            'file.max'   => 'File must be 2MB or smaller.',
+            'file.max'   => 'File must be 5MB or smaller.',
         ]);
 
         if ($request->hasFile('file')) {
@@ -77,11 +105,11 @@ class SupportController extends Controller
     {
         $data = $request->validate([
             'message' => ['required_without:file', 'nullable', 'string', 'max:5000'],
-            'file'    => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png,webp,doc,docx', 'max:2048'],
+            'file'    => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png,webp,doc,docx', 'max:5120'],
         ], [
             'message.required_without' => 'Type a reply or attach a file.',
             'file.mimes' => 'File must be a PDF, image (JPG/PNG/WEBP) or Word document.',
-            'file.max'   => 'File must be 2MB or smaller.',
+            'file.max'   => 'File must be 5MB or smaller.',
         ]);
 
         $replyData = [
@@ -100,7 +128,7 @@ class SupportController extends Controller
 
         $query->replies()->create($replyData);
 
-        // First admin reply marks the query approved/resolved.
+        // First admin reply marks the query replied/resolved.
         if ($query->isPending()) {
             $query->update([
                 'status'      => SupportQuery::STATUS_APPROVED,
