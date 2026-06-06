@@ -105,6 +105,13 @@
         $recentActivities = collect();
     }
 
+    // Bell badge counts only entries newer than the user's last-seen
+    // watermark, so an opened-and-closed panel quiets the bell until
+    // something fresh appears.
+    $lastSeenActivityId = (int) (auth()->user()?->last_seen_activity_id ?? 0);
+    $unreadActivityCount = $recentActivities->filter(fn ($a) => (int) $a->id > $lastSeenActivityId)->count();
+    $topActivityId = (int) ($recentActivities->max('id') ?? 0);
+
     $activityCategoryStyles = [
         'announcement' => ['bg' => 'bg-pink-50',    'text' => 'text-pink-600',    'label' => 'Announcement'],
         'support'      => ['bg' => 'bg-amber-50',   'text' => 'text-amber-600',   'label' => 'Support'],
@@ -205,11 +212,11 @@
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
                         {!! $icons['bell'] !!}
                     </svg>
-                    @if ($recentActivities->isNotEmpty())
-                        <span class="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center ring-2 ring-white">
-                            {{ $recentActivities->count() > 99 ? '99+' : $recentActivities->count() }}
-                        </span>
-                    @endif
+                    <span id="activityBadge"
+                          class="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center ring-2 ring-white
+                                 {{ $unreadActivityCount > 0 ? '' : 'hidden' }}">
+                        {{ $unreadActivityCount > 99 ? '99+' : $unreadActivityCount }}
+                    </span>
                 </button>
 
                 <a href="{{ $isAdmin ? route('profile.index') : route('account.index') }}" title="Profile"
@@ -421,6 +428,10 @@
         return false; // block native form submit
     }
 
+    // Cleared the moment the user opens the panel — we never want to
+    // mark the same set of activities as seen twice in one page load.
+    let activityAlreadyMarkedSeen = false;
+
     function openActivityPanel() {
         const panel    = document.getElementById('activityPanel');
         const card     = document.getElementById('activityCard');
@@ -432,6 +443,40 @@
             backdrop.classList.add('opacity-100');
             backdrop.classList.remove('opacity-0');
             card.classList.remove('translate-x-full');
+        });
+        markActivityFeedSeen();
+    }
+
+    function markActivityFeedSeen() {
+        if (activityAlreadyMarkedSeen) return;
+        const badge = document.getElementById('activityBadge');
+        // Optimistically hide the badge — the server call below persists
+        // the change so a refresh keeps it cleared.
+        if (badge) {
+            badge.textContent = '0';
+            badge.classList.add('hidden');
+        }
+        const topId = @json($topActivityId);
+        if (!topId) {
+            activityAlreadyMarkedSeen = true;
+            return;
+        }
+        const url  = @json(route('activities.seen'));
+        const csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
+        fetch(url, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': csrf,
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: JSON.stringify({ last_id: topId }),
+        }).then(() => {
+            activityAlreadyMarkedSeen = true;
+        }).catch(() => {
+            // Network blip — leave the flag false so the next open retries.
         });
     }
     function closeActivityPanel() {

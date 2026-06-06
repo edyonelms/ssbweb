@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AccountController;
+use App\Http\Controllers\ActivityController;
 use App\Http\Controllers\AnnouncementsController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
@@ -73,6 +74,11 @@ Route::middleware('guest')->group(function () {
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+
+    // Recent Activity bell — mark the topbar feed as read for the
+    // current user. Fired from the bell button's click handler.
+    Route::post('/activities/seen', [ActivityController::class, 'markSeen'])
+        ->name('activities.seen');
 
     Route::prefix('account')->name('account.')->group(function () {
         Route::get('/', [AccountController::class, 'index'])->name('index');

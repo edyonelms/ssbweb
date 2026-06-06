@@ -26,6 +26,7 @@ class User extends Authenticatable
         'address',
         'active',
         'avatar_path',
+        'last_seen_activity_id',
     ];
 
     protected $appends = ['avatar_url'];
