@@ -25,16 +25,20 @@
     // Tries common extensions for the founder photo. Drop a file at
     // public/images/founder.{jpg,jpeg,png,webp} and it will be picked up
     // automatically; otherwise we fall back to the initial-based avatar.
-    $founderPhoto = \Cache::rememberForever('asset:founder', function () {
-        foreach (['jpg', 'jpeg', 'png', 'webp'] as $ext) {
+    // The cache key includes the file's mtime so swapping the photo
+    // invalidates the old cached data URI on its own.
+    $founderPhoto = (function () {
+        foreach (['png', 'jpg', 'jpeg', 'webp'] as $ext) {
             $path = public_path('images/founder.'.$ext);
-            if (is_file($path)) {
+            if (! is_file($path)) continue;
+            $mtime = filemtime($path) ?: 0;
+            return \Cache::rememberForever("asset:founder:$ext:$mtime", function () use ($path, $ext) {
                 $mime = $ext === 'jpg' ? 'jpeg' : $ext;
                 return 'data:image/'.$mime.';base64,'.base64_encode(file_get_contents($path));
-            }
+            });
         }
         return null;
-    });
+    })();
 @endphp
 <!DOCTYPE html>
 <html lang="en" class="scroll-smooth">
