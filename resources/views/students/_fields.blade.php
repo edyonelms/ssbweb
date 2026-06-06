@@ -35,6 +35,39 @@
                class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 outline-none transition text-sm text-slate-800 placeholder-slate-400">
     </div>
 
+    @php
+        $unisOnly   = ($allUniversities ?? collect())->where('type', \App\Models\University::TYPE_UNIVERSITY);
+        $boardsOnly = ($allUniversities ?? collect())->where('type', \App\Models\University::TYPE_BOARD);
+    @endphp
+    <div>
+        <label class="block text-xs font-semibold text-slate-700 mb-1">University / Board</label>
+        <select name="university_id" data-student-uni
+                class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 outline-none transition text-sm text-slate-800">
+            <option value="">—</option>
+            @if ($unisOnly->isNotEmpty())
+                <optgroup label="Universities">
+                    @foreach ($unisOnly as $u)<option value="{{ $u->id }}">{{ $u->name }}</option>@endforeach
+                </optgroup>
+            @endif
+            @if ($boardsOnly->isNotEmpty())
+                <optgroup label="Boards">
+                    @foreach ($boardsOnly as $u)<option value="{{ $u->id }}">{{ $u->name }}</option>@endforeach
+                </optgroup>
+            @endif
+        </select>
+    </div>
+    <div>
+        <label class="block text-xs font-semibold text-slate-700 mb-1">Course</label>
+        <select name="course_id" data-student-course
+                class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 outline-none transition text-sm text-slate-800">
+            <option value="">—</option>
+            @foreach (($allCourses ?? collect()) as $c)
+                <option value="{{ $c->id }}" data-university="{{ $c->university_id }}">{{ $c->name }}</option>
+            @endforeach
+        </select>
+        <p class="mt-1 text-[11px] text-slate-400">Course list filters to the selected university.</p>
+    </div>
+
     <div>
         <label class="block text-xs font-semibold text-slate-700 mb-1">Gender</label>
         <select name="gender"

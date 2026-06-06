@@ -8,6 +8,7 @@ use App\Http\Controllers\EnquiriesController;
 use App\Http\Controllers\FeeCalculatorController;
 use App\Http\Controllers\MarketingController;
 use App\Http\Controllers\MasterDataController;
+use App\Http\Controllers\PayFeeController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\StudentsController;
 use App\Http\Controllers\SupportController;
@@ -95,6 +96,16 @@ Route::middleware('auth')->group(function () {
 
     // Fee Calculator — both roles get the same client-side calculator.
     Route::get('/fee-calculator', [FeeCalculatorController::class, 'index'])->name('fee-calculator');
+
+    // Pay Fee — board/university + student picker, with split-by-semester
+    // payment posting. Open to admin and sub-admin (sub-admin scoped to
+    // their own students inside the controller).
+    Route::prefix('pay-fee')->name('pay-fee.')->group(function () {
+        Route::get('/', [PayFeeController::class, 'index'])->name('index');
+        Route::post('/', [PayFeeController::class, 'store'])->name('store');
+        Route::delete('/payments/{feePayment}', [PayFeeController::class, 'destroy'])
+            ->whereNumber('feePayment')->name('payments.destroy');
+    });
 
     // Wallet — both roles see the listing; admin alone may update wallets.
     Route::get('/wallet', [WalletController::class, 'index'])->name('wallet.index');

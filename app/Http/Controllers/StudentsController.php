@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Course;
 use App\Models\Student;
+use App\Models\University;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -40,7 +42,7 @@ class StudentsController extends Controller
             });
         }
 
-        $students = $query->get();
+        $students = $query->with(['university:id,name,type', 'course:id,name'])->get();
 
         // Stats reflect the full scoped set so they stay stable as chips toggle.
         $allScoped = $this->scopedQuery()->get(['id', 'active']);
@@ -51,10 +53,12 @@ class StudentsController extends Controller
         ];
 
         return view('students.index', [
-            'students' => $students,
-            'stats'    => $stats,
-            'status'   => $status,
-            'search'   => $search,
+            'students'         => $students,
+            'stats'            => $stats,
+            'status'           => $status,
+            'search'           => $search,
+            'allUniversities'  => University::orderBy('name')->get(['id', 'name', 'type']),
+            'allCourses'       => Course::orderBy('name')->get(['id', 'name', 'university_id']),
         ]);
     }
 
@@ -147,14 +151,16 @@ class StudentsController extends Controller
     private function validateStudent(Request $request, ?int $ignoreId = null): array
     {
         return $request->validate([
-            'name'         => ['required', 'string', 'max:255'],
-            'mobile'       => ['required', 'string', 'regex:/^[0-9]{10,15}$/'],
-            'email'        => ['nullable', 'email', 'max:255'],
-            'admission_no' => ['nullable', 'string', 'max:50'],
-            'class_name'   => ['nullable', 'string', 'max:50'],
-            'gender'       => ['nullable', 'in:male,female,other'],
-            'parent_name'  => ['nullable', 'string', 'max:255'],
-            'address'      => ['nullable', 'string', 'max:1000'],
+            'name'          => ['required', 'string', 'max:255'],
+            'mobile'        => ['required', 'string', 'regex:/^[0-9]{10,15}$/'],
+            'email'         => ['nullable', 'email', 'max:255'],
+            'admission_no'  => ['nullable', 'string', 'max:50'],
+            'class_name'    => ['nullable', 'string', 'max:50'],
+            'university_id' => ['nullable', 'integer', 'exists:universities,id'],
+            'course_id'     => ['nullable', 'integer', 'exists:courses,id'],
+            'gender'        => ['nullable', 'in:male,female,other'],
+            'parent_name'   => ['nullable', 'string', 'max:255'],
+            'address'       => ['nullable', 'string', 'max:1000'],
         ], [
             'mobile.regex' => 'Mobile must be 10–15 digits.',
         ]);

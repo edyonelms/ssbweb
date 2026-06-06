@@ -4,17 +4,21 @@
 
 @php
     $studentsData = $students->map(fn ($s) => [
-        'id'           => $s->id,
-        'name'         => $s->name,
-        'mobile'       => $s->mobile,
-        'email'        => $s->email,
-        'admission_no' => $s->admission_no,
-        'class_name'   => $s->class_name,
-        'gender'       => $s->gender,
-        'parent_name'  => $s->parent_name,
-        'address'      => $s->address,
-        'active'       => (bool) $s->active,
-        'created_at'   => $s->created_at?->format('d M Y'),
+        'id'              => $s->id,
+        'name'            => $s->name,
+        'mobile'          => $s->mobile,
+        'email'           => $s->email,
+        'admission_no'    => $s->admission_no,
+        'class_name'      => $s->class_name,
+        'university_id'   => $s->university_id,
+        'university_name' => $s->university?->name,
+        'course_id'       => $s->course_id,
+        'course_name'     => $s->course?->name,
+        'gender'          => $s->gender,
+        'parent_name'     => $s->parent_name,
+        'address'         => $s->address,
+        'active'          => (bool) $s->active,
+        'created_at'      => $s->created_at?->format('d M Y'),
     ])->keyBy('id');
 
     $statusChips = [
@@ -366,16 +370,36 @@
 
         function fillForm(formId, s) {
             const f = document.getElementById(formId);
-            f.querySelector('[name="name"]').value         = s?.name || '';
-            f.querySelector('[name="mobile"]').value       = s?.mobile || '';
-            f.querySelector('[name="email"]').value        = s?.email || '';
-            f.querySelector('[name="admission_no"]').value = s?.admission_no || '';
-            f.querySelector('[name="class_name"]').value   = s?.class_name || '';
-            f.querySelector('[name="gender"]').value       = s?.gender || '';
-            f.querySelector('[name="parent_name"]').value  = s?.parent_name || '';
-            f.querySelector('[name="address"]').value      = s?.address || '';
-            f.querySelector('[name="active"]').checked     = s ? !!s.active : true;
+            f.querySelector('[name="name"]').value          = s?.name || '';
+            f.querySelector('[name="mobile"]').value        = s?.mobile || '';
+            f.querySelector('[name="email"]').value         = s?.email || '';
+            f.querySelector('[name="admission_no"]').value  = s?.admission_no || '';
+            f.querySelector('[name="class_name"]').value    = s?.class_name || '';
+            f.querySelector('[name="university_id"]').value = s?.university_id || '';
+            applyCourseFilter(f);
+            f.querySelector('[name="course_id"]').value     = s?.course_id || '';
+            f.querySelector('[name="gender"]').value        = s?.gender || '';
+            f.querySelector('[name="parent_name"]').value   = s?.parent_name || '';
+            f.querySelector('[name="address"]').value       = s?.address || '';
+            f.querySelector('[name="active"]').checked      = s ? !!s.active : true;
         }
+
+        // Hide/show course options based on the picked university.
+        function applyCourseFilter(form) {
+            const uni = form.querySelector('[data-student-uni]')?.value || '';
+            const courseSel = form.querySelector('[data-student-course]');
+            if (!courseSel) return;
+            const selected = courseSel.value;
+            courseSel.querySelectorAll('option').forEach(opt => {
+                if (!opt.value) { opt.hidden = false; return; }
+                const ok = !uni || opt.dataset.university === uni;
+                opt.hidden = !ok;
+                if (!ok && opt.value === selected) courseSel.value = '';
+            });
+        }
+        document.querySelectorAll('[data-student-uni]').forEach(sel => {
+            sel.addEventListener('change', () => applyCourseFilter(sel.closest('form')));
+        });
 
         return {
             openView: function (id) {
