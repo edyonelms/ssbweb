@@ -6,6 +6,7 @@
     /** @var string $tab */
     /** @var string $search */
     /** @var int|null|string $universityFilter */
+    /** @var int|null|string $courseFilter */
     /** @var \Illuminate\Support\Collection $universities */
     /** @var \Illuminate\Support\Collection $courses */
     /** @var \Illuminate\Support\Collection $fees */
@@ -24,11 +25,12 @@
         return route('master.index', ['tab' => $key]);
     };
 
-    $buildUrl = function (array $overrides) use ($tab, $search, $universityFilter) {
+    $buildUrl = function (array $overrides) use ($tab, $search, $universityFilter, $courseFilter) {
         $params = array_filter(array_merge([
             'tab'           => $tab,
             'q'             => $search !== '' ? $search : null,
             'university_id' => $universityFilter ?: null,
+            'course_id'     => $courseFilter ?: null,
         ], $overrides), fn ($v) => $v !== null && $v !== '');
         return route('master.index').'?'.http_build_query($params);
     };
@@ -174,6 +176,13 @@
             @php
                 $unisOnly   = $allUniversities->where('type', \App\Models\University::TYPE_UNIVERSITY);
                 $boardsOnly = $allUniversities->where('type', \App\Models\University::TYPE_BOARD);
+                // On the Fee Structure tab we offer a second dropdown to
+                // pick a course. It only lists courses from the currently
+                // chosen university — pick a different university and the
+                // course filter resets.
+                $coursesForFilter = $universityFilter
+                    ? $allCourses->where('university_id', (int) $universityFilter)
+                    : $allCourses;
             @endphp
             <form method="GET" action="{{ route('master.index') }}" class="flex items-center gap-2">
                 <input type="hidden" name="tab" value="{{ $tab }}">
@@ -181,7 +190,8 @@
                     <input type="hidden" name="q" value="{{ $search }}">
                 @endif
                 <span class="text-slate-500">University / Board:</span>
-                <select name="university_id" onchange="this.form.submit()"
+                <select name="university_id"
+                        onchange="const c=this.form.querySelector('[name=&quot;course_id&quot;]'); if (c) c.value=''; this.form.submit()"
                         class="px-3 py-1.5 bg-white border border-slate-200 rounded-full text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 transition">
                     <option value="">All</option>
                     @if ($unisOnly->isNotEmpty())
@@ -199,6 +209,19 @@
                         </optgroup>
                     @endif
                 </select>
+
+                @if ($tab === 'fees')
+                    <span class="text-slate-500">Course:</span>
+                    <select name="course_id" onchange="this.form.submit()"
+                            class="px-3 py-1.5 bg-white border border-slate-200 rounded-full text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 transition">
+                        <option value="">All</option>
+                        @foreach ($coursesForFilter as $c)
+                            <option value="{{ $c->id }}" {{ (string) $courseFilter === (string) $c->id ? 'selected' : '' }}>
+                                {{ $c->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                @endif
             </form>
         @endif
 

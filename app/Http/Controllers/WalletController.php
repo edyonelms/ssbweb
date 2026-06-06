@@ -15,6 +15,9 @@ class WalletController extends Controller
 {
     private const TABS = ['history', 'transactions', 'requests'];
 
+    /** Allowed scope filters used on the History tab for admin. */
+    private const SCOPE_OPTIONS = ['all', 'self', 'others'];
+
     public function index(Request $request): View
     {
         $user = $request->user();
@@ -30,8 +33,16 @@ class WalletController extends Controller
 
         $search = trim((string) $request->query('q', ''));
 
+        $scope = in_array($request->query('scope'), self::SCOPE_OPTIONS, true)
+            ? $request->query('scope')
+            : 'all';
+
         // ─── Build the list query for the active tab ───
-        $query = WalletTransaction::with(['user:id,name,mobile,role', 'creator:id,name,role'])
+        $query = WalletTransaction::with([
+                'user:id,name,mobile,role',
+                'creator:id,name,role',
+                'paymentRequest:id,wallet_transaction_id,topic',
+            ])
             ->orderByDesc('id');
 
         if ($isAdmin) {
@@ -39,6 +50,15 @@ class WalletController extends Controller
             // Transactions → everything in the system.
             if ($tab === 'history') {
                 $query->where('created_by', $user->id);
+
+                // Scope chip narrows the history further:
+                //   self   → credits I gave to my own wallet
+                //   others → credits I gave to anyone else (typically sub-admins)
+                if ($scope === 'self') {
+                    $query->where('user_id', $user->id);
+                } elseif ($scope === 'others') {
+                    $query->where('user_id', '!=', $user->id);
+                }
             }
         } else {
             // Sub-admin: both tabs are scoped to their own credits.
@@ -118,6 +138,7 @@ class WalletController extends Controller
         return view('wallet.index', [
             'tab'             => $tab,
             'mode'            => $mode,
+            'scope'           => $scope,
             'search'          => $search,
             'transactions'    => $transactions,
             'stats'           => $stats,

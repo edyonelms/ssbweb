@@ -23,6 +23,7 @@ class MasterDataController extends Controller
 
         $search = trim((string) $request->query('q', ''));
         $universityFilter = $request->query('university_id');
+        $courseFilter     = $request->query('course_id');
 
         // Load all universities + courses up-front so the slide-in panel
         // selects and JS-side filtering work without extra round-trips.
@@ -65,6 +66,9 @@ class MasterDataController extends Controller
             if (! empty($universityFilter)) {
                 $feesQuery->where('university_id', (int) $universityFilter);
             }
+            if (! empty($courseFilter)) {
+                $feesQuery->where('course_id', (int) $courseFilter);
+            }
             if ($search !== '') {
                 $like = '%'.$search.'%';
                 $feesQuery->whereHas('course', fn ($q) => $q->where('name', 'like', $like));
@@ -94,6 +98,7 @@ class MasterDataController extends Controller
             'tab'              => $tab,
             'search'           => $search,
             'universityFilter' => $universityFilter,
+            'courseFilter'     => $courseFilter,
             'universities'     => $universities,
             'courses'          => $courses,
             'fees'             => $fees,
