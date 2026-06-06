@@ -208,20 +208,16 @@
     <div class="absolute inset-0 bg-slate-900/30 opacity-0 transition-opacity duration-200" id="slidePanelBackdrop" onclick="AnnouncementsPanel.close()"></div>
     <div id="slidePanelCard"
          style="top: var(--topbar-h, 64px)"
-         class="absolute right-0 bottom-0 w-full max-w-md bg-white border-l border-slate-200 flex flex-col translate-x-full transition-transform duration-300 ease-out">
+         class="absolute right-0 bottom-0 w-full max-w-xl bg-white shadow-2xl flex flex-col translate-x-full transition-transform duration-300 ease-out">
 
-        <div class="px-5 py-3 border-b border-slate-200 flex items-center justify-between bg-white">
-            <h3 id="panelTitle" class="text-sm font-bold text-slate-800">Announcement</h3>
-            <button type="button" onclick="AnnouncementsPanel.close()"
-                    class="w-8 h-8 rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-700 inline-flex items-center justify-center transition">
-                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
-            </button>
-        </div>
+        <button type="button" onclick="AnnouncementsPanel.close()" aria-label="Close"
+                class="absolute top-3 right-3 z-10 w-8 h-8 rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-700 inline-flex items-center justify-center transition">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
 
-        <div class="flex-1 overflow-y-auto">
-
-            {{-- VIEW MODE --}}
-            <div id="panelView" class="panel-mode hidden p-6 space-y-5">
+        {{-- VIEW MODE --}}
+        <div id="panelView" class="panel-mode hidden flex-1 flex flex-col min-h-0">
+            <div class="flex-1 overflow-y-auto px-6 pt-12 pb-6 space-y-5">
                 <div class="pb-5 border-b border-slate-100">
                     <span id="viewAudience" class="text-[11px] font-semibold uppercase tracking-wider"></span>
                     <h4 id="viewHeading" class="mt-1.5 text-base font-bold text-slate-800"></h4>
@@ -246,63 +242,60 @@
                     <dt class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Recipients</dt>
                     <div id="viewRecipients" class="mt-1.5 flex flex-wrap gap-1.5"></div>
                 </div>
-
-                @if ($isAdmin)
-                    <div class="flex items-center gap-2 pt-4 border-t border-slate-100">
-                        <button type="button" id="viewEditBtn"
-                                class="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-semibold transition">
-                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                            Edit
-                        </button>
-                        <form id="viewDeleteForm" method="POST" action="" class="flex-1"
-                              onsubmit="return confirmAction(this, 'Delete this announcement? This action cannot be undone.', 'Delete announcement');">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit"
-                                    class="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg border border-slate-200 hover:bg-rose-50 hover:border-rose-200 text-rose-600 text-sm font-semibold transition">
-                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3"/></svg>
-                                Delete
-                            </button>
-                        </form>
-                    </div>
-                @endif
             </div>
 
             @if ($isAdmin)
-                {{-- CREATE FORM --}}
-                <form id="createForm" method="POST" action="{{ route('announcements.store') }}"
-                      enctype="multipart/form-data" autocomplete="off"
-                      class="panel-mode hidden p-6 space-y-5">
-                    @csrf
-                    <input type="hidden" name="panel_mode" value="create">
-                    @include('announcements._fields', ['mode' => 'create', 'subadmins' => $subadmins])
-                    <div class="flex justify-end gap-2 pt-3 border-t border-slate-100">
-                        <button type="button" onclick="AnnouncementsPanel.close()"
-                                class="px-4 py-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-semibold transition">Cancel</button>
+                <div class="shrink-0 px-6 py-3 border-t border-slate-100 bg-white flex items-center justify-end gap-3">
+                    <form id="viewDeleteForm" method="POST" action=""
+                          onsubmit="return confirmAction(this, 'Delete this announcement? This action cannot be undone.', 'Delete announcement');">
+                        @csrf
+                        @method('DELETE')
                         <button type="submit"
-                                class="px-4 py-2 rounded-lg bg-pink-600 hover:bg-pink-700 text-white text-sm font-semibold transition">Create Announcement</button>
-                    </div>
-                </form>
-
-                {{-- EDIT FORM --}}
-                <form id="editForm" method="POST" action=""
-                      enctype="multipart/form-data" autocomplete="off"
-                      class="panel-mode hidden p-6 space-y-5">
-                    @csrf
-                    @method('PUT')
-                    <input type="hidden" name="panel_mode" value="edit">
-                    <input type="hidden" name="announcement_id" id="editAnnouncementId" value="">
-                    @include('announcements._fields', ['mode' => 'edit', 'subadmins' => $subadmins])
-                    <div class="flex justify-end gap-2 pt-3 border-t border-slate-100">
-                        <button type="button" onclick="AnnouncementsPanel.close()"
-                                class="px-4 py-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-semibold transition">Cancel</button>
-                        <button type="submit"
-                                class="px-4 py-2 rounded-lg bg-pink-600 hover:bg-pink-700 text-white text-sm font-semibold transition">Save Changes</button>
-                    </div>
-                </form>
+                                class="px-4 py-2 text-sm font-semibold text-rose-600 hover:text-rose-700 transition">Delete</button>
+                    </form>
+                    <button type="button" id="viewEditBtn"
+                            class="px-4 py-2 rounded-lg bg-pink-600 hover:bg-pink-700 text-white text-sm font-semibold transition">Edit Announcement</button>
+                </div>
             @endif
-
         </div>
+
+        @if ($isAdmin)
+            {{-- CREATE FORM --}}
+            <form id="createForm" method="POST" action="{{ route('announcements.store') }}"
+                  enctype="multipart/form-data" autocomplete="off"
+                  class="panel-mode hidden flex-1 flex flex-col min-h-0">
+                @csrf
+                <input type="hidden" name="panel_mode" value="create">
+                <div class="flex-1 overflow-y-auto px-6 pt-12 pb-6 space-y-5">
+                    @include('announcements._fields', ['mode' => 'create', 'subadmins' => $subadmins])
+                </div>
+                <div class="shrink-0 px-6 py-3 border-t border-slate-100 bg-white flex items-center justify-end gap-3">
+                    <button type="button" onclick="AnnouncementsPanel.close()"
+                            class="px-4 py-2 text-sm font-semibold text-slate-600 hover:text-slate-800 transition">Cancel</button>
+                    <button type="submit"
+                            class="px-4 py-2 rounded-lg bg-pink-600 hover:bg-pink-700 text-white text-sm font-semibold transition">Create Announcement</button>
+                </div>
+            </form>
+
+            {{-- EDIT FORM --}}
+            <form id="editForm" method="POST" action=""
+                  enctype="multipart/form-data" autocomplete="off"
+                  class="panel-mode hidden flex-1 flex flex-col min-h-0">
+                @csrf
+                @method('PUT')
+                <input type="hidden" name="panel_mode" value="edit">
+                <input type="hidden" name="announcement_id" id="editAnnouncementId" value="">
+                <div class="flex-1 overflow-y-auto px-6 pt-12 pb-6 space-y-5">
+                    @include('announcements._fields', ['mode' => 'edit', 'subadmins' => $subadmins])
+                </div>
+                <div class="shrink-0 px-6 py-3 border-t border-slate-100 bg-white flex items-center justify-end gap-3">
+                    <button type="button" onclick="AnnouncementsPanel.close()"
+                            class="px-4 py-2 text-sm font-semibold text-slate-600 hover:text-slate-800 transition">Cancel</button>
+                    <button type="submit"
+                            class="px-4 py-2 rounded-lg bg-pink-600 hover:bg-pink-700 text-white text-sm font-semibold transition">Save Changes</button>
+                </div>
+            </form>
+        @endif
     </div>
 </aside>
 
@@ -316,12 +309,10 @@
         const panel    = document.getElementById('slidePanel');
         const card     = document.getElementById('slidePanelCard');
         const backdrop = document.getElementById('slidePanelBackdrop');
-        const title    = document.getElementById('panelTitle');
         const modes    = document.querySelectorAll('.panel-mode');
 
-        function show(modeId, titleText) {
+        function show(modeId) {
             modes.forEach(m => m.classList.toggle('hidden', m.id !== modeId));
-            title.textContent = titleText;
             panel.classList.remove('hidden');
             panel.setAttribute('aria-hidden', 'false');
             requestAnimationFrame(() => {
@@ -441,17 +432,17 @@
                 const a = window.ANNOUNCEMENTS_DATA[id];
                 if (!a) return;
                 fillView(a);
-                show('panelView', a.heading);
+                show('panelView');
             },
             openCreate: function () {
                 clearCreateForm();
-                show('createForm', 'Add Announcement');
+                show('createForm');
             },
             openEdit: function (id) {
                 const a = window.ANNOUNCEMENTS_DATA[id];
                 if (!a) return;
                 fillEditForm(a);
-                show('editForm', 'Edit Announcement');
+                show('editForm');
             },
             close: close,
         };

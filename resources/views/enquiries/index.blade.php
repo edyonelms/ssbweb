@@ -170,16 +170,14 @@
     <div class="absolute inset-0 bg-slate-900/30 opacity-0 transition-opacity duration-200" id="enquiryBackdrop" onclick="EnquiryPanel.close()"></div>
     <div id="enquiryPanelCard"
          style="top: var(--topbar-h, 64px)"
-         class="absolute right-0 bottom-0 w-full max-w-md bg-white border-l border-slate-200 flex flex-col translate-x-full transition-transform duration-300 ease-out">
+         class="absolute right-0 bottom-0 w-full max-w-xl bg-white shadow-2xl flex flex-col translate-x-full transition-transform duration-300 ease-out">
 
-        <div class="px-5 py-3 border-b border-slate-200 flex items-center justify-between bg-white">
-            <h3 id="enquiryTitle" class="text-sm font-bold text-slate-800">Enquiry</h3>
-            <button type="button" onclick="EnquiryPanel.close()" class="w-8 h-8 rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-700 inline-flex items-center justify-center transition">
-                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
-            </button>
-        </div>
+        <button type="button" onclick="EnquiryPanel.close()" aria-label="Close"
+                class="absolute top-3 right-3 z-10 w-8 h-8 rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-700 inline-flex items-center justify-center transition">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
 
-        <div class="flex-1 overflow-y-auto p-6 space-y-5">
+        <div class="flex-1 overflow-y-auto px-6 pt-12 pb-6 space-y-5">
             <div class="pb-4 border-b border-slate-100">
                 <span id="viewStatus" class="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded"></span>
                 <h4 id="viewName" class="mt-1.5 text-base font-bold text-slate-800"></h4>
@@ -226,15 +224,19 @@
                               placeholder="Add a follow-up note (visible to admins only)"
                               class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 outline-none transition text-sm"></textarea>
                 </div>
-                <div class="flex justify-between pt-3 border-t border-slate-100">
-                    <form id="deleteForm" method="POST" action=""
-                          onsubmit="return confirmAction(this, 'Delete this enquiry? This action cannot be undone.', 'Delete enquiry');">
-                        @csrf @method('DELETE')
-                        <button type="submit" class="px-4 py-2 rounded-lg border border-rose-200 hover:bg-rose-50 text-rose-600 text-sm font-semibold transition">Delete</button>
-                    </form>
-                    <button type="submit" class="px-4 py-2 rounded-lg bg-pink-600 hover:bg-pink-700 text-white text-sm font-semibold transition">Save</button>
-                </div>
             </form>
+
+            <form id="deleteForm" method="POST" action="" class="hidden"
+                  onsubmit="return confirmAction(this, 'Delete this enquiry? This action cannot be undone.', 'Delete enquiry');">
+                @csrf @method('DELETE')
+            </form>
+        </div>
+
+        <div class="shrink-0 px-6 py-3 border-t border-slate-100 bg-white flex items-center justify-end gap-3">
+            <button type="submit" form="deleteForm"
+                    class="px-4 py-2 text-sm font-semibold text-rose-600 hover:text-rose-700 transition">Delete</button>
+            <button type="submit" form="enquiryForm"
+                    class="px-4 py-2 rounded-lg bg-pink-600 hover:bg-pink-700 text-white text-sm font-semibold transition">Save Changes</button>
         </div>
     </div>
 </aside>
@@ -272,7 +274,6 @@
             openView: function (id) {
                 const e = window.ENQUIRIES_DATA[id];
                 if (!e) return;
-                document.getElementById('enquiryTitle').textContent = e.name;
                 document.getElementById('viewName').textContent     = e.name;
                 document.getElementById('viewEmail').textContent    = e.email || '—';
                 document.getElementById('viewPhone').textContent    = e.phone || '—';

@@ -209,20 +209,16 @@
     <div class="absolute inset-0 bg-slate-900/30 opacity-0 transition-opacity duration-200" id="slidePanelBackdrop" onclick="SupportPanel.close()"></div>
     <div id="slidePanelCard"
          style="top: var(--topbar-h, 64px)"
-         class="absolute right-0 bottom-0 w-full max-w-md bg-white border-l border-slate-200 flex flex-col translate-x-full transition-transform duration-300 ease-out">
+         class="absolute right-0 bottom-0 w-full max-w-xl bg-white shadow-2xl flex flex-col translate-x-full transition-transform duration-300 ease-out">
 
-        <div class="px-5 py-3 border-b border-slate-200 flex items-center justify-between bg-white">
-            <h3 id="panelTitle" class="text-sm font-bold text-slate-800">Query</h3>
-            <button type="button" onclick="SupportPanel.close()"
-                    class="w-8 h-8 rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-700 inline-flex items-center justify-center transition">
-                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
-            </button>
-        </div>
+        <button type="button" onclick="SupportPanel.close()" aria-label="Close"
+                class="absolute top-3 right-3 z-10 w-8 h-8 rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-700 inline-flex items-center justify-center transition">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
 
-        <div class="flex-1 overflow-y-auto">
-
-            {{-- VIEW MODE (with thread) --}}
-            <div id="panelView" class="panel-mode hidden p-6 space-y-5">
+        {{-- VIEW MODE (with thread) --}}
+        <div id="panelView" class="panel-mode hidden flex-1 flex flex-col min-h-0">
+            <div class="flex-1 overflow-y-auto px-6 pt-12 pb-6 space-y-5">
                 <div class="pb-4 border-b border-slate-100">
                     <span id="viewStatus" class="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider"></span>
                     <h4 id="viewSubject" class="mt-1.5 text-base font-bold text-slate-800"></h4>
@@ -282,15 +278,17 @@
                     </form>
                 @endif
             </div>
+        </div>
 
-            @if (! $isAdmin)
-                {{-- CREATE FORM (subadmin → admin) --}}
-                <form id="createForm" method="POST" action="{{ route('support.store') }}"
-                      enctype="multipart/form-data" autocomplete="off"
-                      class="panel-mode hidden p-6 space-y-5">
-                    @csrf
-                    <input type="hidden" name="panel_mode" value="create">
+        @if (! $isAdmin)
+            {{-- CREATE FORM (subadmin → admin) --}}
+            <form id="createForm" method="POST" action="{{ route('support.store') }}"
+                  enctype="multipart/form-data" autocomplete="off"
+                  class="panel-mode hidden flex-1 flex flex-col min-h-0">
+                @csrf
+                <input type="hidden" name="panel_mode" value="create">
 
+                <div class="flex-1 overflow-y-auto px-6 pt-12 pb-6 space-y-5">
                     <div>
                         <label class="block text-sm font-semibold text-slate-700 mb-1.5">Subject <span class="text-rose-500">*</span></label>
                         <input name="subject" type="text" required maxlength="255"
@@ -323,17 +321,16 @@
                         </label>
                         @if (old('panel_mode') === 'create') @error('file')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror @endif
                     </div>
+                </div>
 
-                    <div class="flex justify-end gap-2 pt-3 border-t border-slate-100">
-                        <button type="button" onclick="SupportPanel.close()"
-                                class="px-4 py-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-semibold transition">Cancel</button>
-                        <button type="submit"
-                                class="px-4 py-2 rounded-lg bg-pink-600 hover:bg-pink-700 text-white text-sm font-semibold transition">Submit Query</button>
-                    </div>
-                </form>
-            @endif
-
-        </div>
+                <div class="shrink-0 px-6 py-3 border-t border-slate-100 bg-white flex items-center justify-end gap-3">
+                    <button type="button" onclick="SupportPanel.close()"
+                            class="px-4 py-2 text-sm font-semibold text-slate-600 hover:text-slate-800 transition">Cancel</button>
+                    <button type="submit"
+                            class="px-4 py-2 rounded-lg bg-pink-600 hover:bg-pink-700 text-white text-sm font-semibold transition">Submit Query</button>
+                </div>
+            </form>
+        @endif
     </div>
 </aside>
 
@@ -346,12 +343,10 @@
         const panel    = document.getElementById('slidePanel');
         const card     = document.getElementById('slidePanelCard');
         const backdrop = document.getElementById('slidePanelBackdrop');
-        const title    = document.getElementById('panelTitle');
         const modes    = document.querySelectorAll('.panel-mode');
 
-        function show(modeId, titleText) {
+        function show(modeId) {
             modes.forEach(m => m.classList.toggle('hidden', m.id !== modeId));
-            title.textContent = titleText;
             panel.classList.remove('hidden');
             panel.setAttribute('aria-hidden', 'false');
             requestAnimationFrame(() => {
@@ -457,7 +452,7 @@
                 const q = window.SUPPORT_DATA[id];
                 if (!q) return;
                 fillView(q);
-                show('panelView', q.subject);
+                show('panelView');
             },
             openCreate: function () {
                 const f = document.getElementById('createForm');
@@ -466,7 +461,7 @@
                     const fileName = f.querySelector('[data-create-file-name]');
                     if (fileName) fileName.textContent = '';
                 }
-                show('createForm', 'Contact Admin');
+                show('createForm');
             },
             close: close,
         };

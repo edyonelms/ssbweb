@@ -405,12 +405,10 @@
         const panel    = document.getElementById('masterPanel');
         const card     = document.getElementById('masterPanelCard');
         const backdrop = document.getElementById('masterPanelBackdrop');
-        const title    = document.getElementById('masterPanelTitle');
         const modes    = document.querySelectorAll('.master-mode');
 
-        function show(modeId, titleText) {
+        function show(modeId) {
             modes.forEach(m => m.classList.toggle('hidden', m.id !== modeId));
-            title.textContent = titleText;
             panel.classList.remove('hidden');
             panel.setAttribute('aria-hidden', 'false');
             requestAnimationFrame(() => {
@@ -542,13 +540,13 @@
         function openCreate(entity) {
             if (entity === 'university') {
                 fillUniversityForm('formUniversityCreate', null);
-                show('formUniversityCreate', 'Add University');
+                show('formUniversityCreate');
             } else if (entity === 'course') {
                 fillCourseForm('formCourseCreate', null);
-                show('formCourseCreate', 'Add Course');
+                show('formCourseCreate');
             } else if (entity === 'fee') {
                 fillFeeForm('formFeeCreate', null);
-                show('formFeeCreate', 'Add Fee Structure');
+                show('formFeeCreate');
             }
         }
 
@@ -558,19 +556,19 @@
                 const f = document.getElementById('formUniversityEdit');
                 f.action = @json(url('/master-data/universities/__ID__')).replace('__ID__', id);
                 fillUniversityForm('formUniversityEdit', u);
-                show('formUniversityEdit', 'Edit University');
+                show('formUniversityEdit');
             } else if (entity === 'course') {
                 const c = window.COURSES_DATA[id]; if (!c) return;
                 const f = document.getElementById('formCourseEdit');
                 f.action = @json(url('/master-data/courses/__ID__')).replace('__ID__', id);
                 fillCourseForm('formCourseEdit', c);
-                show('formCourseEdit', 'Edit Course');
+                show('formCourseEdit');
             } else if (entity === 'fee') {
                 const fee = window.FEES_DATA[id]; if (!fee) return;
                 const f = document.getElementById('formFeeEdit');
                 f.action = @json(url('/master-data/fees/__ID__')).replace('__ID__', id);
                 fillFeeForm('formFeeEdit', fee);
-                show('formFeeEdit', 'Edit Fee Structure');
+                show('formFeeEdit');
             }
         }
 
@@ -578,15 +576,15 @@
             if (entity === 'university') {
                 const u = window.UNIVERSITIES_DATA[id]; if (!u) return;
                 fillUniversityView(u);
-                show('viewUniversity', u.name);
+                show('viewUniversity');
             } else if (entity === 'course') {
                 const c = window.COURSES_DATA[id]; if (!c) return;
                 fillCourseView(c);
-                show('viewCourse', c.name);
+                show('viewCourse');
             } else if (entity === 'fee') {
                 const fee = window.FEES_DATA[id]; if (!fee) return;
                 fillFeeView(fee);
-                show('viewFee', fee.course || 'Fee Structure');
+                show('viewFee');
             }
         }
 
