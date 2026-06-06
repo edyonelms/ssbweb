@@ -15,11 +15,26 @@
     );
 
     $founder = [
-        'name'    => 'Founder & CEO',
-        'role'    => 'Visionary · Education Strategist',
-        'initial' => 'S',
-        'tint'    => 'from-pink-100 to-rose-100 text-pink-600',
+        'name'         => 'Deepak Kumar Vaishnav',
+        'role'         => 'Visionary · Education Strategist',
+        'organization' => 'Founder · SSB Educational Trust',
+        'initial'      => 'D',
+        'tint'         => 'from-pink-100 to-rose-100 text-pink-600',
     ];
+
+    // Tries common extensions for the founder photo. Drop a file at
+    // public/images/founder.{jpg,jpeg,png,webp} and it will be picked up
+    // automatically; otherwise we fall back to the initial-based avatar.
+    $founderPhoto = \Cache::rememberForever('asset:founder', function () {
+        foreach (['jpg', 'jpeg', 'png', 'webp'] as $ext) {
+            $path = public_path('images/founder.'.$ext);
+            if (is_file($path)) {
+                $mime = $ext === 'jpg' ? 'jpeg' : $ext;
+                return 'data:image/'.$mime.';base64,'.base64_encode(file_get_contents($path));
+            }
+        }
+        return null;
+    });
 @endphp
 <!DOCTYPE html>
 <html lang="en" class="scroll-smooth">
@@ -42,6 +57,8 @@
     <style>
         body { font-family: 'Inter', sans-serif; }
         .text-gradient { background: linear-gradient(90deg, #d946ef, #ec4899, #f43f5e); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { scrollbar-width: none; -ms-overflow-style: none; }
     </style>
 </head>
 <body class="bg-white text-slate-800 antialiased">
@@ -143,12 +160,53 @@
     {{-- ─── ABOUT ─── --}}
     <section id="about" class="py-20 lg:py-28">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="max-w-3xl">
-                <span class="inline-block px-3 py-1 rounded-full bg-pink-50 text-xs font-semibold text-pink-700 mb-4">About SSB</span>
-                <h2 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900">An education partner built for the real world.</h2>
-                <p class="mt-4 text-base sm:text-lg text-slate-600 leading-relaxed">
-                    SSB Education is an authorised partner of Mangalayatan University. We make it simple for students — working professionals, family caregivers, anyone juggling life — to enrol in UGC-recognised online degree, diploma and certification programs and finish what they started.
-                </p>
+            <div class="grid lg:grid-cols-2 gap-12 items-center">
+                <div>
+                    <span class="inline-block px-3 py-1 rounded-full bg-pink-50 text-xs font-semibold text-pink-700 mb-4">About SSB</span>
+                    <h2 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900">An education partner built for the real world.</h2>
+                    <p class="mt-4 text-base sm:text-lg text-slate-600 leading-relaxed">
+                        SSB Education is an authorised partner of Mangalayatan University. We make it simple for students — working professionals, family caregivers, anyone juggling life — to enrol in UGC-recognised online degree, diploma and certification programs and finish what they started.
+                    </p>
+                </div>
+
+                {{-- Illustration --}}
+                <div class="relative">
+                    <div class="absolute -inset-4 bg-gradient-to-br from-pink-200/40 to-violet-200/40 rounded-3xl blur-3xl"></div>
+                    <div class="relative grid grid-cols-2 gap-4">
+                        <div class="space-y-4">
+                            <div class="bg-gradient-to-br from-pink-50 to-rose-100 border border-pink-100 rounded-2xl p-5">
+                                <div class="w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center text-pink-600 mb-3">
+                                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 14l9-5-9-5-9 5 9 5z"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/></svg>
+                                </div>
+                                <p class="text-2xl font-extrabold text-slate-900">100+</p>
+                                <p class="text-xs text-slate-600 font-medium mt-1">Programs ready to enrol</p>
+                            </div>
+                            <div class="bg-gradient-to-br from-violet-50 to-fuchsia-100 border border-violet-100 rounded-2xl p-5">
+                                <div class="w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center text-violet-600 mb-3">
+                                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                </div>
+                                <p class="text-2xl font-extrabold text-slate-900">24×7</p>
+                                <p class="text-xs text-slate-600 font-medium mt-1">Learn anywhere, anytime</p>
+                            </div>
+                        </div>
+                        <div class="space-y-4 pt-8">
+                            <div class="bg-gradient-to-br from-emerald-50 to-teal-100 border border-emerald-100 rounded-2xl p-5">
+                                <div class="w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center text-emerald-600 mb-3">
+                                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                                </div>
+                                <p class="text-2xl font-extrabold text-slate-900">UGC-DEB</p>
+                                <p class="text-xs text-slate-600 font-medium mt-1">Approved &amp; recognised</p>
+                            </div>
+                            <div class="bg-gradient-to-br from-amber-50 to-orange-100 border border-amber-100 rounded-2xl p-5">
+                                <div class="w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center text-amber-600 mb-3">
+                                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6 5.87v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M16 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                                </div>
+                                <p class="text-2xl font-extrabold text-slate-900">1:1</p>
+                                <p class="text-xs text-slate-600 font-medium mt-1">Mentor-led support</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div class="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -180,12 +238,10 @@
     {{-- ─── UNIVERSITIES ─── --}}
     <section id="universities" class="py-20 lg:py-24 bg-slate-50 border-y border-slate-100">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex flex-wrap items-end justify-between gap-4 mb-10">
-                <div>
-                    <span class="inline-block px-3 py-1 rounded-full bg-pink-50 text-xs font-semibold text-pink-700 mb-3">Universities & Boards</span>
-                    <h2 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900">Recognised partners. Real degrees.</h2>
-                    <p class="mt-3 text-base text-slate-600 max-w-2xl">We deliver programs in partnership with these UGC-approved universities and boards.</p>
-                </div>
+            <div class="text-center mb-10">
+                <span class="inline-block px-3 py-1 rounded-full bg-pink-50 text-xs font-semibold text-pink-700 mb-3">Universities &amp; Boards</span>
+                <h2 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900">Recognised partners. Real degrees.</h2>
+                <p class="mt-3 text-base text-slate-600 max-w-2xl mx-auto">We deliver programs in partnership with these UGC-approved universities and boards.</p>
             </div>
 
             @if ($universities->isEmpty())
@@ -193,28 +249,44 @@
                     University details will appear here soon. <a href="#contact" class="text-pink-600 font-semibold hover:underline">Reach out</a> for the latest list.
                 </div>
             @else
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    @foreach ($universities as $u)
-                        <div class="bg-white rounded-2xl p-5 border border-slate-100 hover:border-pink-200 hover:shadow-md transition flex flex-col">
-                            <div class="flex items-center gap-3">
-                                @if ($u->image_url)
-                                    <img src="{{ $u->image_url }}" alt="" class="w-12 h-12 rounded-lg object-cover bg-slate-100">
-                                @else
-                                    <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-pink-100 to-rose-100 text-pink-600 font-bold flex items-center justify-center">{{ strtoupper(mb_substr($u->name, 0, 1)) }}</div>
-                                @endif
-                                <span class="text-[10px] font-semibold uppercase tracking-wider {{ $u->type === 'board' ? 'text-emerald-600' : 'text-pink-600' }}">{{ ucfirst($u->type) }}</span>
-                            </div>
-                            <h3 class="mt-4 font-bold text-slate-800 leading-snug">{{ $u->name }}</h3>
-                            @if ($u->address)
-                                <p class="mt-1 text-xs text-slate-500 line-clamp-2">{{ $u->address }}</p>
-                            @endif
-                            @if ($u->website)
-                                <a href="{{ $u->website }}" target="_blank" rel="noopener" class="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-pink-600 hover:underline">Visit website
-                                    <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M14 3h7v7m0-7L10 14M21 14v7H3V3h7"/></svg>
-                                </a>
-                            @endif
+                <div class="relative">
+                    <button type="button" onclick="ssbScrollCarousel('universitiesCarousel', -1)"
+                            aria-label="Scroll left"
+                            class="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-11 h-11 rounded-full bg-white border border-slate-200 shadow-lg text-slate-700 hover:text-pink-600 hover:border-pink-200 flex items-center justify-center transition -ml-2 sm:-ml-4">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+                    </button>
+
+                    <div id="universitiesCarousel" class="overflow-x-auto scroll-smooth scrollbar-hide px-2">
+                        <div class="flex gap-4 w-max mx-auto py-2">
+                            @foreach ($universities as $u)
+                                <div class="bg-white rounded-2xl p-5 border border-slate-100 hover:border-pink-200 hover:shadow-md transition flex flex-col shrink-0 w-72">
+                                    <div class="flex items-center gap-3">
+                                        @if ($u->image_url)
+                                            <img src="{{ $u->image_url }}" alt="" class="w-12 h-12 rounded-lg object-cover bg-slate-100">
+                                        @else
+                                            <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-pink-100 to-rose-100 text-pink-600 font-bold flex items-center justify-center">{{ strtoupper(mb_substr($u->name, 0, 1)) }}</div>
+                                        @endif
+                                        <span class="text-[10px] font-semibold uppercase tracking-wider {{ $u->type === 'board' ? 'text-emerald-600' : 'text-pink-600' }}">{{ ucfirst($u->type) }}</span>
+                                    </div>
+                                    <h3 class="mt-4 font-bold text-slate-800 leading-snug">{{ $u->name }}</h3>
+                                    @if ($u->address)
+                                        <p class="mt-1 text-xs text-slate-500 line-clamp-2">{{ $u->address }}</p>
+                                    @endif
+                                    @if ($u->website)
+                                        <a href="{{ $u->website }}" target="_blank" rel="noopener" class="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-pink-600 hover:underline">Visit website
+                                            <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M14 3h7v7m0-7L10 14M21 14v7H3V3h7"/></svg>
+                                        </a>
+                                    @endif
+                                </div>
+                            @endforeach
                         </div>
-                    @endforeach
+                    </div>
+
+                    <button type="button" onclick="ssbScrollCarousel('universitiesCarousel', 1)"
+                            aria-label="Scroll right"
+                            class="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-11 h-11 rounded-full bg-white border border-slate-200 shadow-lg text-slate-700 hover:text-pink-600 hover:border-pink-200 flex items-center justify-center transition -mr-2 sm:-mr-4">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+                    </button>
                 </div>
             @endif
         </div>
@@ -223,12 +295,10 @@
     {{-- ─── COURSES ─── --}}
     <section id="courses" class="py-20 lg:py-28">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex flex-wrap items-end justify-between gap-4 mb-10">
-                <div>
-                    <span class="inline-block px-3 py-1 rounded-full bg-pink-50 text-xs font-semibold text-pink-700 mb-3">Programs</span>
-                    <h2 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900">Programs available right now.</h2>
-                    <p class="mt-3 text-base text-slate-600 max-w-2xl">A curated list of online programs you can enrol in. Speak to a counsellor for fee structure and admission timeline.</p>
-                </div>
+            <div class="text-center mb-10">
+                <span class="inline-block px-3 py-1 rounded-full bg-pink-50 text-xs font-semibold text-pink-700 mb-3">Programs</span>
+                <h2 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900">Programs available right now.</h2>
+                <p class="mt-3 text-base text-slate-600 max-w-2xl mx-auto">A curated list of online programs you can enrol in. Speak to a counsellor for fee structure and admission timeline.</p>
             </div>
 
             @if ($courses->isEmpty())
@@ -236,37 +306,53 @@
                     Course catalogue is being prepared. <a href="#contact" class="text-pink-600 font-semibold hover:underline">Drop us a note</a> and we'll share what's open this season.
                 </div>
             @else
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                    @foreach ($courses as $c)
-                        <div class="bg-white rounded-2xl p-6 border border-slate-100 hover:border-pink-200 hover:shadow-lg transition">
-                            <div class="flex items-start justify-between gap-3">
-                                <div class="min-w-0">
-                                    <p class="text-[11px] font-semibold uppercase tracking-wider text-pink-600 truncate">{{ $c->university?->name ?: 'Partner university' }}</p>
-                                    <h3 class="mt-1 font-bold text-slate-800 leading-snug">{{ $c->name }}</h3>
+                <div class="relative">
+                    <button type="button" onclick="ssbScrollCarousel('coursesCarousel', -1)"
+                            aria-label="Scroll left"
+                            class="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-11 h-11 rounded-full bg-white border border-slate-200 shadow-lg text-slate-700 hover:text-pink-600 hover:border-pink-200 flex items-center justify-center transition -ml-2 sm:-ml-4">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+                    </button>
+
+                    <div id="coursesCarousel" class="overflow-x-auto scroll-smooth scrollbar-hide px-2">
+                        <div class="flex gap-5 w-max mx-auto py-2">
+                            @foreach ($courses as $c)
+                                <div class="bg-white rounded-2xl p-6 border border-slate-100 hover:border-pink-200 hover:shadow-lg transition shrink-0 w-80">
+                                    <div class="flex items-start justify-between gap-3">
+                                        <div class="min-w-0">
+                                            <p class="text-[11px] font-semibold uppercase tracking-wider text-pink-600 truncate">{{ $c->university?->name ?: 'Partner university' }}</p>
+                                            <h3 class="mt-1 font-bold text-slate-800 leading-snug">{{ $c->name }}</h3>
+                                        </div>
+                                        @if ($c->lateral_entry)
+                                            <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 shrink-0">Lateral Entry</span>
+                                        @endif
+                                    </div>
+                                    <div class="mt-4 grid grid-cols-2 gap-3 text-xs">
+                                        <div>
+                                            <p class="text-slate-400 uppercase tracking-wider text-[10px] font-semibold">Duration</p>
+                                            <p class="mt-0.5 font-semibold text-slate-700">{{ rtrim(rtrim(number_format((float) $c->duration_years, 1), '0'), '.') }} years</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-slate-400 uppercase tracking-wider text-[10px] font-semibold">Mode</p>
+                                            <p class="mt-0.5 font-semibold text-slate-700 capitalize">{{ $c->mode ?: 'Regular' }}</p>
+                                        </div>
+                                    </div>
+                                    @if ($c->subjects)
+                                        <p class="mt-4 text-xs text-slate-500 line-clamp-2">{{ $c->subjects }}</p>
+                                    @endif
+                                    <a href="#contact" class="mt-5 inline-flex items-center gap-1 text-sm font-semibold text-pink-600 hover:text-pink-700">
+                                        Enquire about this program
+                                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+                                    </a>
                                 </div>
-                                @if ($c->lateral_entry)
-                                    <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 shrink-0">Lateral Entry</span>
-                                @endif
-                            </div>
-                            <div class="mt-4 grid grid-cols-2 gap-3 text-xs">
-                                <div>
-                                    <p class="text-slate-400 uppercase tracking-wider text-[10px] font-semibold">Duration</p>
-                                    <p class="mt-0.5 font-semibold text-slate-700">{{ rtrim(rtrim(number_format((float) $c->duration_years, 1), '0'), '.') }} years</p>
-                                </div>
-                                <div>
-                                    <p class="text-slate-400 uppercase tracking-wider text-[10px] font-semibold">Mode</p>
-                                    <p class="mt-0.5 font-semibold text-slate-700 capitalize">{{ $c->mode ?: 'Regular' }}</p>
-                                </div>
-                            </div>
-                            @if ($c->subjects)
-                                <p class="mt-4 text-xs text-slate-500 line-clamp-2">{{ $c->subjects }}</p>
-                            @endif
-                            <a href="#contact" class="mt-5 inline-flex items-center gap-1 text-sm font-semibold text-pink-600 hover:text-pink-700">
-                                Enquire about this program
-                                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
-                            </a>
+                            @endforeach
                         </div>
-                    @endforeach
+                    </div>
+
+                    <button type="button" onclick="ssbScrollCarousel('coursesCarousel', 1)"
+                            aria-label="Scroll right"
+                            class="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-11 h-11 rounded-full bg-white border border-slate-200 shadow-lg text-slate-700 hover:text-pink-600 hover:border-pink-200 flex items-center justify-center transition -mr-2 sm:-mr-4">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+                    </button>
                 </div>
             @endif
         </div>
@@ -284,11 +370,20 @@
                 <div class="grid grid-cols-1 lg:grid-cols-5 gap-0">
                     {{-- Image (left) --}}
                     <div class="lg:col-span-2 bg-gradient-to-br {{ $founder['tint'] }} p-10 lg:p-12 flex items-center justify-center">
-                        <div class="relative w-48 h-48 sm:w-56 sm:h-56 rounded-full bg-white/80 ring-8 ring-white shadow-xl flex items-center justify-center overflow-hidden">
-                            <span class="text-7xl font-extrabold">{{ $founder['initial'] }}</span>
-                            <svg class="absolute bottom-0 w-32 h-32 opacity-25" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M12 12c2.7 0 5-2.3 5-5s-2.3-5-5-5-5 2.3-5 5 2.3 5 5 5zm0 2c-3.3 0-10 1.7-10 5v3h20v-3c0-3.3-6.7-5-10-5z"/>
-                            </svg>
+                        <div class="relative w-48 h-48 sm:w-56 sm:h-56 rounded-full bg-white ring-8 ring-white shadow-xl overflow-hidden flex items-center justify-center">
+                            @if ($founderPhoto)
+                                <img src="{{ $founderPhoto }}" alt="{{ $founder['name'] }}"
+                                     class="w-full h-full object-cover"
+                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                <div class="hidden absolute inset-0 items-center justify-center bg-white">
+                                    <span class="text-7xl font-extrabold">{{ $founder['initial'] }}</span>
+                                </div>
+                            @else
+                                <span class="text-7xl font-extrabold">{{ $founder['initial'] }}</span>
+                                <svg class="absolute bottom-0 w-32 h-32 opacity-25" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M12 12c2.7 0 5-2.3 5-5s-2.3-5-5-5-5 2.3-5 5 2.3 5 5 5zm0 2c-3.3 0-10 1.7-10 5v3h20v-3c0-3.3-6.7-5-10-5z"/>
+                                </svg>
+                            @endif
                         </div>
                     </div>
 
@@ -296,6 +391,7 @@
                     <div class="lg:col-span-3 p-8 lg:p-12 flex flex-col justify-center">
                         <p class="text-xs font-semibold uppercase tracking-wider text-pink-600">{{ $founder['role'] }}</p>
                         <h3 class="mt-2 text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">{{ $founder['name'] }}</h3>
+                        <p class="mt-1.5 text-sm font-semibold text-slate-600">{{ $founder['organization'] }}</p>
 
                         <div class="mt-5 space-y-4 text-slate-600 leading-relaxed">
                             <p>
@@ -424,7 +520,7 @@
                     SSB Education is an authorised academic partner of Mangalayatan University, bringing UGC-recognised online degrees within reach of every learner in India.
                 </p>
                 <div class="mt-6 flex items-center gap-3">
-                    <a href="https://instagram.com/ssbeducation" target="_blank" rel="noopener"
+                    <a href="https://www.instagram.com/ssbjattari?igsh=N2pmMmg2b2ljMnJw" target="_blank" rel="noopener"
                        class="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-600 hover:text-pink-600 hover:border-pink-200 hover:shadow-md transition" aria-label="Instagram">
                         <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
                     </a>
@@ -484,6 +580,18 @@
         </div>
     </div>
 </footer>
+
+<script>
+    // Horizontal scroll for the Universities & Programs carousels.
+    // dir = -1 scrolls left, +1 scrolls right; distance scales with viewport
+    // so it feels right on phone and desktop.
+    function ssbScrollCarousel(id, dir) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const step = Math.max(280, Math.floor(el.clientWidth * 0.8));
+        el.scrollBy({ left: dir * step, behavior: 'smooth' });
+    }
+</script>
 
 </body>
 </html>
