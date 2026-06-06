@@ -165,12 +165,19 @@
             </div>
         </header>
 
-        {{-- PAGE BODY --}}
-        <div class="flex-1 overflow-y-auto">
-            @yield('admin-header')
-            <div class="p-6 lg:p-10 space-y-8">
-                @yield('admin')
+        {{-- PAGE BODY + SLIDE-IN PANEL OVERLAY --}}
+        {{-- The relative wrapper IS the slide-in panel's positioning context.
+             Because it's a flex sibling of the topbar (not fixed to the viewport),
+             a panel using `absolute inset-0` lands flush against the topbar's
+             bottom edge — no JS measurement, no gap, regardless of topbar height. --}}
+        <div class="flex-1 relative overflow-hidden">
+            <div class="absolute inset-0 overflow-y-auto">
+                @yield('admin-header')
+                <div class="p-6 lg:p-10 space-y-8">
+                    @yield('admin')
+                </div>
             </div>
+            @yield('slide-panel')
         </div>
     </main>
 </div>
@@ -292,17 +299,8 @@
         }
     });
 
-    // Measure the topbar's real height and expose it as --topbar-h so slide-in
-    // panels can sit flush against its bottom edge regardless of zoom / wrap.
-    (function () {
-        const topbar = document.querySelector('main > header');
-        if (!topbar) return;
-        const update = () => {
-            document.documentElement.style.setProperty('--topbar-h', topbar.offsetHeight + 'px');
-        };
-        update();
-        window.addEventListener('resize', update);
-        new ResizeObserver(update).observe(topbar);
-    })();
+    // Slide-in panels now position themselves via CSS layout (absolute inset-0
+    // inside a flex sibling of the topbar), so no JS topbar measurement is
+    // needed — the panel always lands flush against the topbar's bottom edge.
 </script>
 @endsection

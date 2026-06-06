@@ -388,6 +388,9 @@
     @endif
 </div>
 
+@endsection
+
+@section('slide-panel')
 @include('master._panel', [
     'isAdmin'          => $isAdmin,
     'allUniversities'  => $allUniversities,
