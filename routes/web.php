@@ -119,6 +119,10 @@ Route::middleware('auth')->group(function () {
     // Support — open to everyone; admin sees all, subadmin sees own.
     Route::get('/support', [SupportController::class, 'index'])->name('support.index');
     Route::post('/support', [SupportController::class, 'store'])->name('support.store');
+    Route::put('/support/{query}', [SupportController::class, 'update'])
+        ->whereNumber('query')->name('support.update');
+    Route::delete('/support/{query}', [SupportController::class, 'destroy'])
+        ->whereNumber('query')->name('support.destroy');
     Route::middleware('admin')->group(function () {
         Route::post('/support/{query}/reply', [SupportController::class, 'reply'])
             ->whereNumber('query')->name('support.reply');
