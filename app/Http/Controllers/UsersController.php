@@ -82,9 +82,12 @@ class UsersController extends Controller
         $data = $this->validateUser($request, $user->id);
         $data['active'] = $request->boolean('active');
 
-        if (empty($data['password'])) {
-            unset($data['password']);
-        }
+        // Pull password out of the mass-assigned data so an empty input
+        // can never clobber the existing hash. A non-empty value gets
+        // re-assigned explicitly below — the User model's `hashed` cast
+        // bcrypts it on set.
+        $newPassword = $data['password'] ?? null;
+        unset($data['password']);
 
         if ($request->hasFile('avatar')) {
             if ($user->avatar_path && Storage::disk('public')->exists($user->avatar_path)) {
@@ -93,11 +96,21 @@ class UsersController extends Controller
             $data['avatar_path'] = $request->file('avatar')->store('uploads/avatars', 'public');
         }
 
-        $user->update($data);
+        $user->fill($data);
+
+        $passwordChanged = false;
+        if (is_string($newPassword) && $newPassword !== '') {
+            $user->password = $newPassword;
+            $passwordChanged = true;
+        }
+
+        $user->save();
 
         return redirect()
             ->route('users.index')
-            ->with('status', 'User updated successfully.');
+            ->with('status', $passwordChanged
+                ? 'User updated successfully. New password is now active.'
+                : 'User updated successfully.');
     }
 
     public function destroy(User $user): RedirectResponse
