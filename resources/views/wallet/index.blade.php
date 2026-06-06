@@ -264,7 +264,7 @@
 
         <form method="POST" action="{{ route('wallet.store') }}" class="flex-1 flex flex-col min-h-0">
             @csrf
-            <div class="flex-1 overflow-y-auto px-6 pt-12 pb-6 space-y-4">
+            <div class="flex-1 overflow-y-auto p-6 space-y-4">
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1">User <span class="text-rose-500">*</span></label>
                     <select name="user_id" required

@@ -17,7 +17,7 @@
 
         {{-- ────────────── UNIVERSITY: VIEW ────────────── --}}
         <div id="viewUniversity" class="master-mode hidden flex-1 flex flex-col min-h-0">
-            <div class="flex-1 overflow-y-auto px-6 pt-12 pb-6 space-y-5">
+            <div class="flex-1 overflow-y-auto p-6 space-y-5">
                 <div class="flex items-center gap-3 pb-4 border-b border-slate-100">
                     <img id="viewUniversityImage" src="" alt="" class="w-14 h-14 rounded-md object-cover bg-slate-100 hidden">
                     <div id="viewUniversityInitial" class="w-14 h-14 rounded-md bg-pink-50 text-pink-600 font-bold text-xl flex items-center justify-center"></div>
@@ -55,7 +55,7 @@
 
         {{-- ────────────── COURSE: VIEW ────────────── --}}
         <div id="viewCourse" class="master-mode hidden flex-1 flex flex-col min-h-0">
-            <div class="flex-1 overflow-y-auto px-6 pt-12 pb-6 space-y-5">
+            <div class="flex-1 overflow-y-auto p-6 space-y-5">
                 <div class="pb-4 border-b border-slate-100">
                     <p id="viewCourseUniversity" class="text-[11px] font-semibold uppercase tracking-wider text-pink-600"></p>
                     <h4 id="viewCourseName" class="mt-1 text-base font-bold text-slate-800"></h4>
@@ -93,7 +93,7 @@
 
         {{-- ────────────── FEE: VIEW ────────────── --}}
         <div id="viewFee" class="master-mode hidden flex-1 flex flex-col min-h-0">
-            <div class="flex-1 overflow-y-auto px-6 pt-12 pb-6 space-y-5">
+            <div class="flex-1 overflow-y-auto p-6 space-y-5">
                 <div class="pb-4 border-b border-slate-100">
                     <p id="viewFeeUniversity" class="text-[11px] font-semibold uppercase tracking-wider text-pink-600"></p>
                     <h4 id="viewFeeCourse" class="mt-1 text-base font-bold text-slate-800"></h4>
@@ -126,7 +126,7 @@
             {{-- ────────────── UNIVERSITY: CREATE ────────────── --}}
             <form id="formUniversityCreate" method="POST" action="{{ route('master.universities.store') }}" enctype="multipart/form-data" class="master-mode hidden flex-1 flex flex-col min-h-0">
                 @csrf
-                <div class="flex-1 overflow-y-auto px-6 pt-12 pb-6 space-y-4">
+                <div class="flex-1 overflow-y-auto p-6 space-y-4">
                     @include('master._fields_university')
                 </div>
                 <div class="shrink-0 px-6 py-3 border-t border-slate-100 bg-white flex items-center justify-end gap-3">
@@ -138,7 +138,7 @@
             {{-- ────────────── UNIVERSITY: EDIT ────────────── --}}
             <form id="formUniversityEdit" method="POST" action="" enctype="multipart/form-data" class="master-mode hidden flex-1 flex flex-col min-h-0">
                 @csrf @method('PUT')
-                <div class="flex-1 overflow-y-auto px-6 pt-12 pb-6 space-y-4">
+                <div class="flex-1 overflow-y-auto p-6 space-y-4">
                     @include('master._fields_university')
                 </div>
                 <div class="shrink-0 px-6 py-3 border-t border-slate-100 bg-white flex items-center justify-end gap-3">
@@ -150,7 +150,7 @@
             {{-- ────────────── COURSE: CREATE ────────────── --}}
             <form id="formCourseCreate" method="POST" action="{{ route('master.courses.store') }}" class="master-mode hidden flex-1 flex flex-col min-h-0">
                 @csrf
-                <div class="flex-1 overflow-y-auto px-6 pt-12 pb-6 space-y-4">
+                <div class="flex-1 overflow-y-auto p-6 space-y-4">
                     @include('master._fields_course', ['allUniversities' => $allUniversities])
                 </div>
                 <div class="shrink-0 px-6 py-3 border-t border-slate-100 bg-white flex items-center justify-end gap-3">
@@ -162,7 +162,7 @@
             {{-- ────────────── COURSE: EDIT ────────────── --}}
             <form id="formCourseEdit" method="POST" action="" class="master-mode hidden flex-1 flex flex-col min-h-0">
                 @csrf @method('PUT')
-                <div class="flex-1 overflow-y-auto px-6 pt-12 pb-6 space-y-4">
+                <div class="flex-1 overflow-y-auto p-6 space-y-4">
                     @include('master._fields_course', ['allUniversities' => $allUniversities])
                 </div>
                 <div class="shrink-0 px-6 py-3 border-t border-slate-100 bg-white flex items-center justify-end gap-3">
@@ -174,7 +174,7 @@
             {{-- ────────────── FEE: CREATE ────────────── --}}
             <form id="formFeeCreate" method="POST" action="{{ route('master.fees.store') }}" class="master-mode fee-form hidden flex-1 flex flex-col min-h-0">
                 @csrf
-                <div class="flex-1 overflow-y-auto px-6 pt-12 pb-6 space-y-4">
+                <div class="flex-1 overflow-y-auto p-6 space-y-4">
                     @include('master._fields_fee', ['allUniversities' => $allUniversities])
                 </div>
                 <div class="shrink-0 px-6 py-3 border-t border-slate-100 bg-white flex items-center justify-end gap-3">
@@ -186,7 +186,7 @@
             {{-- ────────────── FEE: EDIT ────────────── --}}
             <form id="formFeeEdit" method="POST" action="" class="master-mode fee-form hidden flex-1 flex flex-col min-h-0">
                 @csrf @method('PUT')
-                <div class="flex-1 overflow-y-auto px-6 pt-12 pb-6 space-y-4">
+                <div class="flex-1 overflow-y-auto p-6 space-y-4">
                     @include('master._fields_fee', ['allUniversities' => $allUniversities])
                 </div>
                 <div class="shrink-0 px-6 py-3 border-t border-slate-100 bg-white flex items-center justify-end gap-3">

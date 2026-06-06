@@ -195,7 +195,7 @@
 
         {{-- VIEW MODE --}}
         <div id="panelView" class="panel-mode hidden flex-1 flex flex-col min-h-0">
-            <div class="flex-1 overflow-y-auto px-6 pt-12 pb-6 space-y-5">
+            <div class="flex-1 overflow-y-auto p-6 space-y-5">
                 <div class="flex flex-col items-center text-center pb-5 border-b border-slate-100">
                     <div id="viewAvatarWrap" class="w-20 h-20 rounded-full overflow-hidden bg-pink-50 text-pink-600 font-bold text-2xl flex items-center justify-center">
                         <span id="viewAvatarInitial"></span>
@@ -243,7 +243,7 @@
             <input type="hidden" name="panel_mode" value="create">
             <input type="text" name="_hp_user" tabindex="-1" autocomplete="username" aria-hidden="true" class="hidden" value="">
             <input type="password" name="_hp_pass" tabindex="-1" autocomplete="current-password" aria-hidden="true" class="hidden" value="">
-            <div class="flex-1 overflow-y-auto px-6 pt-12 pb-6 space-y-4">
+            <div class="flex-1 overflow-y-auto p-6 space-y-4">
                 @include('users._fields', ['mode' => 'create'])
             </div>
             <div class="shrink-0 px-6 py-3 border-t border-slate-100 bg-white flex items-center justify-end gap-3">
@@ -264,7 +264,7 @@
             <input type="hidden" name="user_id" id="editUserId" value="">
             <input type="text" name="_hp_user" tabindex="-1" autocomplete="username" aria-hidden="true" class="hidden" value="">
             <input type="password" name="_hp_pass" tabindex="-1" autocomplete="current-password" aria-hidden="true" class="hidden" value="">
-            <div class="flex-1 overflow-y-auto px-6 pt-12 pb-6 space-y-4">
+            <div class="flex-1 overflow-y-auto p-6 space-y-4">
                 @include('users._fields', ['mode' => 'edit'])
             </div>
             <div class="shrink-0 px-6 py-3 border-t border-slate-100 bg-white flex items-center justify-end gap-3">

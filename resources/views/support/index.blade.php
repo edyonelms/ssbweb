@@ -218,7 +218,7 @@
 
         {{-- VIEW MODE (with thread) --}}
         <div id="panelView" class="panel-mode hidden flex-1 flex flex-col min-h-0">
-            <div class="flex-1 overflow-y-auto px-6 pt-12 pb-6 space-y-5">
+            <div class="flex-1 overflow-y-auto p-6 space-y-5">
                 <div class="pb-4 border-b border-slate-100">
                     <span id="viewStatus" class="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider"></span>
                     <h4 id="viewSubject" class="mt-1.5 text-base font-bold text-slate-800"></h4>
@@ -288,7 +288,7 @@
                 @csrf
                 <input type="hidden" name="panel_mode" value="create">
 
-                <div class="flex-1 overflow-y-auto px-6 pt-12 pb-6 space-y-5">
+                <div class="flex-1 overflow-y-auto p-6 space-y-5">
                     <div>
                         <label class="block text-sm font-semibold text-slate-700 mb-1.5">Subject <span class="text-rose-500">*</span></label>
                         <input name="subject" type="text" required maxlength="255"

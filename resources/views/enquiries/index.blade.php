@@ -177,7 +177,7 @@
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
         </button>
 
-        <div class="flex-1 overflow-y-auto px-6 pt-12 pb-6 space-y-5">
+        <div class="flex-1 overflow-y-auto p-6 space-y-5">
             <div class="pb-4 border-b border-slate-100">
                 <span id="viewStatus" class="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded"></span>
                 <h4 id="viewName" class="mt-1.5 text-base font-bold text-slate-800"></h4>

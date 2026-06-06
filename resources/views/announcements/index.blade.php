@@ -217,7 +217,7 @@
 
         {{-- VIEW MODE --}}
         <div id="panelView" class="panel-mode hidden flex-1 flex flex-col min-h-0">
-            <div class="flex-1 overflow-y-auto px-6 pt-12 pb-6 space-y-5">
+            <div class="flex-1 overflow-y-auto p-6 space-y-5">
                 <div class="pb-5 border-b border-slate-100">
                     <span id="viewAudience" class="text-[11px] font-semibold uppercase tracking-wider"></span>
                     <h4 id="viewHeading" class="mt-1.5 text-base font-bold text-slate-800"></h4>
@@ -266,7 +266,7 @@
                   class="panel-mode hidden flex-1 flex flex-col min-h-0">
                 @csrf
                 <input type="hidden" name="panel_mode" value="create">
-                <div class="flex-1 overflow-y-auto px-6 pt-12 pb-6 space-y-5">
+                <div class="flex-1 overflow-y-auto p-6 space-y-5">
                     @include('announcements._fields', ['mode' => 'create', 'subadmins' => $subadmins])
                 </div>
                 <div class="shrink-0 px-6 py-3 border-t border-slate-100 bg-white flex items-center justify-end gap-3">
@@ -285,7 +285,7 @@
                 @method('PUT')
                 <input type="hidden" name="panel_mode" value="edit">
                 <input type="hidden" name="announcement_id" id="editAnnouncementId" value="">
-                <div class="flex-1 overflow-y-auto px-6 pt-12 pb-6 space-y-5">
+                <div class="flex-1 overflow-y-auto p-6 space-y-5">
                     @include('announcements._fields', ['mode' => 'edit', 'subadmins' => $subadmins])
                 </div>
                 <div class="shrink-0 px-6 py-3 border-t border-slate-100 bg-white flex items-center justify-end gap-3">

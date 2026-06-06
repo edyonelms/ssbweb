@@ -217,7 +217,7 @@
 
         {{-- VIEW MODE --}}
         <div id="panelView" class="panel-mode hidden flex-1 flex flex-col min-h-0">
-            <div class="flex-1 overflow-y-auto px-6 pt-12 pb-6 space-y-5">
+            <div class="flex-1 overflow-y-auto p-6 space-y-5">
                 <div class="flex flex-col items-center text-center pb-5 border-b border-slate-100">
                     <div class="w-20 h-20 rounded-full bg-pink-50 text-pink-600 font-bold text-2xl flex items-center justify-center">
                         <span id="viewInitial"></span>
@@ -277,7 +277,7 @@
         {{-- CREATE FORM --}}
         <form id="createForm" method="POST" action="{{ route('students.store') }}" class="panel-mode hidden flex-1 flex flex-col min-h-0">
             @csrf
-            <div class="flex-1 overflow-y-auto px-6 pt-12 pb-6 space-y-4">
+            <div class="flex-1 overflow-y-auto p-6 space-y-4">
                 @include('students._fields')
             </div>
             <div class="shrink-0 px-6 py-3 border-t border-slate-100 bg-white flex items-center justify-end gap-3">
@@ -292,7 +292,7 @@
         <form id="editForm" method="POST" action="" class="panel-mode hidden flex-1 flex flex-col min-h-0">
             @csrf
             @method('PUT')
-            <div class="flex-1 overflow-y-auto px-6 pt-12 pb-6 space-y-4">
+            <div class="flex-1 overflow-y-auto p-6 space-y-4">
                 @include('students._fields')
             </div>
             <div class="shrink-0 px-6 py-3 border-t border-slate-100 bg-white flex items-center justify-end gap-3">
