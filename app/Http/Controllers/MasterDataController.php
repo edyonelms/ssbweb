@@ -161,7 +161,9 @@ class MasterDataController extends Controller
     {
         $data = $this->validateCourse($request);
         $data['lateral_entry'] = $request->boolean('lateral_entry');
-        Course::create($data);
+        $course = Course::create($data);
+
+        $this->syncFeeStructureFromCourse($course);
 
         return redirect()
             ->route('master.index', ['tab' => 'courses'])
@@ -174,9 +176,36 @@ class MasterDataController extends Controller
         $data['lateral_entry'] = $request->boolean('lateral_entry');
         $course->update($data);
 
+        $this->syncFeeStructureFromCourse($course->fresh());
+
         return redirect()
             ->route('master.index', ['tab' => 'courses'])
             ->with('status', 'Course updated.');
+    }
+
+    /**
+     * Keep the legacy fee_structures row in sync with whatever the course
+     * itself now stores. The Fee Structure tab still surfaces the row, but
+     * the course form is the single source of truth for fees.
+     */
+    private function syncFeeStructureFromCourse(Course $course): void
+    {
+        $fee = (float) $course->fee_per_sem;
+
+        if ($fee <= 0) {
+            // No semester fee → no fee structure to track. Drop any
+            // stale row from earlier so the listing stays clean.
+            FeeStructure::where('course_id', $course->id)->delete();
+            return;
+        }
+
+        FeeStructure::updateOrCreate(
+            ['course_id' => $course->id],
+            [
+                'university_id' => $course->university_id,
+                'fee_per_sem'   => $fee,
+            ]
+        );
     }
 
     public function destroyCourse(Course $course): RedirectResponse
@@ -196,13 +225,16 @@ class MasterDataController extends Controller
         $data = $this->validateFee($request);
 
         $course = Course::findOrFail($data['course_id']);
-        $data['university_id'] = $course->university_id;
 
-        FeeStructure::create($data);
+        FeeStructure::create([
+            'course_id'     => $course->id,
+            'university_id' => $course->university_id,
+            'fee_per_sem'   => (float) $course->fee_per_sem,
+        ]);
 
         return redirect()
             ->route('master.index', ['tab' => 'fees'])
-            ->with('status', 'Fee structure added.');
+            ->with('status', 'Fee structure added — pulled from course fees.');
     }
 
     public function updateFee(Request $request, FeeStructure $fee): RedirectResponse
@@ -210,13 +242,16 @@ class MasterDataController extends Controller
         $data = $this->validateFee($request, $fee->id);
 
         $course = Course::findOrFail($data['course_id']);
-        $data['university_id'] = $course->university_id;
 
-        $fee->update($data);
+        $fee->update([
+            'course_id'     => $course->id,
+            'university_id' => $course->university_id,
+            'fee_per_sem'   => (float) $course->fee_per_sem,
+        ]);
 
         return redirect()
             ->route('master.index', ['tab' => 'fees'])
-            ->with('status', 'Fee structure updated.');
+            ->with('status', 'Fee structure updated — pulled from course fees.');
     }
 
     public function destroyFee(FeeStructure $fee): RedirectResponse
@@ -249,21 +284,22 @@ class MasterDataController extends Controller
     private function validateCourse(Request $request): array
     {
         return $request->validate([
-            'university_id'  => ['required', 'integer', 'exists:universities,id'],
-            'name'           => ['required', 'string', 'max:255'],
-            'mode'           => ['nullable', 'string', 'max:30'],
-            'duration_years' => ['required', 'numeric', 'min:0.5', 'max:10'],
-            'lateral_entry'  => ['nullable'],
-            'subjects'       => ['nullable', 'string', 'max:2000'],
+            'university_id'    => ['required', 'integer', 'exists:universities,id'],
+            'name'             => ['required', 'string', 'max:255'],
+            'mode'             => ['nullable', 'string', 'max:30'],
+            'duration_years'   => ['required', 'numeric', 'min:0.5', 'max:10'],
+            'registration_fee' => ['nullable', 'numeric', 'min:0', 'max:99999999'],
+            'fee_per_sem'      => ['nullable', 'numeric', 'min:0', 'max:99999999'],
+            'lateral_entry'    => ['nullable'],
+            'subjects'         => ['nullable', 'string', 'max:2000'],
         ]);
     }
 
     private function validateFee(Request $request, ?int $ignoreId = null): array
     {
         return $request->validate([
-            'course_id'   => ['required', 'integer', 'exists:courses,id',
+            'course_id' => ['required', 'integer', 'exists:courses,id',
                 Rule::unique('fee_structures', 'course_id')->ignore($ignoreId)],
-            'fee_per_sem' => ['required', 'numeric', 'min:0', 'max:99999999'],
         ], [
             'course_id.unique' => 'A fee structure already exists for this course.',
         ]);

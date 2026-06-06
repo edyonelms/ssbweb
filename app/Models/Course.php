@@ -13,13 +13,17 @@ class Course extends Model
         'name',
         'mode',
         'duration_years',
+        'registration_fee',
+        'fee_per_sem',
         'lateral_entry',
         'subjects',
     ];
 
     protected $casts = [
-        'duration_years' => 'decimal:1',
-        'lateral_entry'  => 'boolean',
+        'duration_years'   => 'decimal:1',
+        'registration_fee' => 'decimal:2',
+        'fee_per_sem'      => 'decimal:2',
+        'lateral_entry'    => 'boolean',
     ];
 
     public function university(): BelongsTo
@@ -36,5 +40,10 @@ class Course extends Model
     {
         // Each year = 2 semesters; round up for half-year courses.
         return (int) ceil(((float) $this->duration_years) * 2);
+    }
+
+    public function totalFee(): float
+    {
+        return (float) $this->fee_per_sem * $this->semesterCount() + (float) $this->registration_fee;
     }
 }

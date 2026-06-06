@@ -12,9 +12,23 @@
     /** @var bool $isAdmin */
     /** @var \App\Models\User $authUser */
 
-    $tabs = [
+    /** @var \Illuminate\Support\Collection $paymentRequests */
+    /** @var array $requestStats */
+
+    $tabs = $isAdmin ? [
         'history'      => 'Wallet History',
         'transactions' => 'All Transactions',
+        'requests'     => 'Ask Payment',
+    ] : [
+        'history'      => 'Wallet History',
+        'transactions' => 'All Transactions',
+        'requests'     => 'Ask Payment',
+    ];
+
+    $statusStyles = [
+        'pending'  => ['bg' => 'bg-amber-50',   'text' => 'text-amber-700',   'label' => 'Pending'],
+        'approved' => ['bg' => 'bg-emerald-50', 'text' => 'text-emerald-700', 'label' => 'Approved'],
+        'rejected' => ['bg' => 'bg-rose-50',    'text' => 'text-rose-700',    'label' => 'Rejected'],
     ];
 
     $modeChips = [
@@ -52,18 +66,30 @@
         </div>
 
         <div class="flex items-center gap-x-6 gap-y-1 text-xs text-slate-500 flex-wrap">
-            <span>My Balance: <span class="text-emerald-600 font-bold ml-1">₹{{ number_format($stats['balance']) }}</span></span>
-            @if ($isAdmin)
-                <span>Disbursed by me: <span class="text-pink-600 font-semibold ml-1">₹{{ number_format($stats['disbursed']) }}</span></span>
-                <span>Txns: <span class="text-slate-800 font-semibold ml-1">{{ $stats['transactions'] }}</span></span>
-                <span>System: <span class="text-slate-800 font-semibold ml-1">₹{{ number_format($stats['system_total']) }}</span></span>
+            @if ($tab === 'requests')
+                <span>Pending: <span class="text-amber-600 font-bold ml-1">{{ $requestStats['pending'] }}</span></span>
+                <span>Approved: <span class="text-emerald-600 font-semibold ml-1">{{ $requestStats['approved'] }}</span></span>
+                <span>Rejected: <span class="text-rose-600 font-semibold ml-1">{{ $requestStats['rejected'] }}</span></span>
             @else
-                <span>Total Credits: <span class="text-pink-600 font-semibold ml-1">₹{{ number_format($stats['received']) }}</span></span>
-                <span>Txns: <span class="text-slate-800 font-semibold ml-1">{{ $stats['transactions'] }}</span></span>
+                <span>My Balance: <span class="text-emerald-600 font-bold ml-1">₹{{ number_format($stats['balance']) }}</span></span>
+                @if ($isAdmin)
+                    <span>Disbursed by me: <span class="text-pink-600 font-semibold ml-1">₹{{ number_format($stats['disbursed']) }}</span></span>
+                    <span>Txns: <span class="text-slate-800 font-semibold ml-1">{{ $stats['transactions'] }}</span></span>
+                    <span>System: <span class="text-slate-800 font-semibold ml-1">₹{{ number_format($stats['system_total']) }}</span></span>
+                @else
+                    <span>Total Credits: <span class="text-pink-600 font-semibold ml-1">₹{{ number_format($stats['received']) }}</span></span>
+                    <span>Txns: <span class="text-slate-800 font-semibold ml-1">{{ $stats['transactions'] }}</span></span>
+                @endif
             @endif
         </div>
 
-        @if ($isAdmin)
+        @if ($tab === 'requests')
+            <button type="button" onclick="WalletPanel.openAsk()"
+                    class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-pink-600 hover:bg-pink-700 text-white text-sm font-semibold transition">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                Ask Payment
+            </button>
+        @elseif ($isAdmin)
             <button type="button" onclick="WalletPanel.openUpdate()"
                     class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-pink-600 hover:bg-pink-700 text-white text-sm font-semibold transition">
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
@@ -96,21 +122,23 @@
             <span class="font-semibold text-slate-600">Filter by:</span>
         </div>
 
-        <div class="flex items-center gap-1.5">
-            <span class="text-slate-500">Mode:</span>
-            <div class="flex items-center gap-1 flex-wrap">
-                @foreach ($modeChips as $key => $label)
-                    @php $isActive = $mode === $key; @endphp
-                    <a href="{{ $buildUrl(['mode' => $key === 'all' ? null : $key]) }}"
-                       class="px-3 py-1 rounded-full text-xs font-semibold transition
-                              {{ $isActive
-                                    ? 'bg-pink-600 text-white shadow-sm shadow-pink-500/30'
-                                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200' }}">
-                        {{ $label }}
-                    </a>
-                @endforeach
+        @if ($tab !== 'requests')
+            <div class="flex items-center gap-1.5">
+                <span class="text-slate-500">Mode:</span>
+                <div class="flex items-center gap-1 flex-wrap">
+                    @foreach ($modeChips as $key => $label)
+                        @php $isActive = $mode === $key; @endphp
+                        <a href="{{ $buildUrl(['mode' => $key === 'all' ? null : $key]) }}"
+                           class="px-3 py-1 rounded-full text-xs font-semibold transition
+                                  {{ $isActive
+                                        ? 'bg-pink-600 text-white shadow-sm shadow-pink-500/30'
+                                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200' }}">
+                            {{ $label }}
+                        </a>
+                    @endforeach
+                </div>
             </div>
-        </div>
+        @endif
 
         <form method="GET" action="{{ route('wallet.index') }}" class="ml-auto flex items-center gap-2">
             <input type="hidden" name="tab" value="{{ $tab }}">
@@ -142,7 +170,137 @@
 
 @section('admin')
 <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
-    @if ($transactions->isEmpty())
+
+    {{-- ─────────── REQUESTS TAB (Ask Payment) ─────────── --}}
+    @if ($tab === 'requests')
+        @if ($paymentRequests->isEmpty())
+            <div class="px-6 py-20 text-center">
+                <div class="flex flex-col items-center gap-3">
+                    <div class="w-14 h-14 rounded-full bg-pink-50 text-pink-500 flex items-center justify-center">
+                        <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8V6m0 12v-2"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/></svg>
+                    </div>
+                    <h3 class="text-base font-bold text-slate-800">
+                        @if ($isAdmin)No payment requests yet @else No requests raised yet @endif
+                    </h3>
+                    <p class="text-sm text-slate-500">
+                        @if ($isAdmin)
+                            When sub-admins ask for funds, the requests will land here for approval.
+                        @else
+                            Need funds? Click <span class="font-semibold text-pink-600">Ask Payment</span> to raise a request.
+                        @endif
+                    </p>
+                    @unless ($isAdmin)
+                        <button type="button" onclick="WalletPanel.openAsk()"
+                                class="mt-2 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-pink-600 hover:bg-pink-700 text-white text-sm font-semibold transition">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                            Ask Payment
+                        </button>
+                    @endunless
+                </div>
+            </div>
+        @else
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="text-[11px] font-semibold tracking-wider uppercase text-slate-500 border-b border-slate-200">
+                        <tr>
+                            <th class="text-left px-6 py-3">Date</th>
+                            @if ($isAdmin)<th class="text-left px-6 py-3">Requested By</th>@endif
+                            <th class="text-left px-6 py-3">Topic</th>
+                            <th class="text-right px-6 py-3">Requested</th>
+                            <th class="text-right px-6 py-3">Approved</th>
+                            <th class="text-left px-6 py-3">Screenshot</th>
+                            <th class="text-left px-6 py-3">Status</th>
+                            <th class="text-right px-6 py-3">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        @foreach ($paymentRequests as $r)
+                            @php $st = $statusStyles[$r->status] ?? $statusStyles['pending']; @endphp
+                            <tr class="hover:bg-slate-50 transition">
+                                <td class="px-6 py-3 whitespace-nowrap">
+                                    <div class="text-slate-800 font-medium">{{ $r->created_at?->format('d M Y') }}</div>
+                                    <div class="text-[11px] text-slate-400">{{ $r->created_at?->format('h:i A') }}</div>
+                                </td>
+                                @if ($isAdmin)
+                                    <td class="px-6 py-3">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-8 h-8 rounded-full bg-pink-50 text-pink-600 font-bold text-xs flex items-center justify-center">{{ strtoupper(mb_substr($r->user?->name ?? '?', 0, 1)) }}</div>
+                                            <div>
+                                                <div class="font-medium text-slate-800">{{ $r->user?->name ?: '—' }}</div>
+                                                <div class="text-[11px] text-slate-500">{{ $r->user?->mobile ?: '' }}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                @endif
+                                <td class="px-6 py-3">
+                                    <div class="font-medium text-slate-800 line-clamp-1">{{ $r->topic }}</div>
+                                    @if ($r->admin_note)
+                                        <div class="text-[11px] text-slate-500 line-clamp-1">Note: {{ $r->admin_note }}</div>
+                                    @endif
+                                </td>
+                                <td class="px-6 py-3 text-right text-slate-700 font-medium">₹{{ number_format((float) $r->amount, 2) }}</td>
+                                <td class="px-6 py-3 text-right">
+                                    @if ($r->approved_amount !== null)
+                                        <span class="text-emerald-600 font-bold">₹{{ number_format((float) $r->approved_amount, 2) }}</span>
+                                    @else
+                                        <span class="text-slate-400">—</span>
+                                    @endif
+                                </td>
+                                <td class="px-6 py-3">
+                                    @if ($r->screenshot_url)
+                                        <a href="{{ $r->screenshot_url }}" target="_blank" rel="noopener"
+                                           class="inline-flex items-center gap-1 text-pink-600 hover:text-pink-700 text-xs font-medium">
+                                            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                            View
+                                        </a>
+                                    @else
+                                        <span class="text-slate-400 text-xs">—</span>
+                                    @endif
+                                </td>
+                                <td class="px-6 py-3">
+                                    <span class="text-[10px] font-semibold px-2 py-0.5 rounded uppercase {{ $st['bg'] }} {{ $st['text'] }}">
+                                        {{ $st['label'] }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-3">
+                                    <div class="flex items-center justify-end gap-1">
+                                        @if ($isAdmin && $r->isPending())
+                                            <button type="button"
+                                                    onclick='WalletPanel.openApprove(@json($r))'
+                                                    title="Approve"
+                                                    class="px-2.5 py-1 rounded-md text-xs font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition">
+                                                Approve
+                                            </button>
+                                            <form method="POST" action="{{ route('wallet.requests.reject', $r) }}"
+                                                  onsubmit="return confirmAction(this, 'Reject this payment request? The sub-admin will be notified.', 'Reject request');">
+                                                @csrf
+                                                <button type="submit" title="Reject"
+                                                        class="px-2.5 py-1 rounded-md text-xs font-semibold bg-rose-50 text-rose-700 hover:bg-rose-100 transition">
+                                                    Reject
+                                                </button>
+                                            </form>
+                                        @endif
+                                        @if (($isAdmin || ($r->user_id === $authUser->id && $r->isPending())))
+                                            <form method="POST" action="{{ route('wallet.requests.destroy', $r) }}"
+                                                  onsubmit="return confirmAction(this, 'Remove this request from the list?', 'Remove request');">
+                                                @csrf @method('DELETE')
+                                                <button type="submit" title="Delete"
+                                                        class="w-8 h-8 rounded-md text-slate-500 hover:bg-slate-100 hover:text-rose-600 inline-flex items-center justify-center transition">
+                                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3"/></svg>
+                                                </button>
+                                            </form>
+                                        @endif
+                                    </div>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @endif
+
+    {{-- ─────────── HISTORY / TRANSACTIONS TAB ─────────── --}}
+    @elseif ($transactions->isEmpty())
         <div class="px-6 py-20 text-center">
             <div class="flex flex-col items-center gap-3">
                 <div class="w-14 h-14 rounded-full bg-pink-50 text-pink-500 flex items-center justify-center">
@@ -252,8 +410,7 @@
 @endsection
 
 @section('slide-panel')
-@if ($isAdmin)
-{{-- SLIDE-IN PANEL — Update Wallet --}}
+{{-- SLIDE-IN PANEL — multi-mode (Update Wallet / Ask Payment / Approve Request) --}}
 <aside id="walletPanel" class="absolute inset-0 z-30 hidden" aria-hidden="true">
     <div class="absolute inset-0 bg-slate-900/30 opacity-0 transition-opacity duration-200" id="walletPanelBackdrop" onclick="WalletPanel.close()"></div>
     <div id="walletPanelCard"
@@ -264,8 +421,14 @@
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
         </button>
 
-        <form method="POST" action="{{ route('wallet.store') }}" class="flex-1 flex flex-col min-h-0">
+        {{-- ────────── UPDATE WALLET (admin only) ────────── --}}
+        @if ($isAdmin)
+        <form id="walletFormUpdate" method="POST" action="{{ route('wallet.store') }}" class="wallet-mode hidden flex-1 flex flex-col min-h-0">
             @csrf
+            <div class="px-6 pt-5 pb-3 border-b border-slate-100">
+                <h3 class="text-base font-bold text-slate-800">Update Wallet</h3>
+                <p class="text-xs text-slate-500 mt-0.5">Credit (or debit with a negative amount) any user's wallet.</p>
+            </div>
             <div class="flex-1 overflow-y-auto p-6 space-y-4">
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1">User <span class="text-rose-500">*</span></label>
@@ -322,16 +485,138 @@
                         class="px-4 py-2 rounded-lg bg-pink-600 hover:bg-pink-700 text-white text-sm font-semibold transition">Credit Wallet</button>
             </div>
         </form>
+        @endif
+
+        {{-- ────────── ASK PAYMENT (everyone can raise a request) ────────── --}}
+        <form id="walletFormAsk" method="POST" action="{{ route('wallet.requests.store') }}"
+              enctype="multipart/form-data" class="wallet-mode hidden flex-1 flex flex-col min-h-0">
+            @csrf
+            <div class="px-6 pt-5 pb-3 border-b border-slate-100">
+                <h3 class="text-base font-bold text-slate-800">Ask Payment</h3>
+                <p class="text-xs text-slate-500 mt-0.5">
+                    Raise a fund request. The admin will review and either approve (optionally adjusting the amount) or reject it.
+                </p>
+            </div>
+            <div class="flex-1 overflow-y-auto p-6 space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Amount (₹) <span class="text-rose-500">*</span></label>
+                    <input type="number" step="0.01" min="1" name="amount" required
+                           value="{{ old('amount') }}"
+                           placeholder="e.g. 5000"
+                           class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 outline-none transition text-sm">
+                    @error('amount')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Topic <span class="text-rose-500">*</span></label>
+                    <input type="text" name="topic" required maxlength="255"
+                           value="{{ old('topic') }}"
+                           placeholder="e.g. Marketing campaign for July"
+                           class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 outline-none transition text-sm">
+                    @error('topic')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Screenshot (optional)</label>
+                    <label class="flex items-center gap-3 px-3 py-2 border border-dashed border-slate-300 rounded-lg cursor-pointer hover:bg-slate-50 transition">
+                        <svg class="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                        <span class="text-xs text-slate-600">Choose an image (PNG/JPG/WEBP, max 4MB)</span>
+                        <input type="file" name="screenshot" accept="image/png,image/jpeg,image/webp" class="hidden" data-ask-screenshot>
+                    </label>
+                    <p class="mt-1 text-[11px] text-slate-400" data-ask-screenshot-name></p>
+                    @error('screenshot')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror
+                </div>
+            </div>
+
+            <div class="shrink-0 px-6 py-3 border-t border-slate-100 bg-white flex items-center justify-end gap-3">
+                <button type="button" onclick="WalletPanel.close()"
+                        class="px-4 py-2 text-sm font-semibold text-slate-600 hover:text-slate-800 transition">Cancel</button>
+                <button type="submit"
+                        class="px-4 py-2 rounded-lg bg-pink-600 hover:bg-pink-700 text-white text-sm font-semibold transition">Submit Request</button>
+            </div>
+        </form>
+
+        {{-- ────────── APPROVE REQUEST (admin only) ────────── --}}
+        @if ($isAdmin)
+        <form id="walletFormApprove" method="POST" action="" class="wallet-mode hidden flex-1 flex flex-col min-h-0">
+            @csrf
+            <div class="px-6 pt-5 pb-3 border-b border-slate-100">
+                <h3 class="text-base font-bold text-slate-800">Approve Request</h3>
+                <p class="text-xs text-slate-500 mt-0.5" id="approveSubtitle">Review the details and credit the sub-admin's wallet.</p>
+            </div>
+            <div class="flex-1 overflow-y-auto p-6 space-y-4">
+                <div class="rounded-xl bg-slate-50 border border-slate-100 p-4 space-y-1.5">
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="text-slate-500">Requested by</span>
+                        <span class="font-semibold text-slate-800" id="approveRequestedBy">—</span>
+                    </div>
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="text-slate-500">Topic</span>
+                        <span class="font-medium text-slate-800 truncate ml-2" id="approveTopic">—</span>
+                    </div>
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="text-slate-500">Requested amount</span>
+                        <span class="font-semibold text-slate-800" id="approveRequestedAmount">—</span>
+                    </div>
+                    <div class="text-[11px] text-slate-500 pt-1.5 border-t border-slate-200 mt-1.5">
+                        Screenshot:
+                        <a href="#" target="_blank" rel="noopener" id="approveScreenshotLink"
+                           class="text-pink-600 hover:text-pink-700 font-medium ml-1 hidden">View</a>
+                        <span id="approveNoScreenshot" class="text-slate-400 ml-1">none</span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Approve Amount (₹) <span class="text-rose-500">*</span></label>
+                        <input type="number" step="0.01" min="0.01" name="approved_amount" required
+                               id="approveAmount"
+                               class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 outline-none transition text-sm">
+                        <p class="mt-1 text-[11px] text-slate-400">Adjust up or down — defaults to requested.</p>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Mode <span class="text-rose-500">*</span></label>
+                        <select name="mode" required
+                                class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 outline-none transition text-sm">
+                            @foreach (\App\Models\WalletTransaction::MODES as $m)
+                                <option value="{{ $m }}">{{ strtoupper($m) }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Note (optional)</label>
+                    <textarea name="admin_note" rows="2" maxlength="500"
+                              placeholder="Add a remark visible to the sub-admin (optional)"
+                              class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 outline-none transition text-sm"></textarea>
+                </div>
+            </div>
+
+            <div class="shrink-0 px-6 py-3 border-t border-slate-100 bg-white flex items-center justify-end gap-3">
+                <button type="button" onclick="WalletPanel.close()"
+                        class="px-4 py-2 text-sm font-semibold text-slate-600 hover:text-slate-800 transition">Cancel</button>
+                <button type="submit"
+                        class="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold transition">
+                    Approve &amp; Credit
+                </button>
+            </div>
+        </form>
+        @endif
     </div>
 </aside>
 
 <script>
+    window.WALLET_REQUEST_APPROVE_URL = @json(url('/wallet/requests/__ID__/approve'));
+
     const WalletPanel = (function () {
         const panel    = document.getElementById('walletPanel');
         const card     = document.getElementById('walletPanelCard');
         const backdrop = document.getElementById('walletPanelBackdrop');
+        const modes    = document.querySelectorAll('.wallet-mode');
 
-        function openUpdate() {
+        function show(modeId) {
+            modes.forEach(m => m.classList.toggle('hidden', m.id !== modeId));
             panel.classList.remove('hidden');
             panel.setAttribute('aria-hidden', 'false');
             requestAnimationFrame(() => {
@@ -349,7 +634,33 @@
                 panel.setAttribute('aria-hidden', 'true');
             }, 250);
         }
-        return { openUpdate, close };
+
+        function openUpdate() { show('walletFormUpdate'); }
+        function openAsk()    { show('walletFormAsk'); }
+
+        function openApprove(req) {
+            const form = document.getElementById('walletFormApprove');
+            if (!form) return;
+            form.action = window.WALLET_REQUEST_APPROVE_URL.replace('__ID__', req.id);
+            form.querySelector('#approveRequestedBy').textContent     = (req.user && req.user.name) || 'Sub-admin';
+            form.querySelector('#approveTopic').textContent           = req.topic || '—';
+            form.querySelector('#approveRequestedAmount').textContent = '₹' + Number(req.amount || 0).toLocaleString('en-IN');
+            form.querySelector('#approveAmount').value                = req.amount;
+            const link = form.querySelector('#approveScreenshotLink');
+            const none = form.querySelector('#approveNoScreenshot');
+            if (req.screenshot_url) {
+                link.href = req.screenshot_url;
+                link.classList.remove('hidden');
+                none.classList.add('hidden');
+            } else {
+                link.classList.add('hidden');
+                none.classList.remove('hidden');
+            }
+            form.querySelector('[name="admin_note"]').value = '';
+            show('walletFormApprove');
+        }
+
+        return { openUpdate, openAsk, openApprove, close };
     })();
 
     document.addEventListener('keydown', e => {
@@ -358,16 +669,27 @@
         }
     });
 
-    // If we redirected back with validation errors, reopen the panel.
+    // Screenshot file-name echo in the Ask Payment form.
+    document.querySelectorAll('[data-ask-screenshot]').forEach(input => {
+        input.addEventListener('change', () => {
+            const label = input.closest('form').querySelector('[data-ask-screenshot-name]');
+            if (label) label.textContent = input.files[0]?.name || '';
+        });
+    });
+
+    // Reopen the right panel after a validation redirect.
     @if ($errors->any() && $isAdmin)
         WalletPanel.openUpdate();
+    @elseif ($errors->any())
+        WalletPanel.openAsk();
     @endif
 
-    // Dashboard / topbar quick-link support: ?panel=update opens the form.
+    // Quick-link support: ?panel=update or ?panel=ask.
     (function () {
         const params = new URLSearchParams(window.location.search);
-        if (params.get('panel') === 'update') WalletPanel.openUpdate();
+        const which = params.get('panel');
+        if (which === 'update' && @json($isAdmin)) WalletPanel.openUpdate();
+        else if (which === 'ask') WalletPanel.openAsk();
     })();
 </script>
-@endif
 @endsection

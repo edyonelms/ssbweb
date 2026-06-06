@@ -13,21 +13,22 @@ class FeeCalculatorController extends Controller
     {
         $universities = University::orderBy('name')->get(['id', 'name', 'type', 'registration_fee']);
 
-        // Every course + its fee structure, shipped to the page so the
-        // form can filter the course dropdown by university and run the
-        // calculation client-side as the user types.
-        $coursesData = Course::with('feeStructure')
-            ->orderBy('name')
+        // Every course shipped to the page so the form can filter the
+        // course dropdown by university and run the calculation
+        // client-side as the user types. Fees now live on the course
+        // itself, so no fee_structure join is needed.
+        $coursesData = Course::orderBy('name')
             ->get()
             ->map(fn ($c) => [
-                'id'             => $c->id,
-                'university_id'  => $c->university_id,
-                'name'           => $c->name,
-                'mode'           => $c->mode,
-                'duration_years' => (float) $c->duration_years,
-                'semesters'      => $c->semesterCount(),
-                'fee_per_sem'    => (float) ($c->feeStructure?->fee_per_sem ?? 0),
-                'has_fee'        => $c->feeStructure !== null,
+                'id'               => $c->id,
+                'university_id'    => $c->university_id,
+                'name'             => $c->name,
+                'mode'             => $c->mode,
+                'duration_years'   => (float) $c->duration_years,
+                'semesters'        => $c->semesterCount(),
+                'registration_fee' => (float) $c->registration_fee,
+                'fee_per_sem'      => (float) $c->fee_per_sem,
+                'has_fee'          => (float) $c->fee_per_sem > 0,
             ])
             ->values();
 

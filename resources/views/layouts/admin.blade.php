@@ -69,7 +69,16 @@
                 ->limit(80);
 
             if (! $isAdmin) {
-                $feed->where(function ($q) use ($authUser) {
+                // Sub-admin sees:
+                //  • their own activity
+                //  • admin announcements / support replies / wallet credits/debits
+                //  • admin's decisions on payment requests *belonging to this
+                //    sub-admin* (scoped via PaymentRequest.user_id)
+                $myRequestIds = \Illuminate\Support\Facades\Schema::hasTable('payment_requests')
+                    ? \App\Models\PaymentRequest::where('user_id', $authUser->id)->pluck('id')->all()
+                    : [];
+
+                $feed->where(function ($q) use ($authUser, $myRequestIds) {
                     $q->where('user_id', $authUser->id)
                       ->orWhere(function ($q2) {
                           $q2->whereHas('user', fn ($u) => $u->where('role', \App\Models\User::ROLE_ADMIN))
@@ -81,6 +90,11 @@
                                  'wallet.credited',
                                  'wallet.debited',
                              ]);
+                      })
+                      ->orWhere(function ($q2) use ($myRequestIds) {
+                          $q2->whereIn('action', ['wallet.request_approved', 'wallet.request_rejected'])
+                             ->where('subject_type', \App\Models\PaymentRequest::class)
+                             ->whereIn('subject_id', $myRequestIds);
                       });
                 });
             }

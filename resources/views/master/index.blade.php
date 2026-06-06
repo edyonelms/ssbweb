@@ -46,37 +46,43 @@
     ])->keyBy('id');
 
     $coursesData = $courses->map(fn ($c) => [
-        'id'             => $c->id,
-        'university_id'  => $c->university_id,
-        'university'     => $c->university?->name,
-        'name'           => $c->name,
-        'mode'           => $c->mode,
-        'duration_years' => (float) $c->duration_years,
-        'lateral_entry'  => (bool) $c->lateral_entry,
-        'subjects'       => $c->subjects,
-        'semesters'      => $c->semesterCount(),
-        'created_at'     => $c->created_at?->format('d M Y'),
+        'id'               => $c->id,
+        'university_id'    => $c->university_id,
+        'university'       => $c->university?->name,
+        'name'             => $c->name,
+        'mode'             => $c->mode,
+        'duration_years'   => (float) $c->duration_years,
+        'registration_fee' => (float) $c->registration_fee,
+        'fee_per_sem'      => (float) $c->fee_per_sem,
+        'total_fee'        => $c->totalFee(),
+        'lateral_entry'    => (bool) $c->lateral_entry,
+        'subjects'         => $c->subjects,
+        'semesters'        => $c->semesterCount(),
+        'created_at'       => $c->created_at?->format('d M Y'),
     ])->keyBy('id');
 
     $allCoursesData = $allCourses->map(fn ($c) => [
-        'id'             => $c->id,
-        'university_id'  => $c->university_id,
-        'name'           => $c->name,
-        'duration_years' => (float) $c->duration_years,
-        'semesters'      => $c->semesterCount(),
+        'id'               => $c->id,
+        'university_id'    => $c->university_id,
+        'name'             => $c->name,
+        'duration_years'   => (float) $c->duration_years,
+        'registration_fee' => (float) $c->registration_fee,
+        'fee_per_sem'      => (float) $c->fee_per_sem,
+        'semesters'        => $c->semesterCount(),
     ])->values();
 
     $feesData = $fees->map(fn ($f) => [
-        'id'             => $f->id,
-        'university_id'  => $f->university_id,
-        'university'     => $f->university?->name,
-        'course_id'      => $f->course_id,
-        'course'         => $f->course?->name,
-        'duration_years' => (float) ($f->course?->duration_years ?? 0),
-        'semesters'      => $f->course?->semesterCount() ?? 0,
-        'fee_per_sem'    => (float) $f->fee_per_sem,
-        'total_fee'      => $f->totalFee(),
-        'created_at'     => $f->created_at?->format('d M Y'),
+        'id'               => $f->id,
+        'university_id'    => $f->university_id,
+        'university'       => $f->university?->name,
+        'course_id'        => $f->course_id,
+        'course'           => $f->course?->name,
+        'duration_years'   => (float) ($f->course?->duration_years ?? 0),
+        'semesters'        => $f->course?->semesterCount() ?? 0,
+        'registration_fee' => (float) ($f->course?->registration_fee ?? 0),
+        'fee_per_sem'      => (float) ($f->course?->fee_per_sem ?? $f->fee_per_sem),
+        'total_fee'        => $f->course?->totalFee() ?? $f->totalFee(),
+        'created_at'       => $f->created_at?->format('d M Y'),
     ])->keyBy('id');
 @endphp
 
@@ -165,18 +171,33 @@
         </div>
 
         @if ($tab === 'courses' || $tab === 'fees')
+            @php
+                $unisOnly   = $allUniversities->where('type', \App\Models\University::TYPE_UNIVERSITY);
+                $boardsOnly = $allUniversities->where('type', \App\Models\University::TYPE_BOARD);
+            @endphp
             <form method="GET" action="{{ route('master.index') }}" class="flex items-center gap-2">
                 <input type="hidden" name="tab" value="{{ $tab }}">
                 @if ($search !== '')
                     <input type="hidden" name="q" value="{{ $search }}">
                 @endif
-                <span class="text-slate-500">University:</span>
+                <span class="text-slate-500">University / Board:</span>
                 <select name="university_id" onchange="this.form.submit()"
                         class="px-3 py-1.5 bg-white border border-slate-200 rounded-full text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 transition">
                     <option value="">All</option>
-                    @foreach ($allUniversities as $u)
-                        <option value="{{ $u->id }}" {{ (string) $universityFilter === (string) $u->id ? 'selected' : '' }}>{{ $u->name }}</option>
-                    @endforeach
+                    @if ($unisOnly->isNotEmpty())
+                        <optgroup label="Universities">
+                            @foreach ($unisOnly as $u)
+                                <option value="{{ $u->id }}" {{ (string) $universityFilter === (string) $u->id ? 'selected' : '' }}>{{ $u->name }}</option>
+                            @endforeach
+                        </optgroup>
+                    @endif
+                    @if ($boardsOnly->isNotEmpty())
+                        <optgroup label="Boards">
+                            @foreach ($boardsOnly as $u)
+                                <option value="{{ $u->id }}" {{ (string) $universityFilter === (string) $u->id ? 'selected' : '' }}>{{ $u->name }}</option>
+                            @endforeach
+                        </optgroup>
+                    @endif
                 </select>
             </form>
         @endif
@@ -291,6 +312,8 @@
                             <th class="text-left px-6 py-3">University</th>
                             <th class="text-left px-6 py-3">Mode</th>
                             <th class="text-right px-6 py-3">Duration</th>
+                            <th class="text-right px-6 py-3">Reg. Fee</th>
+                            <th class="text-right px-6 py-3">Fee / Sem</th>
                             <th class="text-left px-6 py-3">Lateral</th>
                             @if ($isAdmin)<th class="text-right px-6 py-3">Actions</th>@endif
                         </tr>
@@ -305,6 +328,8 @@
                                 <td class="px-6 py-3 text-slate-600">{{ $c->university?->name ?: '—' }}</td>
                                 <td class="px-6 py-3 text-slate-600 capitalize">{{ $c->mode ?: '—' }}</td>
                                 <td class="px-6 py-3 text-right text-slate-700">{{ rtrim(rtrim(number_format((float) $c->duration_years, 1), '0'), '.') }} yrs · {{ $c->semesterCount() }} sem</td>
+                                <td class="px-6 py-3 text-right text-slate-700">₹{{ number_format((float) $c->registration_fee) }}</td>
+                                <td class="px-6 py-3 text-right text-slate-700 font-medium">₹{{ number_format((float) $c->fee_per_sem) }}</td>
                                 <td class="px-6 py-3">
                                     @if ($c->lateral_entry)
                                         <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700">Yes</span>
@@ -347,6 +372,7 @@
                             <th class="text-left px-6 py-3">University</th>
                             <th class="text-left px-6 py-3">Course</th>
                             <th class="text-right px-6 py-3">Semesters</th>
+                            <th class="text-right px-6 py-3">Reg. Fee</th>
                             <th class="text-right px-6 py-3">Fee / Sem</th>
                             <th class="text-right px-6 py-3">Total Fee</th>
                             @if ($isAdmin)<th class="text-right px-6 py-3">Actions</th>@endif
@@ -361,8 +387,9 @@
                                     <div class="text-xs text-slate-500">{{ rtrim(rtrim(number_format((float) ($f->course?->duration_years ?? 0), 1), '0'), '.') }} years</div>
                                 </td>
                                 <td class="px-6 py-3 text-right text-slate-700">{{ $f->course?->semesterCount() ?? 0 }}</td>
-                                <td class="px-6 py-3 text-right text-slate-700 font-medium">₹{{ number_format((float) $f->fee_per_sem) }}</td>
-                                <td class="px-6 py-3 text-right text-pink-600 font-semibold">₹{{ number_format($f->totalFee()) }}</td>
+                                <td class="px-6 py-3 text-right text-slate-700">₹{{ number_format((float) ($f->course?->registration_fee ?? 0)) }}</td>
+                                <td class="px-6 py-3 text-right text-slate-700 font-medium">₹{{ number_format((float) ($f->course?->fee_per_sem ?? $f->fee_per_sem)) }}</td>
+                                <td class="px-6 py-3 text-right text-pink-600 font-semibold">₹{{ number_format($f->course?->totalFee() ?? $f->totalFee()) }}</td>
                                 @if ($isAdmin)
                                     <td class="px-6 py-3">
                                         <div class="flex items-center justify-end gap-1" onclick="event.stopPropagation()">
@@ -487,23 +514,29 @@
         }
         function fillCourseForm(formId, c) {
             const f = document.getElementById(formId);
-            f.querySelector('[name="university_id"]').value  = c?.university_id || '';
-            f.querySelector('[name="name"]').value           = c?.name || '';
-            f.querySelector('[name="mode"]').value           = c?.mode || '';
-            f.querySelector('[name="duration_years"]').value = c?.duration_years || '';
-            f.querySelector('[name="lateral_entry"]').checked = !!c?.lateral_entry;
-            f.querySelector('[name="subjects"]').value       = c?.subjects || '';
+            f.querySelector('[name="university_id"]').value    = c?.university_id || '';
+            f.querySelector('[name="name"]').value             = c?.name || '';
+            f.querySelector('[name="mode"]').value             = c?.mode || '';
+            f.querySelector('[name="duration_years"]').value   = c?.duration_years || '';
+            f.querySelector('[name="registration_fee"]').value = c?.registration_fee ?? '';
+            f.querySelector('[name="fee_per_sem"]').value      = c?.fee_per_sem ?? '';
+            f.querySelector('[name="lateral_entry"]').checked  = !!c?.lateral_entry;
+            f.querySelector('[name="subjects"]').value         = c?.subjects || '';
         }
 
         // ────── Fee ──────
         function recomputeFeeTotal(form) {
             const courseId = parseInt(form.querySelector('[name="course_id"]').value || 0, 10);
-            const perSem   = parseFloat(form.querySelector('[name="fee_per_sem"]').value || 0);
             const course   = window.ALL_COURSES.find(c => c.id === courseId);
             const sems     = course?.semesters || 0;
-            const total    = perSem * sems;
-            form.querySelector('[data-semesters]').textContent = sems;
-            form.querySelector('[data-total-fee]').textContent = '₹' + total.toLocaleString('en-IN');
+            const regFee   = course?.registration_fee || 0;
+            const perSem   = course?.fee_per_sem || 0;
+            const total    = perSem * sems + regFee;
+            const fmt = v => '₹' + Number(v).toLocaleString('en-IN');
+            const r = form.querySelector('[data-reg-fee]');     if (r) r.textContent = fmt(regFee);
+            const p = form.querySelector('[data-per-sem]');     if (p) p.textContent = fmt(perSem);
+            const s = form.querySelector('[data-semesters]');   if (s) s.textContent = sems;
+            const t = form.querySelector('[data-total-fee]');   if (t) t.textContent = fmt(total);
         }
         function rebuildFeeCourseSelect(form, universityId, selectedCourseId) {
             const sel = form.querySelector('[name="course_id"]');
@@ -524,6 +557,7 @@
             document.getElementById('viewFeeUniversity').textContent = f.university || '—';
             document.getElementById('viewFeeCourse').textContent     = f.course || '—';
             document.getElementById('viewFeeDuration').textContent   = (f.duration_years || 0) + ' yrs · ' + (f.semesters || 0) + ' sem';
+            document.getElementById('viewFeeRegistration').textContent = '₹' + Number(f.registration_fee || 0).toLocaleString('en-IN');
             document.getElementById('viewFeePerSem').textContent     = '₹' + Number(f.fee_per_sem || 0).toLocaleString('en-IN');
             document.getElementById('viewFeeTotal').textContent      = '₹' + Number(f.total_fee || 0).toLocaleString('en-IN');
             if (window.IS_ADMIN) {
@@ -536,7 +570,6 @@
             const uniSel = form.querySelector('[name="university_id_picker"]');
             uniSel.value = f?.university_id || '';
             rebuildFeeCourseSelect(form, uniSel.value, f?.course_id);
-            form.querySelector('[name="fee_per_sem"]').value = f?.fee_per_sem ?? '';
             recomputeFeeTotal(form);
         }
 
@@ -605,7 +638,6 @@
         const uniSel = form.querySelector('[name="university_id_picker"]');
         uniSel?.addEventListener('change', () => MasterPanel.rebuildFeeCourseSelect(form, uniSel.value, null));
         form.querySelector('[name="course_id"]')?.addEventListener('change', () => MasterPanel.recomputeFeeTotal(form));
-        form.querySelector('[name="fee_per_sem"]')?.addEventListener('input', () => MasterPanel.recomputeFeeTotal(form));
     });
 
     // File-name echo for image uploads.

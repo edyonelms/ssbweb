@@ -100,6 +100,10 @@
                 </div>
                 <dl class="space-y-3">
                     <div class="flex items-center justify-between">
+                        <dt class="text-sm text-slate-500">Registration Fee</dt>
+                        <dd id="viewFeeRegistration" class="text-sm font-semibold text-slate-800"></dd>
+                    </div>
+                    <div class="flex items-center justify-between">
                         <dt class="text-sm text-slate-500">Fee per semester</dt>
                         <dd id="viewFeePerSem" class="text-sm font-semibold text-slate-800"></dd>
                     </div>

@@ -102,6 +102,18 @@ Route::middleware('auth')->group(function () {
         Route::post('/wallet', [WalletController::class, 'store'])->name('wallet.store');
     });
 
+    // Payment requests ("Ask Payment") — anyone can ask, admin decides.
+    Route::post('/wallet/requests', [WalletController::class, 'storeRequest'])
+        ->name('wallet.requests.store');
+    Route::delete('/wallet/requests/{paymentRequest}', [WalletController::class, 'destroyRequest'])
+        ->whereNumber('paymentRequest')->name('wallet.requests.destroy');
+    Route::middleware('admin')->group(function () {
+        Route::post('/wallet/requests/{paymentRequest}/approve', [WalletController::class, 'approveRequest'])
+            ->whereNumber('paymentRequest')->name('wallet.requests.approve');
+        Route::post('/wallet/requests/{paymentRequest}/reject', [WalletController::class, 'rejectRequest'])
+            ->whereNumber('paymentRequest')->name('wallet.requests.reject');
+    });
+
     // Master Data — admin manages universities/courses/fees, sub-admin reads only.
     Route::prefix('master-data')->name('master.')->group(function () {
         Route::get('/', [MasterDataController::class, 'index'])->name('index');

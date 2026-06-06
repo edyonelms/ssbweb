@@ -6,10 +6,25 @@
     <label class="block text-xs font-semibold text-slate-700 mb-1">University / Board <span class="text-rose-500">*</span></label>
     <select name="university_id" required
             class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 outline-none transition text-sm">
-        <option value="">Select university</option>
-        @foreach ($allUniversities as $u)
-            <option value="{{ $u->id }}">{{ $u->name }} ({{ ucfirst($u->type) }})</option>
-        @endforeach
+        <option value="">Select university or board</option>
+        @php
+            $unisOnly   = $allUniversities->where('type', \App\Models\University::TYPE_UNIVERSITY);
+            $boardsOnly = $allUniversities->where('type', \App\Models\University::TYPE_BOARD);
+        @endphp
+        @if ($unisOnly->isNotEmpty())
+            <optgroup label="Universities">
+                @foreach ($unisOnly as $u)
+                    <option value="{{ $u->id }}">{{ $u->name }}</option>
+                @endforeach
+            </optgroup>
+        @endif
+        @if ($boardsOnly->isNotEmpty())
+            <optgroup label="Boards">
+                @foreach ($boardsOnly as $u)
+                    <option value="{{ $u->id }}">{{ $u->name }}</option>
+                @endforeach
+            </optgroup>
+        @endif
     </select>
 </div>
 
@@ -35,6 +50,21 @@
         <label class="block text-xs font-semibold text-slate-700 mb-1">Duration (years) <span class="text-rose-500">*</span></label>
         <input type="number" step="0.5" min="0.5" max="10" name="duration_years" required
                placeholder="e.g. 4"
+               class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 outline-none transition text-sm">
+    </div>
+</div>
+
+<div class="grid grid-cols-2 gap-3">
+    <div>
+        <label class="block text-xs font-semibold text-slate-700 mb-1">Registration Fee (₹)</label>
+        <input type="number" step="1" min="0" name="registration_fee"
+               placeholder="e.g. 5000"
+               class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 outline-none transition text-sm">
+    </div>
+    <div>
+        <label class="block text-xs font-semibold text-slate-700 mb-1">Semester Fee (₹)</label>
+        <input type="number" step="1" min="0" name="fee_per_sem"
+               placeholder="e.g. 25000"
                class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 outline-none transition text-sm">
     </div>
 </div>
