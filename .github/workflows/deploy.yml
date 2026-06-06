@@ -52,6 +52,9 @@ jobs:
             docker compose exec -T laravel.test php artisan config:clear
             docker compose exec -T laravel.test php artisan route:clear
             docker compose exec -T laravel.test php artisan view:clear
+            # Make storage/app/public reachable as /storage/* on the web,
+            # so uploaded university logos & similar files actually render.
+            docker compose exec -T laravel.test php artisan storage:link --force
             docker compose exec -T laravel.test php artisan migrate --force
             docker compose exec -T laravel.test php artisan db:seed --force
 
