@@ -54,6 +54,50 @@
     } catch (\Throwable $e) {
         $walletAmount = 0;
     }
+
+    // Recent Activity feed for the topbar panel.
+    //  • Admin sees every actor's activity (own + every sub-admin's).
+    //  • Sub-admin sees their own activity + the admin's announcement /
+    //    support / wallet entries (so they get notified when the admin
+    //    posts to them, replies, or credits their wallet).
+    $recentActivities = collect();
+    try {
+        if (auth()->check() && \Illuminate\Support\Facades\Schema::hasTable('activity_logs')) {
+            $authUser = auth()->user();
+            $feed = \App\Models\ActivityLog::with('user:id,name,role,avatar_path')
+                ->orderByDesc('id')
+                ->limit(80);
+
+            if (! $isAdmin) {
+                $feed->where(function ($q) use ($authUser) {
+                    $q->where('user_id', $authUser->id)
+                      ->orWhere(function ($q2) {
+                          $q2->whereHas('user', fn ($u) => $u->where('role', \App\Models\User::ROLE_ADMIN))
+                             ->whereIn('action', [
+                                 'announcement.created',
+                                 'announcement.updated',
+                                 'announcement.deleted',
+                                 'support.replied',
+                                 'wallet.credited',
+                                 'wallet.debited',
+                             ]);
+                      });
+                });
+            }
+
+            $recentActivities = $feed->get();
+        }
+    } catch (\Throwable $e) {
+        $recentActivities = collect();
+    }
+
+    $activityCategoryStyles = [
+        'announcement' => ['bg' => 'bg-pink-50',    'text' => 'text-pink-600',    'label' => 'Announcement'],
+        'support'      => ['bg' => 'bg-amber-50',   'text' => 'text-amber-600',   'label' => 'Support'],
+        'wallet'       => ['bg' => 'bg-emerald-50', 'text' => 'text-emerald-600', 'label' => 'Wallet'],
+        'user'         => ['bg' => 'bg-indigo-50',  'text' => 'text-indigo-600',  'label' => 'User'],
+        'other'        => ['bg' => 'bg-slate-50',   'text' => 'text-slate-600',   'label' => 'Activity'],
+    ];
 @endphp
 
 <div class="h-screen overflow-hidden flex bg-gradient-to-br from-slate-50 via-pink-50/40 to-slate-50">
@@ -142,11 +186,16 @@
                     ₹{{ number_format($walletAmount) }}
                 </div>
 
-                <button type="button" title="Notifications"
+                <button type="button" title="Recent Activity" onclick="openActivityPanel()"
                         class="relative w-10 h-10 rounded-full bg-amber-50 border border-amber-100 text-amber-600 hover:bg-amber-100 hover:text-amber-700 flex items-center justify-center transition">
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
                         {!! $icons['bell'] !!}
                     </svg>
+                    @if ($recentActivities->isNotEmpty())
+                        <span class="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center ring-2 ring-white">
+                            {{ $recentActivities->count() > 99 ? '99+' : $recentActivities->count() }}
+                        </span>
+                    @endif
                 </button>
 
                 <a href="{{ $isAdmin ? route('profile.index') : route('account.index') }}" title="Profile"
@@ -178,6 +227,72 @@
                 </div>
             </div>
             @yield('slide-panel')
+
+            {{-- RECENT ACTIVITY SLIDE-IN PANEL --}}
+            <aside id="activityPanel" class="absolute inset-0 z-40 hidden" aria-hidden="true">
+                <div id="activityBackdrop" class="absolute inset-0 bg-slate-900/30 opacity-0 transition-opacity duration-200" onclick="closeActivityPanel()"></div>
+                <div id="activityCard"
+                     class="absolute right-0 top-0 bottom-0 w-full max-w-md bg-white shadow-2xl flex flex-col translate-x-full transition-transform duration-300 ease-out">
+
+                    <div class="px-5 py-4 border-b border-slate-100 flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                {!! $icons['bell'] !!}
+                            </svg>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <h3 class="text-sm font-bold text-slate-800">Recent Activity</h3>
+                            <p class="text-[11px] text-slate-500">
+                                {{ $isAdmin
+                                    ? 'Your activity and every sub-admin\'s activity'
+                                    : 'Your activity and admin updates to you' }}
+                            </p>
+                        </div>
+                        <button type="button" onclick="closeActivityPanel()" aria-label="Close"
+                                class="w-8 h-8 rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-700 inline-flex items-center justify-center transition">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                        </button>
+                    </div>
+
+                    <div class="flex-1 overflow-y-auto">
+                        @if ($recentActivities->isEmpty())
+                            <div class="px-6 py-16 text-center text-sm text-slate-500">
+                                No activity yet.
+                            </div>
+                        @else
+                            <ul class="divide-y divide-slate-100">
+                                @foreach ($recentActivities as $log)
+                                    @php
+                                        $cat = $activityCategoryStyles[$log->category] ?? $activityCategoryStyles['other'];
+                                        $actor = $log->user;
+                                        $when  = $log->created_at?->setTimezone(config('app.timezone'));
+                                    @endphp
+                                    <li class="px-5 py-3 flex items-start gap-3 hover:bg-slate-50/70 transition">
+                                        <div class="w-9 h-9 rounded-lg {{ $cat['bg'] }} {{ $cat['text'] }} flex items-center justify-center shrink-0 mt-0.5 text-[11px] font-bold uppercase">
+                                            {{ \Illuminate\Support\Str::of($actor?->name ?? '?')->substr(0, 1) }}
+                                        </div>
+                                        <div class="flex-1 min-w-0">
+                                            <div class="flex items-center gap-1.5 flex-wrap">
+                                                <span class="text-sm font-semibold text-slate-800 truncate">{{ $actor?->name ?? 'Unknown' }}</span>
+                                                @if ($actor && $actor->role === \App\Models\User::ROLE_ADMIN)
+                                                    <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-pink-50 text-pink-700">Admin</span>
+                                                @endif
+                                                <span class="text-[10px] font-medium px-1.5 py-0.5 rounded {{ $cat['bg'] }} {{ $cat['text'] }}">{{ $cat['label'] }}</span>
+                                            </div>
+                                            <p class="text-xs text-slate-600 mt-0.5 leading-snug">{{ $log->summary }}</p>
+                                            <p class="text-[11px] text-slate-400 mt-1">
+                                                {{ $when?->diffForHumans() }}
+                                                <span class="text-slate-300">·</span>
+                                                {{ $when?->format('d M, h:i A') }} IST
+                                            </p>
+                                        </div>
+                                    </li>
+                                @endforeach
+                            </ul>
+                        @endif
+                    </div>
+                </div>
+            </aside>
         </div>
     </main>
 </div>
@@ -292,10 +407,38 @@
         return false; // block native form submit
     }
 
+    function openActivityPanel() {
+        const panel    = document.getElementById('activityPanel');
+        const card     = document.getElementById('activityCard');
+        const backdrop = document.getElementById('activityBackdrop');
+        if (!panel) return;
+        panel.classList.remove('hidden');
+        panel.setAttribute('aria-hidden', 'false');
+        requestAnimationFrame(() => {
+            backdrop.classList.add('opacity-100');
+            backdrop.classList.remove('opacity-0');
+            card.classList.remove('translate-x-full');
+        });
+    }
+    function closeActivityPanel() {
+        const panel    = document.getElementById('activityPanel');
+        const card     = document.getElementById('activityCard');
+        const backdrop = document.getElementById('activityBackdrop');
+        if (!panel) return;
+        backdrop.classList.remove('opacity-100');
+        backdrop.classList.add('opacity-0');
+        card.classList.add('translate-x-full');
+        setTimeout(() => {
+            panel.classList.add('hidden');
+            panel.setAttribute('aria-hidden', 'true');
+        }, 250);
+    }
+
     document.addEventListener('keydown', e => {
         if (e.key === 'Escape') {
             closeLogoutModal();
             closeConfirmModal();
+            closeActivityPanel();
         }
     });
 

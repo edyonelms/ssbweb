@@ -82,6 +82,11 @@ Route::middleware('auth')->group(function () {
     // Listing is open to admin (CRUD view) and subadmin (received view).
     Route::get('/announcements', [AnnouncementsController::class, 'index'])->name('announcements.index');
 
+    // Subadmin-side soft delete — hides the announcement from their list
+    // only; admin and other subadmins keep seeing it.
+    Route::delete('/announcements/{announcement}/hide', [AnnouncementsController::class, 'hide'])
+        ->whereNumber('announcement')->name('announcements.hide');
+
     // Students — admin sees every record, sub-admin only sees their own.
     Route::get('/students/export', [StudentsController::class, 'export'])->name('students.export');
     Route::resource('students', StudentsController::class)

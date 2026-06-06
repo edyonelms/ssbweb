@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ActivityLog;
 use App\Models\SupportQuery;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -103,7 +104,7 @@ class SupportController extends Controller
             $data['file_original_name'] = $file->getClientOriginalName();
         }
 
-        SupportQuery::create([
+        $query = SupportQuery::create([
             'user_id'            => $request->user()->id,
             'subject'            => $data['subject'],
             'description'        => $data['description'] ?? null,
@@ -111,6 +112,12 @@ class SupportController extends Controller
             'file_original_name' => $data['file_original_name'] ?? null,
             'status'             => SupportQuery::STATUS_PENDING,
         ]);
+
+        ActivityLog::record(
+            'support.created',
+            'Raised support query "'.$query->subject.'"',
+            $query
+        );
 
         return redirect()
             ->route('support.index')
@@ -154,6 +161,12 @@ class SupportController extends Controller
 
         $query->update($payload);
 
+        ActivityLog::record(
+            'support.updated',
+            'Updated support query "'.$query->subject.'"',
+            $query
+        );
+
         return redirect()
             ->route('support.index', ['view' => $query->id])
             ->with('status', 'Query updated.');
@@ -178,8 +191,14 @@ class SupportController extends Controller
             }
         }
 
+        $subject = $query->subject;
         $query->replies()->delete();
         $query->delete();
+
+        ActivityLog::record(
+            'support.deleted',
+            'Deleted support query "'.$subject.'"'
+        );
 
         return redirect()
             ->route('support.index')
@@ -220,6 +239,12 @@ class SupportController extends Controller
                 'resolved_at' => now(),
             ]);
         }
+
+        ActivityLog::record(
+            'support.replied',
+            'Replied to support query "'.$query->subject.'"',
+            $query
+        );
 
         return redirect()
             ->route('support.index', ['view' => $query->id])

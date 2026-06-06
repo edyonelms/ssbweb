@@ -30,7 +30,7 @@ class Announcement extends Model
 
     public function recipients(): BelongsToMany
     {
-        return $this->belongsToMany(User::class)->withPivot('read_at');
+        return $this->belongsToMany(User::class)->withPivot('read_at', 'hidden_at');
     }
 
     public function getFileUrlAttribute(): ?string

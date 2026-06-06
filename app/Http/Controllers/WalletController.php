@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ActivityLog;
 use App\Models\User;
 use App\Models\WalletTransaction;
 use Illuminate\Http\RedirectResponse;
@@ -103,7 +104,19 @@ class WalletController extends Controller
 
         $data['created_by'] = $request->user()->id;
 
-        WalletTransaction::create($data);
+        $txn = WalletTransaction::create($data);
+
+        $recipient = User::find($txn->user_id);
+        $action = $txn->amount >= 0 ? 'wallet.credited' : 'wallet.debited';
+        $verb   = $txn->amount >= 0 ? 'Credited' : 'Debited';
+        $summary = $verb.' ₹'.number_format(abs((float) $txn->amount), 2)
+            .' '.($txn->amount >= 0 ? 'to ' : 'from ').($recipient->name ?? 'wallet');
+
+        ActivityLog::record($action, $summary, $txn, [
+            'recipient_id' => $txn->user_id,
+            'amount'       => (float) $txn->amount,
+            'mode'         => $txn->mode,
+        ]);
 
         return redirect()
             ->route('wallet.index')

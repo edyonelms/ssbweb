@@ -15,7 +15,7 @@ class DatabaseSeeder extends Seeder
         User::updateOrCreate(
             ['mobile' => '9012346006'],
             [
-                'name'     => 'Test Student',
+                'name'     => 'SSB Admin',
                 'email'    => 'test@ssbeducation.local',
                 'password' => 'Ssb@jattari',
                 'role'     => User::ROLE_ADMIN,

@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Models\Settings;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
@@ -29,16 +30,29 @@ class AppServiceProvider extends ServiceProvider
         // Inline the bundled brand PNGs as data URIs so they ship with the
         // HTML and require no extra round-trip — they appear with the very
         // first paint instead of a network spinner.
-        $brandAssets = Cache::rememberForever('brand:data-uris', function () {
-            $encode = function (string $rel, string $mime) {
-                $path = public_path($rel);
+        //
+        // Brand assets live on the EC2 server's persistent storage disk
+        // (storage/app/public/branding/...) when present; if a developer
+        // ever removes the bundled copy from public/images/ locally, the
+        // server copy still keeps the portal looking right.
+        $brandAssets = Cache::rememberForever('brand:data-uris:v2', function () {
+            $resolve = function (string $key, string $bundledRel, string $mime) {
+                foreach (['png', 'jpg', 'jpeg', 'webp', 'svg'] as $ext) {
+                    $rel = "branding/{$key}.{$ext}";
+                    if (Storage::disk('public')->exists($rel)) {
+                        $bytes = Storage::disk('public')->get($rel);
+                        $extMime = $ext === 'jpg' ? 'jpeg' : $ext;
+                        return 'data:image/'.$extMime.';base64,'.base64_encode($bytes);
+                    }
+                }
+                $path = public_path($bundledRel);
                 return is_file($path)
                     ? 'data:'.$mime.';base64,'.base64_encode(file_get_contents($path))
-                    : asset($rel);
+                    : asset($bundledRel);
             };
             return [
-                'logo'      => $encode('images/logo.png', 'image/png'),
-                'loginLeft' => $encode('images/login-left.png', 'image/png'),
+                'logo'      => $resolve('logo',       'images/logo.png',       'image/png'),
+                'loginLeft' => $resolve('login-left', 'images/login-left.png', 'image/png'),
             ];
         });
 

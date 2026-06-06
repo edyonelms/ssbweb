@@ -22,19 +22,24 @@
         'tint'         => 'from-pink-100 to-rose-100 text-pink-600',
     ];
 
-    // Tries common extensions for the founder photo. Drop a file at
-    // public/images/founder.{jpg,jpeg,png,webp} and it will be picked up
-    // automatically; otherwise we fall back to the initial-based avatar.
-    // The cache key includes the file's mtime so swapping the photo
-    // invalidates the old cached data URI on its own.
+    // Tries common extensions for the founder photo. The server copy at
+    // storage/app/public/branding/founder.{ext} wins so the portrait
+    // survives any local cleanup of public/images/. Otherwise we fall
+    // back to the bundled file in public/images/, then to the
+    // initial-based avatar. The cache key includes the source's mtime so
+    // swapping the photo invalidates the old cached data URI on its own.
     $founderPhoto = (function () {
+        $candidates = [];
         foreach (['png', 'jpg', 'jpeg', 'webp'] as $ext) {
-            $path = public_path('images/founder.'.$ext);
-            if (! is_file($path)) continue;
-            $mtime = filemtime($path) ?: 0;
-            return \Cache::rememberForever("asset:founder:$ext:$mtime", function () use ($path, $ext) {
-                $mime = $ext === 'jpg' ? 'jpeg' : $ext;
-                return 'data:image/'.$mime.';base64,'.base64_encode(file_get_contents($path));
+            $candidates[] = ['source' => 'storage', 'ext' => $ext, 'path' => storage_path('app/public/branding/founder.'.$ext)];
+            $candidates[] = ['source' => 'public',  'ext' => $ext, 'path' => public_path('images/founder.'.$ext)];
+        }
+        foreach ($candidates as $c) {
+            if (! is_file($c['path'])) continue;
+            $mtime = filemtime($c['path']) ?: 0;
+            return \Cache::rememberForever("asset:founder:{$c['source']}:{$c['ext']}:$mtime", function () use ($c) {
+                $mime = $c['ext'] === 'jpg' ? 'jpeg' : $c['ext'];
+                return 'data:image/'.$mime.';base64,'.base64_encode(file_get_contents($c['path']));
             });
         }
         return null;

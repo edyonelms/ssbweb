@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ActivityLog;
 use App\Models\Announcement;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
@@ -41,6 +43,12 @@ class AnnouncementsController extends Controller
                 $q->where('audience', Announcement::AUDIENCE_ALL)
                   ->orWhereHas('recipients', fn ($r) => $r->where('users.id', $user->id));
             });
+            // Subadmin-side soft delete: a row in announcement_user with
+            // hidden_at = now() means this subadmin removed it from their
+            // own list. Admin and other subadmins are unaffected.
+            $base->whereDoesntHave('recipients', function ($r) use ($user) {
+                $r->where('users.id', $user->id)->whereNotNull('announcement_user.hidden_at');
+            });
         }
 
         // Period chip narrows the window further.
@@ -64,6 +72,11 @@ class AnnouncementsController extends Controller
             $statsBase->where(function ($q) use ($user) {
                 $q->where('audience', Announcement::AUDIENCE_ALL)
                   ->orWhereHas('recipients', fn ($r) => $r->where('users.id', $user->id));
+            });
+        }
+        if (! $user->isAdmin()) {
+            $statsBase->whereDoesntHave('recipients', function ($r) use ($user) {
+                $r->where('users.id', $user->id)->whereNotNull('announcement_user.hidden_at');
             });
         }
         $statsAll = (clone $statsBase)->get(['id', 'created_at']);
@@ -113,6 +126,13 @@ class AnnouncementsController extends Controller
             $announcement->recipients()->sync($recipientIds);
         }
 
+        ActivityLog::record(
+            'announcement.created',
+            'Posted announcement "'.$announcement->heading.'"',
+            $announcement,
+            ['audience' => $announcement->audience]
+        );
+
         return redirect()
             ->route('announcements.index')
             ->with('status', 'Announcement created.');
@@ -147,9 +167,50 @@ class AnnouncementsController extends Controller
             $announcement->recipients()->detach();
         }
 
+        ActivityLog::record(
+            'announcement.updated',
+            'Updated announcement "'.$announcement->heading.'"',
+            $announcement
+        );
+
         return redirect()
             ->route('announcements.index')
             ->with('status', 'Announcement updated.');
+    }
+
+    /**
+     * Subadmin-side soft delete. Records a hidden_at timestamp on the
+     * pivot row so the announcement disappears from this subadmin's list
+     * without affecting the admin or any other subadmin.
+     */
+    public function hide(Request $request, Announcement $announcement): RedirectResponse
+    {
+        $user = $request->user();
+
+        // Make sure this subadmin can actually see the announcement first,
+        // otherwise it makes no sense for them to "delete" it from their
+        // own view.
+        $isVisible = $announcement->audience === Announcement::AUDIENCE_ALL
+            || $announcement->recipients()->where('users.id', $user->id)->exists();
+
+        if (! $isVisible) {
+            abort(404);
+        }
+
+        DB::table('announcement_user')->updateOrInsert(
+            ['announcement_id' => $announcement->id, 'user_id' => $user->id],
+            ['hidden_at' => now()]
+        );
+
+        ActivityLog::record(
+            'announcement.hidden',
+            'Removed announcement "'.$announcement->heading.'" from own list',
+            $announcement
+        );
+
+        return redirect()
+            ->route('announcements.index')
+            ->with('status', 'Announcement removed from your list.');
     }
 
     public function destroy(Announcement $announcement): RedirectResponse
@@ -158,7 +219,13 @@ class AnnouncementsController extends Controller
             Storage::disk('public')->delete($announcement->file_path);
         }
 
+        $heading = $announcement->heading;
         $announcement->delete();
+
+        ActivityLog::record(
+            'announcement.deleted',
+            'Deleted announcement "'.$heading.'"'
+        );
 
         return redirect()
             ->route('announcements.index')

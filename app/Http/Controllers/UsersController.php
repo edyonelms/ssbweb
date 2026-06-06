@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ActivityLog;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -68,7 +69,13 @@ class UsersController extends Controller
             $data['avatar_path'] = $request->file('avatar')->store('uploads/avatars', 'public');
         }
 
-        User::create($data);
+        $user = User::create($data);
+
+        ActivityLog::record(
+            'user.created',
+            'Added sub-admin '.$user->name,
+            $user
+        );
 
         return redirect()
             ->route('users.index')
@@ -106,6 +113,13 @@ class UsersController extends Controller
 
         $user->save();
 
+        ActivityLog::record(
+            'user.updated',
+            'Updated sub-admin '.$user->name.($passwordChanged ? ' (password reset)' : ''),
+            $user,
+            ['password_changed' => $passwordChanged]
+        );
+
         return redirect()
             ->route('users.index')
             ->with('status', $passwordChanged
@@ -121,7 +135,13 @@ class UsersController extends Controller
             Storage::disk('public')->delete($user->avatar_path);
         }
 
+        $name = $user->name;
         $user->delete();
+
+        ActivityLog::record(
+            'user.deleted',
+            'Removed sub-admin '.$name
+        );
 
         return redirect()
             ->route('users.index')
