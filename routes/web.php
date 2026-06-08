@@ -101,6 +101,8 @@ Route::middleware('auth')->group(function () {
 
     // Students — admin sees every record, sub-admin only sees their own.
     Route::get('/students/export', [StudentsController::class, 'export'])->name('students.export');
+    Route::get('/students/{student}/form', [StudentsController::class, 'form'])
+        ->whereNumber('student')->name('students.form');
     Route::resource('students', StudentsController::class)
         ->only(['index', 'store', 'update', 'destroy'])
         ->whereNumber('student');

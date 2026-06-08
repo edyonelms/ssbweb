@@ -8,6 +8,7 @@ use App\Models\University;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -124,9 +125,42 @@ class StudentsController extends Controller
     }
 
     /**
+     * Render (or download) the student's admission form template — a
+     * print-friendly standalone HTML page that mirrors the add-student
+     * form, populated with the student's saved values plus embedded
+     * uploads. When ?download=1 is passed we emit Content-Disposition:
+     * attachment so the browser saves it as an .html file the registrar
+     * can keep on file or print.
+     */
+    public function form(Request $request, Student $student): Response
+    {
+        $this->authorizeAccess($student);
+
+        $student->loadMissing(['university', 'course', 'creator', 'feePayments']);
+
+        $html = view('students.form', [
+            'student'  => $student,
+            'schedule' => $student->feeSchedule(),
+            'docUrls'  => collect(Student::DOCUMENT_FIELDS)
+                            ->mapWithKeys(fn ($f) => [$f => $student->documentUrl($f)])
+                            ->all(),
+        ])->render();
+
+        $headers = ['Content-Type' => 'text/html; charset=UTF-8'];
+
+        if ($request->boolean('download')) {
+            $slug = Str::slug($student->name ?: 'student').'-'.$student->id;
+            $headers['Content-Disposition'] = 'attachment; filename="admission-form-'.$slug.'.html"';
+        }
+
+        return response($html, 200, $headers);
+    }
+
+    /**
      * Streams every student visible to the caller as a richly-detailed
-     * CSV: identity + parents + address + identity + academic placement
-     * plus a per-period fee schedule with paid / balance amounts.
+     * CSV with every field the admission form collects — text,
+     * academic-history blob, document URLs — plus total fee, total
+     * collected, and remaining balance with a per-period schedule.
      *
      * Honors the same filters the listing uses, so an admin who has
      * picked a sub-admin from the "User" filter only exports that
@@ -148,10 +182,28 @@ class StudentsController extends Controller
 
         $filename = 'students_'.now()->format('Y-m-d_H-i-s').'.csv';
 
-        return response()->streamDownload(function () use ($students) {
+        // Stable column order — every text field from the admission
+        // form, the academic-history blob, every uploaded document URL,
+        // and the fee totals + per-period schedule at the end. The
+        // header row labels here drive the order of cell writes below.
+        $docLabels = [
+            'photo_path'                => 'Photo URL',
+            'student_sign_path'         => 'Student Sign URL',
+            'aadhar_front_path'         => 'Aadhar Front URL',
+            'aadhar_back_path'          => 'Aadhar Back URL',
+            'marksheet_x_path'          => 'X Marksheet URL',
+            'marksheet_xii_path'        => 'XII Marksheet URL',
+            'marksheet_graduation_path' => 'Graduation Marksheet URL',
+            'abc_id_path'               => 'ABC ID URL',
+            'deb_id_path'               => 'DEB ID URL',
+            'other_doc_path'            => 'Other Doc URL',
+        ];
+
+        return response()->streamDownload(function () use ($students, $docLabels) {
             $out = fopen('php://output', 'w');
 
-            fputcsv($out, [
+            $header = [
+                'ID',
                 'Admission No',
                 'Name',
                 'Father Name',
@@ -170,20 +222,28 @@ class StudentsController extends Controller
                 'Country',
                 'Pincode',
                 'University / Board',
+                'Board / University Type',
                 'Course',
                 'Mode',
                 'Type',
                 'Course Year',
                 'Semester',
                 'Class',
-                'Created By',
+                'Parent Name (legacy)',
+                'Added By',
                 'Status',
                 'Created At',
-                'Total Fee',
-                'Total Paid',
-                'Total Balance',
-                'Fee Schedule (paid / balance per period)',
-            ]);
+                'Updated At',
+                'Academic Records',
+            ];
+            foreach ($docLabels as $label) {
+                $header[] = $label;
+            }
+            $header[] = 'Total Fee';
+            $header[] = 'Total Collected (Paid)';
+            $header[] = 'Total Balance';
+            $header[] = 'Fee Schedule (per period)';
+            fputcsv($out, $header);
 
             foreach ($students as $s) {
                 $schedule  = $s->feeSchedule();
@@ -201,7 +261,20 @@ class StudentsController extends Controller
                     );
                 })->implode('; ');
 
-                fputcsv($out, [
+                // Academic records collapse to a single human-readable
+                // blob so the cell stays sortable in spreadsheets.
+                $academicText = collect($s->academic_records ?? [])->map(function ($r) {
+                    return ($r['level'] ?? '').': '.collect([
+                        'Board: '.($r['board']   ?? ''),
+                        'Subject: '.($r['subject'] ?? ''),
+                        'Year: '.($r['year']    ?? ''),
+                        'Grade: '.($r['grade']   ?? ''),
+                    ])->filter(fn ($p) => trim(str_replace(['Board: ', 'Subject: ', 'Year: ', 'Grade: '], '', $p)) !== '')
+                      ->implode(', ');
+                })->filter()->implode(' | ');
+
+                $row = [
+                    $s->id,
                     $s->admission_no,
                     $s->name,
                     $s->father_name,
@@ -220,20 +293,29 @@ class StudentsController extends Controller
                     $s->country,
                     $s->pincode,
                     $s->university?->name,
+                    $s->university?->type,
                     $s->course?->name,
                     $s->mode,
                     $s->enrollment_type,
                     $s->course_year,
                     $s->semester,
                     $s->class_name,
+                    $s->parent_name,
                     $s->creator?->name,
                     $s->active ? 'Active' : 'Inactive',
                     $s->created_at?->format('Y-m-d H:i'),
-                    number_format($totalFee, 2),
-                    number_format($totalPaid, 2),
-                    number_format($totalBal, 2),
-                    $scheduleText,
-                ]);
+                    $s->updated_at?->format('Y-m-d H:i'),
+                    $academicText,
+                ];
+                foreach (array_keys($docLabels) as $field) {
+                    $row[] = $s->documentUrl($field) ?: '';
+                }
+                $row[] = number_format($totalFee, 2);
+                $row[] = number_format($totalPaid, 2);
+                $row[] = number_format($totalBal, 2);
+                $row[] = $scheduleText;
+
+                fputcsv($out, $row);
             }
             fclose($out);
         }, $filename, [
