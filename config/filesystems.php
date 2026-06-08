@@ -38,14 +38,35 @@ return [
             'report' => false,
         ],
 
-        'public' => [
-            'driver' => 'local',
-            'root' => storage_path('app/public'),
-            'url' => rtrim(env('APP_URL', 'http://localhost'), '/').'/storage',
-            'visibility' => 'public',
-            'throw' => false,
-            'report' => false,
-        ],
+        // The "public" disk is the single place uploads live (avatars,
+        // logos, announcement attachments, support files, payment-request
+        // screenshots, university images). Drive it from env so locally
+        // we stay on the on-disk public folder, while production can flip
+        // to S3 by setting FILESYSTEM_PUBLIC_DRIVER=s3 + the AWS_* vars —
+        // controllers/models stay untouched because the disk name is the
+        // same in both modes.
+        'public' => env('FILESYSTEM_PUBLIC_DRIVER', 'local') === 's3'
+            ? [
+                'driver'                  => 's3',
+                'key'                     => env('AWS_ACCESS_KEY_ID'),
+                'secret'                  => env('AWS_SECRET_ACCESS_KEY'),
+                'region'                  => env('AWS_DEFAULT_REGION'),
+                'bucket'                  => env('AWS_BUCKET'),
+                'url'                     => env('AWS_URL'),
+                'endpoint'                => env('AWS_ENDPOINT'),
+                'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
+                'visibility'              => 'public',
+                'throw'                   => false,
+                'report'                  => false,
+            ]
+            : [
+                'driver'     => 'local',
+                'root'       => storage_path('app/public'),
+                'url'        => rtrim(env('APP_URL', 'http://localhost'), '/').'/storage',
+                'visibility' => 'public',
+                'throw'      => false,
+                'report'     => false,
+            ],
 
         's3' => [
             'driver' => 's3',
