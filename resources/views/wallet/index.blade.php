@@ -95,29 +95,30 @@
             @endif
         </div>
 
-        {{-- Date-range PDF export — opens the picker modal below. Hidden on
-             the Funds Request tab where a wallet ledger doesn't apply. --}}
-        @if ($tab !== 'requests')
+        {{-- Header actions — Export PDF, Update Wallet (admin) and Ask
+             Payment (sub-admin) all live on the Funds Request tab only.
+             History and All Transactions tabs stay read-only / cleaner. --}}
+        @if ($tab === 'requests')
             <button type="button" onclick="document.getElementById('walletExportModal').classList.remove('hidden')"
                     class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 hover:border-pink-300 text-slate-700 hover:text-pink-600 text-sm font-semibold transition"
                     title="Export credit / debit / fee-pay transactions for a date range as PDF">
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/></svg>
                 Export PDF
             </button>
-        @endif
 
-        @if ($tab === 'requests' && ! $isAdmin)
-            <button type="button" onclick="WalletPanel.openAsk()"
-                    class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-pink-600 hover:bg-pink-700 text-white text-sm font-semibold transition">
-                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
-                Ask Payment
-            </button>
-        @elseif ($isAdmin)
-            <button type="button" onclick="WalletPanel.openUpdate()"
-                    class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-pink-600 hover:bg-pink-700 text-white text-sm font-semibold transition">
-                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
-                Update Wallet
-            </button>
+            @if ($isAdmin)
+                <button type="button" onclick="WalletPanel.openUpdate()"
+                        class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-pink-600 hover:bg-pink-700 text-white text-sm font-semibold transition">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                    Update Wallet
+                </button>
+            @else
+                <button type="button" onclick="WalletPanel.openAsk()"
+                        class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-pink-600 hover:bg-pink-700 text-white text-sm font-semibold transition">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                    Ask Payment
+                </button>
+            @endif
         @endif
     </div>
 
