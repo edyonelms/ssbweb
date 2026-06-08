@@ -27,6 +27,11 @@ class User extends Authenticatable
         'active',
         'avatar_path',
         'last_seen_activity_id',
+        'bank_name',
+        'bank_branch',
+        'bank_ifsc',
+        'bank_account_number',
+        'bank_holder_name',
     ];
 
     protected $appends = ['avatar_url'];

@@ -39,7 +39,7 @@ class ProfileController extends Controller
         Settings::current()->update($data);
 
         return redirect()
-            ->route('profile.index', ['tab' => 'edit'])
+            ->route('profile.index')
             ->with('status', 'Profile details updated successfully.');
     }
 
