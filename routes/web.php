@@ -80,6 +80,11 @@ Route::middleware('auth')->group(function () {
     Route::post('/activities/seen', [ActivityController::class, 'markSeen'])
         ->name('activities.seen');
 
+    // Per-user dismissal of feed entries (multi-select delete in the
+    // bell panel). Uses a soft-hide pivot so other users keep their copy.
+    Route::post('/activities/destroy', [ActivityController::class, 'destroy'])
+        ->name('activities.destroy');
+
     Route::prefix('account')->name('account.')->group(function () {
         Route::get('/', [AccountController::class, 'index'])->name('index');
         Route::post('/details', [AccountController::class, 'updateDetails'])->name('update.details');
