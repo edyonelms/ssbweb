@@ -523,7 +523,7 @@
         <div class="p-6 lg:p-8 grid grid-cols-1 lg:grid-cols-2 gap-6 border-b border-slate-100">
             {{-- UPGRADE form --}}
             <form method="POST" action="{{ route('master.upgrade.semester') }}"
-                  onsubmit="return confirmAction(this, 'Move every enrolled student of this university up by one period (semester for universities, year for boards). Continue?', 'Upgrade university');"
+                  onsubmit="return confirmAction(this, 'Move every enrolled student of this university up by one period (semester for universities, year for boards). Continue?', 'Upgrade university', { tone: 'emerald', confirmLabel: 'Upgrade' });"
                   class="bg-gradient-to-br from-emerald-50 via-white to-white border border-emerald-100 rounded-xl p-5 flex flex-col">
                 @csrf
                 <div class="flex items-center gap-2 mb-3">
@@ -560,7 +560,7 @@
 
             {{-- RESET form --}}
             <form method="POST" action="{{ route('master.reset.semester') }}"
-                  onsubmit="return confirmAction(this, 'Snap every enrolled student of the chosen university to the picked semester / year per duration. This overrides whatever they had before.', 'Reset semester');"
+                  onsubmit="return confirmAction(this, 'Snap every enrolled student of the chosen university to the picked semester / year per duration. This overrides whatever they had before.', 'Reset semester', { tone: 'amber', confirmLabel: 'Reset' });"
                   class="bg-gradient-to-br from-amber-50 via-white to-white border border-amber-100 rounded-xl p-5 flex flex-col"
                   data-reset-form>
                 @csrf

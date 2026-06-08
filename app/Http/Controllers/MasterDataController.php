@@ -113,34 +113,53 @@ class MasterDataController extends Controller
         // in each period of each course. For boards the period is a year
         // (course_year), for universities it's the semester column.
         // Sub-admins see their own students only — same scoping rule the
-        // students module uses.
+        // students module uses. The semester / course_year columns
+        // arrived in the full-admission-form migration; degrade
+        // gracefully if a deploy hasn't run that yet.
         $authUser = $request->user();
         $studentScope = Student::query();
         if (! $authUser->isAdmin()) {
             $studentScope->where('created_by', $authUser->id);
         }
 
-        $semBuckets = (clone $studentScope)
-            ->select('course_id', 'semester', DB::raw('COUNT(*) as total'))
-            ->whereNotNull('course_id')
-            ->whereNotNull('semester')
-            ->groupBy('course_id', 'semester')
-            ->get()
-            ->groupBy('course_id');
+        $hasSemester = \Illuminate\Support\Facades\Schema::hasColumn('students', 'semester');
+        $hasYear     = \Illuminate\Support\Facades\Schema::hasColumn('students', 'course_year');
 
-        $yearBuckets = (clone $studentScope)
-            ->select('course_id', 'course_year', DB::raw('COUNT(*) as total'))
-            ->whereNotNull('course_id')
-            ->whereNotNull('course_year')
-            ->groupBy('course_id', 'course_year')
-            ->get()
-            ->groupBy('course_id');
+        $semBuckets  = collect();
+        $yearBuckets = collect();
+        $totals      = collect();
 
-        $totals = (clone $studentScope)
-            ->select('course_id', DB::raw('COUNT(*) as total'))
-            ->whereNotNull('course_id')
-            ->groupBy('course_id')
-            ->pluck('total', 'course_id');
+        try {
+            if ($hasSemester) {
+                $semBuckets = (clone $studentScope)
+                    ->select('course_id', 'semester', DB::raw('COUNT(*) as total'))
+                    ->whereNotNull('course_id')
+                    ->whereNotNull('semester')
+                    ->groupBy('course_id', 'semester')
+                    ->get()
+                    ->groupBy('course_id');
+            }
+
+            if ($hasYear) {
+                $yearBuckets = (clone $studentScope)
+                    ->select('course_id', 'course_year', DB::raw('COUNT(*) as total'))
+                    ->whereNotNull('course_id')
+                    ->whereNotNull('course_year')
+                    ->groupBy('course_id', 'course_year')
+                    ->get()
+                    ->groupBy('course_id');
+            }
+
+            $totals = (clone $studentScope)
+                ->select('course_id', DB::raw('COUNT(*) as total'))
+                ->whereNotNull('course_id')
+                ->groupBy('course_id')
+                ->pluck('total', 'course_id');
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning(
+                'master-data upgrade tab rollup failed: '.$e->getMessage()
+            );
+        }
 
         $upgradeRows = $allCourses->map(function (Course $c) use ($semBuckets, $yearBuckets, $totals) {
             $isBoard = $c->isBoard();
@@ -193,9 +212,10 @@ class MasterDataController extends Controller
     public function storeUniversity(Request $request): RedirectResponse
     {
         $data = $this->validateUniversity($request);
+        $data = $this->normalizeUniversityData($data);
 
         if ($request->hasFile('image')) {
-            $data['image_path'] = $request->file('image')->store('uploads/universities', 'public');
+            $data['image_path'] = $this->safeStoreFile($request->file('image'), 'uploads/universities');
         }
 
         University::create($data);
@@ -208,12 +228,13 @@ class MasterDataController extends Controller
     public function updateUniversity(Request $request, University $university): RedirectResponse
     {
         $data = $this->validateUniversity($request, $university->id);
+        $data = $this->normalizeUniversityData($data);
 
         if ($request->hasFile('image')) {
             if ($university->image_path && Storage::disk('public')->exists($university->image_path)) {
                 Storage::disk('public')->delete($university->image_path);
             }
-            $data['image_path'] = $request->file('image')->store('uploads/universities', 'public');
+            $data['image_path'] = $this->safeStoreFile($request->file('image'), 'uploads/universities');
         }
 
         $university->update($data);
@@ -221,6 +242,41 @@ class MasterDataController extends Controller
         return redirect()
             ->route('master.index', ['tab' => 'university'])
             ->with('status', 'University updated.');
+    }
+
+    /**
+     * Coerce nullable values to the DB defaults — the `universities`
+     * table declares `registration_fee` as NOT NULL DEFAULT 0, and the
+     * ConvertEmptyStringsToNull middleware turns an empty form input
+     * into NULL, which would otherwise blow up the insert with a
+     * NOT NULL violation (the 500 the admin was seeing).
+     */
+    private function normalizeUniversityData(array $data): array
+    {
+        $data['registration_fee'] = (float) ($data['registration_fee'] ?? 0);
+        // 'image' isn't a column on the universities table — strip it so
+        // mass-assignment doesn't surface any surprise behavior.
+        unset($data['image']);
+        return $data;
+    }
+
+    /**
+     * Persist a file to the public disk, swallowing infra errors (S3
+     * misconfig, missing storage symlink, permissions) and logging them
+     * instead of bubbling a 500 to the admin. Returns null when the
+     * upload failed so callers can decide whether to abort.
+     */
+    private function safeStoreFile($file, string $bucket): ?string
+    {
+        try {
+            return $file->store($bucket, 'public');
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning(
+                'safeStoreFile failed: '.$e->getMessage(),
+                ['bucket' => $bucket]
+            );
+            return null;
+        }
     }
 
     public function destroyUniversity(University $university): RedirectResponse
@@ -242,6 +298,7 @@ class MasterDataController extends Controller
     public function storeCourse(Request $request): RedirectResponse
     {
         $data = $this->validateCourse($request);
+        $data = $this->normalizeCourseData($data);
         $data['lateral_entry'] = $request->boolean('lateral_entry');
         $course = Course::create($data);
 
@@ -255,6 +312,7 @@ class MasterDataController extends Controller
     public function updateCourse(Request $request, Course $course): RedirectResponse
     {
         $data = $this->validateCourse($request);
+        $data = $this->normalizeCourseData($data);
         $data['lateral_entry'] = $request->boolean('lateral_entry');
         $course->update($data);
 
@@ -263,6 +321,18 @@ class MasterDataController extends Controller
         return redirect()
             ->route('master.index', ['tab' => 'courses'])
             ->with('status', 'Course updated.');
+    }
+
+    /**
+     * Courses have the same NOT NULL DEFAULT 0 trap on the fee columns
+     * as universities — coerce nullable validated values to 0 so an
+     * empty input doesn't crash the insert.
+     */
+    private function normalizeCourseData(array $data): array
+    {
+        $data['registration_fee'] = (float) ($data['registration_fee'] ?? 0);
+        $data['fee_per_sem']      = (float) ($data['fee_per_sem'] ?? 0);
+        return $data;
     }
 
     /**
