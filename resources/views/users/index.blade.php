@@ -7,14 +7,16 @@
     $reopenUserId = old('user_id');
 
     $usersData = $users->map(fn ($u) => [
-        'id'         => $u->id,
-        'name'       => $u->name,
-        'email'      => $u->email,
-        'mobile'     => $u->mobile,
-        'address'    => $u->address,
-        'active'     => (bool) $u->active,
-        'avatar_url' => $u->avatar_url,
-        'created_at' => $u->created_at?->format('d M Y'),
+        'id'                   => $u->id,
+        'name'                 => $u->name,
+        'email'                => $u->email,
+        'mobile'               => $u->mobile,
+        'address'              => $u->address,
+        'organization_name'    => $u->organization_name,
+        'organization_details' => $u->organization_details,
+        'active'               => (bool) $u->active,
+        'avatar_url'           => $u->avatar_url,
+        'created_at'           => $u->created_at?->format('d M Y'),
     ])->keyBy('id');
 
     $statusChips = [
@@ -134,7 +136,12 @@
                                         {{ strtoupper(mb_substr($u->name, 0, 1)) }}
                                     </div>
                                 @endif
-                                <div class="font-medium text-slate-800">{{ $u->name }}</div>
+                                <div class="min-w-0">
+                                    <div class="font-medium text-slate-800 truncate">{{ $u->name }}</div>
+                                    @if ($u->organization_name)
+                                        <div class="text-[11px] text-slate-500 truncate">{{ $u->organization_name }}</div>
+                                    @endif
+                                </div>
                             </div>
                         </td>
                         <td class="px-6 py-3 text-slate-600">{{ $u->mobile }}</td>
@@ -216,6 +223,14 @@
                     <div>
                         <dt class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Address</dt>
                         <dd id="viewAddress" class="mt-0.5 text-sm text-slate-800 whitespace-pre-line"></dd>
+                    </div>
+                    <div>
+                        <dt class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Organization</dt>
+                        <dd id="viewOrgName" class="mt-0.5 text-sm text-slate-800 break-words"></dd>
+                    </div>
+                    <div>
+                        <dt class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Organization Details</dt>
+                        <dd id="viewOrgDetails" class="mt-0.5 text-sm text-slate-800 whitespace-pre-line break-words"></dd>
                     </div>
                     <div>
                         <dt class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Member Since</dt>
@@ -312,11 +327,13 @@
         }
 
         function fillView(u) {
-            document.getElementById('viewName').textContent    = u.name;
-            document.getElementById('viewMobile').textContent  = u.mobile;
-            document.getElementById('viewEmail').textContent   = u.email || '—';
-            document.getElementById('viewAddress').textContent = u.address || '—';
-            document.getElementById('viewCreated').textContent = u.created_at || '—';
+            document.getElementById('viewName').textContent       = u.name;
+            document.getElementById('viewMobile').textContent     = u.mobile;
+            document.getElementById('viewEmail').textContent      = u.email || '—';
+            document.getElementById('viewAddress').textContent    = u.address || '—';
+            document.getElementById('viewOrgName').textContent    = u.organization_name || '—';
+            document.getElementById('viewOrgDetails').textContent = u.organization_details || '—';
+            document.getElementById('viewCreated').textContent    = u.created_at || '—';
 
             const img     = document.getElementById('viewAvatarImg');
             const initial = document.getElementById('viewAvatarInitial');
@@ -346,12 +363,14 @@
             const f = document.getElementById('editForm');
             f.action = window.USER_UPDATE_URL_TEMPLATE.replace('__ID__', u.id);
             f.querySelector('#editUserId').value = u.id;
-            f.querySelector('[name="name"]').value    = u.name || '';
-            f.querySelector('[name="email"]').value   = u.email || '';
-            f.querySelector('[name="mobile"]').value  = u.mobile || '';
-            f.querySelector('[name="address"]').value = u.address || '';
-            f.querySelector('[name="password"]').value = '';
-            f.querySelector('[name="active"]').checked = !!u.active;
+            f.querySelector('[name="name"]').value                 = u.name || '';
+            f.querySelector('[name="email"]').value                = u.email || '';
+            f.querySelector('[name="mobile"]').value               = u.mobile || '';
+            f.querySelector('[name="address"]').value              = u.address || '';
+            f.querySelector('[name="organization_name"]').value    = u.organization_name || '';
+            f.querySelector('[name="organization_details"]').value = u.organization_details || '';
+            f.querySelector('[name="password"]').value             = '';
+            f.querySelector('[name="active"]').checked             = !!u.active;
             const avatarPreview = f.querySelector('[data-avatar-preview]');
             if (avatarPreview) {
                 if (u.avatar_url) {

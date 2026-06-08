@@ -66,6 +66,24 @@
 </div>
 
 <div>
+    <label class="block text-sm font-semibold text-slate-700 mb-1.5">Organization Name <span class="text-xs font-normal text-slate-400">(optional)</span></label>
+    <input name="organization_name" type="text"
+           autocomplete="off" autocorrect="off" spellcheck="false"
+           value="{{ old('panel_mode') === $mode ? old('organization_name') : '' }}"
+           placeholder="e.g. Bright Future Coaching"
+           class="w-full px-4 py-2.5 bg-slate-50/70 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 outline-none transition text-slate-800 placeholder-slate-400">
+    @if (old('panel_mode') === $mode) @error('organization_name')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror @endif
+</div>
+
+<div>
+    <label class="block text-sm font-semibold text-slate-700 mb-1.5">Organization Details <span class="text-xs font-normal text-slate-400">(optional)</span></label>
+    <textarea name="organization_details" rows="3"
+              placeholder="Address, GST, contact person, etc."
+              class="w-full px-4 py-2.5 bg-slate-50/70 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 outline-none transition text-slate-800 placeholder-slate-400">{{ old('panel_mode') === $mode ? old('organization_details') : '' }}</textarea>
+    @if (old('panel_mode') === $mode) @error('organization_details')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror @endif
+</div>
+
+<div>
     @php
         $isActive = old('panel_mode') === $mode
             ? (bool) old('active', $mode === 'create' ? true : false)

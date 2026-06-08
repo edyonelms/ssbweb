@@ -31,7 +31,23 @@ class AuthController extends Controller
 
         $user = User::where('mobile', $credentials['mobile'])->first();
 
-        if (! $user || ! Hash::check($credentials['password'], $user->password)) {
+        if (! $user) {
+            // If a soft-deleted row with this mobile exists, tell the
+            // user explicitly — otherwise they hit the same generic
+            // "invalid credentials" wall and assume they mistyped.
+            $trashed = User::onlyTrashed()->where('mobile', $credentials['mobile'])->first();
+            if ($trashed) {
+                throw ValidationException::withMessages([
+                    'mobile' => 'This account has been removed by the administrator. Please contact support.',
+                ]);
+            }
+
+            throw ValidationException::withMessages([
+                'mobile' => 'Invalid mobile number or password.',
+            ]);
+        }
+
+        if (! Hash::check($credentials['password'], $user->password)) {
             throw ValidationException::withMessages([
                 'mobile' => 'Invalid mobile number or password.',
             ]);

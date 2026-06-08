@@ -6,6 +6,8 @@ use App\Models\ActivityLog;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
@@ -113,6 +115,14 @@ class UsersController extends Controller
 
         $user->save();
 
+        // When admin resets the sub-admin's password, blow away every
+        // active session row for that user so any device they were
+        // still signed in on is bounced back to the login screen and
+        // must enter the new password.
+        if ($passwordChanged && Schema::hasTable('sessions')) {
+            DB::table('sessions')->where('user_id', $user->id)->delete();
+        }
+
         ActivityLog::record(
             'user.updated',
             'Updated sub-admin '.$user->name.($passwordChanged ? ' (password reset)' : ''),
@@ -131,11 +141,15 @@ class UsersController extends Controller
     {
         abort_if($user->isAdmin(), 403);
 
-        if ($user->avatar_path && Storage::disk('public')->exists($user->avatar_path)) {
-            Storage::disk('public')->delete($user->avatar_path);
-        }
-
         $name = $user->name;
+
+        // Soft-delete only — preserves the row so the login screen can
+        // tell deleted accounts apart from "wrong mobile" attempts and
+        // surface the right message. Wipe any live sessions so the user
+        // is kicked out of every device they were still signed in on.
+        if (Schema::hasTable('sessions')) {
+            DB::table('sessions')->where('user_id', $user->id)->delete();
+        }
         $user->delete();
 
         ActivityLog::record(
@@ -153,12 +167,14 @@ class UsersController extends Controller
         $isUpdate = $ignoreId !== null;
 
         return $request->validate([
-            'name'     => ['required', 'string', 'max:255'],
-            'email'    => ['nullable', 'email', 'max:255', Rule::unique('users', 'email')->ignore($ignoreId)],
-            'mobile'   => ['required', 'string', 'regex:/^[0-9]{10,15}$/', Rule::unique('users', 'mobile')->ignore($ignoreId)],
-            'password' => [$isUpdate ? 'nullable' : 'required', 'string', 'min:4', 'max:50'],
-            'address'  => ['nullable', 'string', 'max:1000'],
-            'avatar'   => ['nullable', 'image', 'mimes:png,jpg,jpeg,webp', 'max:2048'],
+            'name'                 => ['required', 'string', 'max:255'],
+            'email'                => ['nullable', 'email', 'max:255', Rule::unique('users', 'email')->ignore($ignoreId)],
+            'mobile'               => ['required', 'string', 'regex:/^[0-9]{10,15}$/', Rule::unique('users', 'mobile')->ignore($ignoreId)],
+            'password'             => [$isUpdate ? 'nullable' : 'required', 'string', 'min:4', 'max:50'],
+            'address'              => ['nullable', 'string', 'max:1000'],
+            'organization_name'    => ['nullable', 'string', 'max:255'],
+            'organization_details' => ['nullable', 'string', 'max:2000'],
+            'avatar'               => ['nullable', 'image', 'mimes:png,jpg,jpeg,webp', 'max:2048'],
         ], [
             'mobile.regex'  => 'Mobile must be 10–15 digits.',
             'mobile.unique' => 'This mobile number is already in use.',

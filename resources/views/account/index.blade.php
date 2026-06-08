@@ -66,6 +66,14 @@
                     <dt class="text-[11px] font-semibold text-pink-500 uppercase tracking-wider">Address</dt>
                     <dd class="mt-1 text-slate-800 whitespace-pre-line">{{ $user->address ?: '—' }}</dd>
                 </div>
+                <div>
+                    <dt class="text-[11px] font-semibold text-pink-500 uppercase tracking-wider">Organization</dt>
+                    <dd class="mt-1 text-slate-800 break-words">{{ $user->organization_name ?: '—' }}</dd>
+                </div>
+                <div class="sm:col-span-2">
+                    <dt class="text-[11px] font-semibold text-pink-500 uppercase tracking-wider">Organization Details</dt>
+                    <dd class="mt-1 text-slate-800 whitespace-pre-line break-words">{{ $user->organization_details ?: '—' }}</dd>
+                </div>
             </dl>
         </div>
 
