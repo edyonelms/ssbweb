@@ -19,7 +19,16 @@ class MasterDataController extends Controller
 
     public function index(Request $request): View
     {
-        $tab = in_array($request->query('tab'), self::TABS, true)
+        $isAdminViewer = $request->user()->isAdmin();
+
+        // Sub-admins can browse the shared master data but the Upgrade
+        // Semester tab is an admin-only control surface — silently
+        // redirect them back to the default tab if they try to land on it.
+        $tabsForViewer = $isAdminViewer
+            ? self::TABS
+            : array_values(array_diff(self::TABS, ['upgrade']));
+
+        $tab = in_array($request->query('tab'), $tabsForViewer, true)
             ? $request->query('tab')
             : 'university';
 
@@ -340,49 +349,43 @@ class MasterDataController extends Controller
     // ────────────────────────────────────────────────────────────────────
 
     /**
-     * Bump the current semester / year by one for either a single
-     * course (when course_id is posted) or every course at once. Every
-     * enrolled student of the affected course(s) is moved up too:
+     * Bump every course of the selected university up by one period.
+     * Each enrolled student of those courses also moves up:
      *   • boards bump course_year by 1
      *   • universities bump semester by 1
      * The increment is clamped to the course's total period count, so
      * students who are already in the final semester stay put.
+     *
+     * If university_id is omitted we bump every course on the platform
+     * (the header-level "Upgrade All" button uses that).
      */
     public function upgradeSemester(Request $request): RedirectResponse
     {
-        $courseId = (int) $request->input('course_id');
+        $universityId = (int) $request->input('university_id');
 
-        $courses = $courseId
-            ? Course::where('id', $courseId)->get()
+        $courses = $universityId
+            ? Course::where('university_id', $universityId)->get()
             : Course::all();
 
         if ($courses->isEmpty()) {
             return redirect()
                 ->route('master.index', ['tab' => 'upgrade'])
-                ->with('status', 'No matching course found to upgrade.');
+                ->with('status', 'No courses found for the selected university.');
         }
 
-        $bumpedCourses = 0;
         $bumpedStudents = 0;
 
-        DB::transaction(function () use ($courses, &$bumpedCourses, &$bumpedStudents) {
+        DB::transaction(function () use ($courses, &$bumpedStudents) {
             foreach ($courses as $course) {
                 $periods = max(1, (int) $course->feePeriodCount());
                 $isBoard = $course->isBoard();
                 $field   = $isBoard ? 'course_year' : 'semester';
 
-                // Bump the course's marker if it's not already at the
-                // last period. The marker is what the listing surfaces
-                // as "currently running".
                 $current = max(1, (int) ($course->current_semester ?? 1));
                 if ($current < $periods) {
                     $course->forceFill(['current_semester' => $current + 1])->save();
-                    $bumpedCourses++;
                 }
 
-                // Move every student of this course up by one period,
-                // clamped at the course's total period count so the
-                // graduating cohort doesn't overshoot.
                 $bumpedStudents += Student::where('course_id', $course->id)
                     ->whereNotNull($field)
                     ->where($field, '<', $periods)
@@ -390,13 +393,84 @@ class MasterDataController extends Controller
             }
         });
 
-        $msg = $courseId
-            ? "Upgraded {$bumpedStudents} student(s) for the selected course."
-            : "Upgraded {$bumpedStudents} student(s) across {$courses->count()} course(s).";
+        $uniName = $universityId
+            ? (University::find($universityId)?->name ?? 'the selected university')
+            : 'every university';
 
         return redirect()
             ->route('master.index', ['tab' => 'upgrade'])
-            ->with('status', $msg);
+            ->with('status', "Upgraded {$bumpedStudents} student(s) across {$courses->count()} course(s) of {$uniName}.");
+    }
+
+    /**
+     * Snap every course of the selected university — grouped by total
+     * duration — to a chosen current semester / year. Every enrolled
+     * student of those courses is forced to the same value (clamped to
+     * the course's total period count and a minimum of 1) so a
+     * mistakenly-bumped cohort can be put back where it should be.
+     *
+     * The payload looks like:
+     *   university_id: 7
+     *   targets: { "2": 3, "3": 5, "4": 2 }
+     *           ^ key  ^ desired sem/year
+     *           |
+     *           course duration in years (as string from the form)
+     */
+    public function resetSemester(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'university_id' => ['required', 'integer', 'exists:universities,id'],
+            'targets'       => ['required', 'array'],
+            'targets.*'     => ['nullable', 'integer', 'min:1', 'max:20'],
+        ]);
+
+        $courses = Course::where('university_id', $data['university_id'])->get();
+
+        if ($courses->isEmpty()) {
+            return redirect()
+                ->route('master.index', ['tab' => 'upgrade'])
+                ->with('status', 'No courses to reset for the selected university.');
+        }
+
+        $touchedCourses = 0;
+        $touchedStudents = 0;
+
+        DB::transaction(function () use ($courses, $data, &$touchedCourses, &$touchedStudents) {
+            foreach ($courses as $course) {
+                // Match the form's grouping by stringified duration so
+                // "2" / "2.0" both resolve to the same target. We round
+                // half-years up because the form only offers whole-year
+                // selectors.
+                $durationKey = (string) (int) ceil((float) $course->duration_years);
+                $target = $data['targets'][$durationKey] ?? null;
+
+                if (! $target) {
+                    continue;
+                }
+
+                $periods = max(1, (int) $course->feePeriodCount());
+                $clamped = max(1, min($periods, (int) $target));
+                $isBoard = $course->isBoard();
+                $field   = $isBoard ? 'course_year' : 'semester';
+
+                if ((int) ($course->current_semester ?? 0) !== $clamped) {
+                    $course->forceFill(['current_semester' => $clamped])->save();
+                    $touchedCourses++;
+                }
+
+                // Force every student of this course to the new value —
+                // intentional, since the whole point of reset is to undo
+                // a bad bump regardless of where each row ended up.
+                $touchedStudents += Student::where('course_id', $course->id)
+                    ->update([$field => $clamped]);
+            }
+        });
+
+        $uniName = University::find($data['university_id'])?->name ?? 'the selected university';
+
+        return redirect()
+            ->route('master.index', ['tab' => 'upgrade'])
+            ->with('status', "Reset {$touchedStudents} student(s) across {$touchedCourses} course(s) of {$uniName}.");
     }
 
     // ────────────────────────────────────────────────────────────────────
