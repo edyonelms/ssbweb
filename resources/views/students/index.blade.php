@@ -106,29 +106,21 @@
         </button>
     </div>
 
-    {{-- Filter row — single GET form. Plain native selects with a
-         dedicated label cell above each one so they line up cleanly,
-         read well on mobile (where the row wraps) and don't fight the
-         browser's native chevron. The status chips below are anchors
-         that preserve the rest of the filter state via $buildUrl().
-         --}}
+    {{-- Filter row — single GET form, every control rendered as a
+         labeled native select / input so they line up cleanly and
+         survive the row wrapping on mobile. Status is a dropdown
+         alongside the others now (no more chip second row). --}}
     @php
         $unisOnly   = $allUniversities->where('type', \App\Models\University::TYPE_UNIVERSITY);
         $boardsOnly = $allUniversities->where('type', \App\Models\University::TYPE_BOARD);
         $hasFilters = $universityId || $courseId || $createdBy || $search !== '' || $status !== 'all';
 
-        $selectClasses = 'w-full px-2.5 h-8 bg-white border border-slate-200 rounded-lg text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 transition shadow-sm';
+        $selectClasses = 'w-full px-2.5 h-9 bg-white border border-slate-200 rounded-lg text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 transition shadow-sm';
     @endphp
     <form method="GET" action="{{ route('students.index') }}"
           class="px-4 sm:px-6 lg:px-10 py-3 bg-slate-50/70 border-t border-slate-100">
 
-        {{-- Keep the current status when a dropdown auto-submits, so
-             chip selection doesn't get clobbered. --}}
-        @if ($status !== 'all')
-            <input type="hidden" name="status" value="{{ $status }}">
-        @endif
-
-        <div class="grid grid-cols-2 sm:grid-cols-3 {{ $isAdmin ? 'lg:grid-cols-5' : 'lg:grid-cols-4' }} gap-x-3 gap-y-2 items-end">
+        <div class="grid grid-cols-2 sm:grid-cols-3 {{ $isAdmin ? 'lg:grid-cols-6' : 'lg:grid-cols-5' }} gap-x-3 gap-y-2 items-end">
 
             {{-- University / Board --}}
             <label class="block">
@@ -180,8 +172,19 @@
                 </label>
             @endif
 
+            {{-- Status (now a dropdown like the rest) --}}
+            <label class="block">
+                <span class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Status</span>
+                <select name="status"
+                        onchange="this.form.submit()" class="{{ $selectClasses }}">
+                    @foreach ($statusChips as $key => $label)
+                        <option value="{{ $key }}" @selected($status === $key)>{{ $label }}</option>
+                    @endforeach
+                </select>
+            </label>
+
             {{-- Search --}}
-            <label class="block col-span-2 sm:col-span-1">
+            <label class="block col-span-2 sm:col-span-2 lg:col-span-1">
                 <span class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Search</span>
                 <div class="relative">
                     <div class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400">
@@ -191,47 +194,30 @@
                     </div>
                     <input type="text" name="q" value="{{ $search }}"
                            placeholder="Name, mobile, admission…"
-                           class="w-full pl-7 pr-3 h-8 bg-white border border-slate-200 rounded-lg text-xs placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 transition shadow-sm">
+                           class="w-full pl-7 pr-3 h-9 bg-white border border-slate-200 rounded-lg text-xs placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 transition shadow-sm">
                 </div>
             </label>
 
-            {{-- Submit + Clear (same row baseline as the search field) --}}
-            <div class="flex items-center gap-2 col-span-2 sm:col-span-1">
+            {{-- Submit + Clear cluster --}}
+            <div class="flex items-end gap-2 col-span-2 sm:col-span-1">
                 <button type="submit"
-                        class="h-8 px-3.5 rounded-lg text-xs font-semibold bg-pink-600 hover:bg-pink-700 text-white transition shadow-sm">
+                        class="h-9 px-3.5 rounded-lg text-xs font-semibold bg-pink-600 hover:bg-pink-700 text-white transition shadow-sm">
                     Search
                 </button>
                 @if ($hasFilters)
                     <a href="{{ route('students.index') }}"
-                       class="h-8 inline-flex items-center px-2.5 rounded-lg text-xs font-semibold text-slate-500 hover:bg-slate-200/70 transition">
+                       class="h-9 inline-flex items-center px-2.5 rounded-lg text-xs font-semibold text-slate-500 hover:bg-slate-200/70 transition">
                         Clear
                     </a>
                 @endif
             </div>
         </div>
 
-        {{-- Status chips on their own row so they don't fight the
-             dropdown widths and stay tappable on mobile. --}}
-        <div class="mt-3 flex items-center gap-2 flex-wrap">
-            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Status</span>
-            <div class="inline-flex items-center gap-1 bg-white border border-slate-200 rounded-lg p-0.5 h-8 shadow-sm">
-                @foreach ($statusChips as $key => $label)
-                    @php $isActive = $status === $key; @endphp
-                    <a href="{{ $buildUrl(['status' => $key === 'all' ? null : $key]) }}"
-                       class="px-2.5 h-7 inline-flex items-center rounded-md text-xs font-semibold transition
-                              {{ $isActive
-                                    ? 'bg-pink-600 text-white shadow-sm shadow-pink-500/30'
-                                    : 'text-slate-600 hover:bg-slate-100' }}">
-                        {{ $label }}
-                    </a>
-                @endforeach
-            </div>
-            @if ($hasFilters)
-                <span class="text-[11px] text-slate-400 ml-2">
-                    Showing <strong class="text-slate-700">{{ $students->count() }}</strong> result(s)
-                </span>
-            @endif
-        </div>
+        @if ($hasFilters)
+            <p class="mt-2 text-[11px] text-slate-400">
+                Showing <strong class="text-slate-700">{{ $students->count() }}</strong> result(s) for the applied filter(s).
+            </p>
+        @endif
     </form>
 </div>
 
