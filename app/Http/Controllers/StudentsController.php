@@ -138,12 +138,25 @@ class StudentsController extends Controller
 
         $student->loadMissing(['university', 'course', 'creator', 'feePayments']);
 
-        $html = view('students.form', [
+        $docUrls = collect(Student::DOCUMENT_FIELDS)
+            ->mapWithKeys(fn ($f) => [$f => $student->documentUrl($f)])
+            ->all();
+
+        // Universities with a letterhead-style admission form get the
+        // dedicated print-ready template; everyone else keeps the
+        // generic standalone form. Match on a normalised name so
+        // "Mangalayatan University" / "MANGALAYATAN UNIVERSITY" /
+        // "Manglayatan University" all resolve to the same template.
+        $uniName  = strtolower(preg_replace('/\s+/', ' ', (string) $student->university?->name));
+        $isLetterhead = str_contains($uniName, 'mangalayatan')
+                     || str_contains($uniName, 'manglayatan');
+
+        $viewName = $isLetterhead ? 'students.admission-form' : 'students.form';
+
+        $html = view($viewName, [
             'student'  => $student,
             'schedule' => $student->feeSchedule(),
-            'docUrls'  => collect(Student::DOCUMENT_FIELDS)
-                            ->mapWithKeys(fn ($f) => [$f => $student->documentUrl($f)])
-                            ->all(),
+            'docUrls'  => $docUrls,
         ])->render();
 
         $headers = ['Content-Type' => 'text/html; charset=UTF-8'];

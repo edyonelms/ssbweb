@@ -14,6 +14,7 @@ class University extends Model
     protected $fillable = [
         'name',
         'image_path',
+        'naac_image_path',
         'address',
         'type',
         'website',
@@ -24,7 +25,7 @@ class University extends Model
         'registration_fee' => 'decimal:2',
     ];
 
-    protected $appends = ['image_url'];
+    protected $appends = ['image_url', 'naac_image_url'];
 
     public function courses(): HasMany
     {
@@ -40,6 +41,14 @@ class University extends Model
     {
         if ($this->image_path && Storage::disk('public')->exists($this->image_path)) {
             return Storage::disk('public')->url($this->image_path);
+        }
+        return null;
+    }
+
+    public function getNaacImageUrlAttribute(): ?string
+    {
+        if ($this->naac_image_path && Storage::disk('public')->exists($this->naac_image_path)) {
+            return Storage::disk('public')->url($this->naac_image_path);
         }
         return null;
     }

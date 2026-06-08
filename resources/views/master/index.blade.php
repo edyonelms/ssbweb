@@ -48,6 +48,7 @@
         'id'               => $u->id,
         'name'             => $u->name,
         'image_url'        => $u->image_url,
+        'naac_image_url'   => $u->naac_image_url,
         'address'          => $u->address,
         'type'             => $u->type,
         'website'          => $u->website,
@@ -801,6 +802,15 @@
             }
             const fileLabel = f.querySelector('[data-file-name]');
             if (fileLabel) fileLabel.textContent = '';
+
+            // Accreditation badge preview — same flow as the main logo.
+            const naacPreview = f.querySelector('[data-naac-preview]');
+            if (naacPreview) {
+                if (u?.naac_image_url) { naacPreview.src = u.naac_image_url; naacPreview.classList.remove('hidden'); }
+                else naacPreview.classList.add('hidden');
+            }
+            const naacLabel = f.querySelector('[data-naac-file-name]');
+            if (naacLabel) naacLabel.textContent = '';
         }
 
         // ────── Course ──────
@@ -996,6 +1006,21 @@
             const label = form.querySelector('[data-file-name]');
             if (label) label.textContent = input.files[0]?.name || '';
             const preview = form.querySelector('[data-image-preview]');
+            if (preview && input.files.length) {
+                preview.src = URL.createObjectURL(input.files[0]);
+                preview.classList.remove('hidden');
+            }
+        });
+    });
+
+    // Same echo + preview wiring for the optional accreditation badge
+    // upload that lives next to the main logo on the university form.
+    document.querySelectorAll('[data-naac-input]').forEach(input => {
+        input.addEventListener('change', () => {
+            const form = input.closest('form');
+            const label = form.querySelector('[data-naac-file-name]');
+            if (label) label.textContent = input.files[0]?.name || '';
+            const preview = form.querySelector('[data-naac-preview]');
             if (preview && input.files.length) {
                 preview.src = URL.createObjectURL(input.files[0]);
                 preview.classList.remove('hidden');

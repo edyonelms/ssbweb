@@ -265,6 +265,9 @@ class MasterDataController extends Controller
         if ($request->hasFile('image')) {
             $data['image_path'] = $this->safeStoreFile($request->file('image'), 'uploads/universities');
         }
+        if ($request->hasFile('naac_image')) {
+            $data['naac_image_path'] = $this->safeStoreFile($request->file('naac_image'), 'uploads/universities/naac');
+        }
 
         University::create($data);
 
@@ -283,6 +286,12 @@ class MasterDataController extends Controller
                 Storage::disk('public')->delete($university->image_path);
             }
             $data['image_path'] = $this->safeStoreFile($request->file('image'), 'uploads/universities');
+        }
+        if ($request->hasFile('naac_image')) {
+            if ($university->naac_image_path && Storage::disk('public')->exists($university->naac_image_path)) {
+                Storage::disk('public')->delete($university->naac_image_path);
+            }
+            $data['naac_image_path'] = $this->safeStoreFile($request->file('naac_image'), 'uploads/universities/naac');
         }
 
         $university->update($data);
@@ -604,9 +613,12 @@ class MasterDataController extends Controller
             'website'          => ['nullable', 'string', 'max:255'],
             'registration_fee' => ['nullable', 'numeric', 'min:0', 'max:99999999'],
             'image'            => ['nullable', 'image', 'mimes:png,jpg,jpeg,webp', 'max:2048'],
+            'naac_image'       => ['nullable', 'image', 'mimes:png,jpg,jpeg,webp', 'max:2048'],
         ], [
-            'image.image' => 'Image must be a PNG/JPG/WEBP file.',
-            'image.max'   => 'Image must be 2MB or smaller.',
+            'image.image'      => 'Image must be a PNG/JPG/WEBP file.',
+            'image.max'        => 'Image must be 2MB or smaller.',
+            'naac_image.image' => 'Accreditation image must be a PNG/JPG/WEBP file.',
+            'naac_image.max'   => 'Accreditation image must be 2MB or smaller.',
         ]);
     }
 
