@@ -217,7 +217,7 @@
                     <dd id="viewPhone" class="mt-0.5 text-sm text-slate-800"></dd>
                 </div>
                 <div class="col-span-2">
-                    <dt class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Subject</dt>
+                    <dt class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Course</dt>
                     <dd id="viewSubject" class="mt-0.5 text-sm text-slate-800"></dd>
                 </div>
                 <div class="col-span-2">
