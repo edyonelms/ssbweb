@@ -106,106 +106,132 @@
         </button>
     </div>
 
-    {{-- Filter row — single GET form. Each control is rendered as a
-         labeled chip-style group so dropdowns/chips line up cleanly and
-         the row breathes the same on wide and narrow screens. --}}
+    {{-- Filter row — single GET form. Plain native selects with a
+         dedicated label cell above each one so they line up cleanly,
+         read well on mobile (where the row wraps) and don't fight the
+         browser's native chevron. The status chips below are anchors
+         that preserve the rest of the filter state via $buildUrl().
+         --}}
     @php
         $unisOnly   = $allUniversities->where('type', \App\Models\University::TYPE_UNIVERSITY);
         $boardsOnly = $allUniversities->where('type', \App\Models\University::TYPE_BOARD);
         $hasFilters = $universityId || $courseId || $createdBy || $search !== '' || $status !== 'all';
+
+        $selectClasses = 'w-full px-2.5 h-8 bg-white border border-slate-200 rounded-lg text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 transition shadow-sm';
     @endphp
     <form method="GET" action="{{ route('students.index') }}"
-          class="px-6 lg:px-10 py-3 flex flex-wrap items-center gap-2 bg-slate-50/70">
+          class="px-4 sm:px-6 lg:px-10 py-3 bg-slate-50/70 border-t border-slate-100">
 
+        {{-- Keep the current status when a dropdown auto-submits, so
+             chip selection doesn't get clobbered. --}}
         @if ($status !== 'all')
             <input type="hidden" name="status" value="{{ $status }}">
         @endif
 
-        {{-- University / Board --}}
-        <label class="inline-flex items-center gap-1.5 bg-white border border-slate-200 rounded-lg pl-2.5 pr-1 h-8 shadow-sm">
-            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">University</span>
-            <select name="university_id" data-filter-uni
-                    onchange="this.form.submit()"
-                    class="bg-transparent border-0 text-xs text-slate-700 focus:outline-none focus:ring-0 pr-1 max-w-[12rem]">
-                <option value="">All</option>
-                @if ($unisOnly->isNotEmpty())
-                    <optgroup label="Universities">
-                        @foreach ($unisOnly as $u)
-                            <option value="{{ $u->id }}" @selected($universityId === $u->id)>{{ $u->name }}</option>
-                        @endforeach
-                    </optgroup>
-                @endif
-                @if ($boardsOnly->isNotEmpty())
-                    <optgroup label="Boards">
-                        @foreach ($boardsOnly as $u)
-                            <option value="{{ $u->id }}" @selected($universityId === $u->id)>{{ $u->name }}</option>
-                        @endforeach
-                    </optgroup>
-                @endif
-            </select>
-        </label>
+        <div class="grid grid-cols-2 sm:grid-cols-3 {{ $isAdmin ? 'lg:grid-cols-5' : 'lg:grid-cols-4' }} gap-x-3 gap-y-2 items-end">
 
-        @if ($isAdmin)
-            <label class="inline-flex items-center gap-1.5 bg-white border border-slate-200 rounded-lg pl-2.5 pr-1 h-8 shadow-sm">
-                <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">User</span>
-                <select name="created_by"
-                        onchange="this.form.submit()"
-                        class="bg-transparent border-0 text-xs text-slate-700 focus:outline-none focus:ring-0 pr-1 max-w-[10rem]">
+            {{-- University / Board --}}
+            <label class="block">
+                <span class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">University / Board</span>
+                <select name="university_id" data-filter-uni
+                        onchange="this.form.submit()" class="{{ $selectClasses }}">
                     <option value="">All</option>
-                    <option value="self" @selected($createdBy === (int) auth()->id())>Self</option>
-                    @foreach ($userOptions as $u)
-                        @continue($u->id === auth()->id())
-                        <option value="{{ $u->id }}" @selected($createdBy === $u->id)>{{ $u->name }}</option>
+                    @if ($unisOnly->isNotEmpty())
+                        <optgroup label="Universities">
+                            @foreach ($unisOnly as $u)
+                                <option value="{{ $u->id }}" @selected($universityId === $u->id)>{{ $u->name }}</option>
+                            @endforeach
+                        </optgroup>
+                    @endif
+                    @if ($boardsOnly->isNotEmpty())
+                        <optgroup label="Boards">
+                            @foreach ($boardsOnly as $u)
+                                <option value="{{ $u->id }}" @selected($universityId === $u->id)>{{ $u->name }}</option>
+                            @endforeach
+                        </optgroup>
+                    @endif
+                </select>
+            </label>
+
+            {{-- Course (filters cascade off the picked university) --}}
+            <label class="block">
+                <span class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Course</span>
+                <select name="course_id" data-filter-course
+                        onchange="this.form.submit()" class="{{ $selectClasses }}">
+                    <option value="">All</option>
+                    @foreach ($allCourses as $c)
+                        <option value="{{ $c->id }}" data-university="{{ $c->university_id }}" @selected($courseId === $c->id)>{{ $c->name }}</option>
                     @endforeach
                 </select>
             </label>
-        @endif
 
-        <label class="inline-flex items-center gap-1.5 bg-white border border-slate-200 rounded-lg pl-2.5 pr-1 h-8 shadow-sm">
-            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Course</span>
-            <select name="course_id" data-filter-course
-                    onchange="this.form.submit()"
-                    class="bg-transparent border-0 text-xs text-slate-700 focus:outline-none focus:ring-0 pr-1 max-w-[12rem]">
-                <option value="">All</option>
-                @foreach ($allCourses as $c)
-                    <option value="{{ $c->id }}" data-university="{{ $c->university_id }}" @selected($courseId === $c->id)>{{ $c->name }}</option>
-                @endforeach
-            </select>
-        </label>
+            @if ($isAdmin)
+                <label class="block">
+                    <span class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Added By</span>
+                    <select name="created_by"
+                            onchange="this.form.submit()" class="{{ $selectClasses }}">
+                        <option value="">All</option>
+                        <option value="self" @selected($createdBy === (int) auth()->id())>Self</option>
+                        @foreach ($userOptions as $u)
+                            @continue($u->id === auth()->id())
+                            <option value="{{ $u->id }}" @selected($createdBy === $u->id)>{{ $u->name }}</option>
+                        @endforeach
+                    </select>
+                </label>
+            @endif
 
-        <div class="inline-flex items-center gap-1 bg-white border border-slate-200 rounded-lg p-0.5 h-8 shadow-sm">
-            @foreach ($statusChips as $key => $label)
-                @php $isActive = $status === $key; @endphp
-                <a href="{{ $buildUrl(['status' => $key === 'all' ? null : $key]) }}"
-                   class="px-2.5 h-7 inline-flex items-center rounded-md text-xs font-semibold transition
-                          {{ $isActive
-                                ? 'bg-pink-600 text-white shadow-sm shadow-pink-500/30'
-                                : 'text-slate-600 hover:bg-slate-100' }}">
-                    {{ $label }}
-                </a>
-            @endforeach
-        </div>
+            {{-- Search --}}
+            <label class="block col-span-2 sm:col-span-1">
+                <span class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Search</span>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400">
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z"/>
+                        </svg>
+                    </div>
+                    <input type="text" name="q" value="{{ $search }}"
+                           placeholder="Name, mobile, admission…"
+                           class="w-full pl-7 pr-3 h-8 bg-white border border-slate-200 rounded-lg text-xs placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 transition shadow-sm">
+                </div>
+            </label>
 
-        <div class="relative ml-auto">
-            <div class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400">
-                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z"/>
-                </svg>
+            {{-- Submit + Clear (same row baseline as the search field) --}}
+            <div class="flex items-center gap-2 col-span-2 sm:col-span-1">
+                <button type="submit"
+                        class="h-8 px-3.5 rounded-lg text-xs font-semibold bg-pink-600 hover:bg-pink-700 text-white transition shadow-sm">
+                    Search
+                </button>
+                @if ($hasFilters)
+                    <a href="{{ route('students.index') }}"
+                       class="h-8 inline-flex items-center px-2.5 rounded-lg text-xs font-semibold text-slate-500 hover:bg-slate-200/70 transition">
+                        Clear
+                    </a>
+                @endif
             </div>
-            <input type="text" name="q" value="{{ $search }}"
-                   placeholder="Search name, mobile, admission…"
-                   class="w-56 sm:w-64 pl-7 pr-3 h-8 bg-white border border-slate-200 rounded-lg text-xs placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 transition shadow-sm">
         </div>
-        <button type="submit"
-                class="h-8 px-3.5 rounded-lg text-xs font-semibold bg-pink-600 hover:bg-pink-700 text-white transition shadow-sm">
-            Apply
-        </button>
-        @if ($hasFilters)
-            <a href="{{ route('students.index') }}"
-               class="h-8 inline-flex items-center px-2.5 rounded-lg text-xs font-semibold text-slate-500 hover:bg-slate-200/70 transition" title="Clear filters">
-                Clear
-            </a>
-        @endif
+
+        {{-- Status chips on their own row so they don't fight the
+             dropdown widths and stay tappable on mobile. --}}
+        <div class="mt-3 flex items-center gap-2 flex-wrap">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Status</span>
+            <div class="inline-flex items-center gap-1 bg-white border border-slate-200 rounded-lg p-0.5 h-8 shadow-sm">
+                @foreach ($statusChips as $key => $label)
+                    @php $isActive = $status === $key; @endphp
+                    <a href="{{ $buildUrl(['status' => $key === 'all' ? null : $key]) }}"
+                       class="px-2.5 h-7 inline-flex items-center rounded-md text-xs font-semibold transition
+                              {{ $isActive
+                                    ? 'bg-pink-600 text-white shadow-sm shadow-pink-500/30'
+                                    : 'text-slate-600 hover:bg-slate-100' }}">
+                        {{ $label }}
+                    </a>
+                @endforeach
+            </div>
+            @if ($hasFilters)
+                <span class="text-[11px] text-slate-400 ml-2">
+                    Showing <strong class="text-slate-700">{{ $students->count() }}</strong> result(s)
+                </span>
+            @endif
+        </div>
     </form>
 </div>
 
@@ -232,21 +258,23 @@
 @endsection
 
 @section('admin')
-{{-- LISTING --}}
+{{-- LISTING — compact 5-column table (4 for sub-admin without "Added By").
+     Course cell carries year/sem chips inline so we don't burn a whole
+     column on two characters. The status chip and every per-row action
+     live together on the right and stop click-propagation so they don't
+     also open the View panel underneath. --}}
 <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
     <div class="overflow-x-auto">
         <table class="w-full text-sm">
-            <thead class="text-[11px] font-semibold tracking-wider uppercase text-slate-500 border-b border-slate-200">
+            <thead class="text-[11px] font-semibold tracking-wider uppercase text-slate-500 border-b border-slate-200 bg-slate-50/60">
                 <tr>
-                    <th class="text-left px-6 py-3 font-semibold">Student</th>
-                    <th class="text-left px-6 py-3 font-semibold">Mobile</th>
-                    <th class="text-left px-6 py-3 font-semibold">Course</th>
-                    <th class="text-left px-6 py-3 font-semibold">Year / Sem</th>
+                    <th class="text-left px-4 sm:px-6 py-3 font-semibold">Student</th>
+                    <th class="text-left px-4 sm:px-6 py-3 font-semibold hidden sm:table-cell">Mobile</th>
+                    <th class="text-left px-4 sm:px-6 py-3 font-semibold">Course · Year / Sem</th>
                     @if ($isAdmin)
-                        <th class="text-left px-6 py-3 font-semibold">Added By</th>
+                        <th class="text-left px-4 sm:px-6 py-3 font-semibold hidden md:table-cell">Added By</th>
                     @endif
-                    <th class="text-left px-6 py-3 font-semibold">Form</th>
-                    <th class="text-right px-6 py-3 font-semibold">Actions</th>
+                    <th class="text-right px-4 sm:px-6 py-3 font-semibold">Status &amp; Actions</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
@@ -256,67 +284,85 @@
                         $formUrl     = route('students.form', $s);
                         $downloadUrl = route('students.form', ['student' => $s->id, 'download' => 1]);
                     @endphp
-                    <tr class="student-row hover:bg-slate-50 transition cursor-pointer" data-student-id="{{ $s->id }}" onclick="StudentsPanel.openView({{ $s->id }})">
-                        <td class="px-6 py-3">
+                    <tr class="student-row hover:bg-slate-50 transition cursor-pointer"
+                        data-student-id="{{ $s->id }}"
+                        onclick="StudentsPanel.openView({{ $s->id }})">
+
+                        {{-- Student: avatar + name + father (and mobile on xs since the column is hidden) --}}
+                        <td class="px-4 sm:px-6 py-3">
                             <div class="flex items-center gap-3">
                                 @if ($photoUrl = $s->documentUrl('photo_path'))
-                                    <img src="{{ $photoUrl }}" alt="" class="w-9 h-9 rounded-full object-cover">
+                                    <img src="{{ $photoUrl }}" alt="" class="w-9 h-9 rounded-full object-cover shrink-0">
                                 @else
-                                    <div class="w-9 h-9 rounded-full bg-pink-50 text-pink-600 font-bold text-sm flex items-center justify-center">
+                                    <div class="w-9 h-9 rounded-full bg-pink-50 text-pink-600 font-bold text-sm flex items-center justify-center shrink-0">
                                         {{ strtoupper(mb_substr($s->name, 0, 1)) }}
                                     </div>
                                 @endif
                                 <div class="min-w-0">
-                                    <div class="font-medium text-slate-800 truncate">{{ $s->name }}</div>
+                                    <div class="font-semibold text-slate-800 truncate">{{ $s->name }}</div>
                                     @if ($s->father_name || $s->parent_name)
-                                        <div class="text-xs text-slate-500 truncate">{{ $s->father_name ?: $s->parent_name }}</div>
+                                        <div class="text-[11px] text-slate-500 truncate">
+                                            S/O {{ $s->father_name ?: $s->parent_name }}
+                                        </div>
                                     @endif
+                                    {{-- Mobile-only mobile (column itself hides under sm) --}}
+                                    <div class="text-[11px] text-slate-400 sm:hidden truncate">{{ $s->mobile }}</div>
                                 </div>
                             </div>
                         </td>
-                        <td class="px-6 py-3 text-slate-600">{{ $s->mobile }}</td>
-                        <td class="px-6 py-3 text-slate-600">
-                            <div class="truncate max-w-[14rem]">{{ $s->course?->name ?: '—' }}</div>
-                            @if ($s->university)
-                                <div class="text-[11px] text-slate-400 truncate max-w-[14rem]">{{ $s->university->name }}</div>
-                            @endif
-                        </td>
-                        <td class="px-6 py-3 text-slate-600 whitespace-nowrap">
-                            @if ($s->course_year || $s->semester)
-                                <span class="inline-flex items-center gap-1 text-xs">
-                                    @if ($s->course_year)
-                                        <span class="px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 font-semibold">Y{{ $s->course_year }}</span>
-                                    @endif
-                                    @if (! $isBoard && $s->semester)
-                                        <span class="px-1.5 py-0.5 rounded bg-pink-50 text-pink-700 font-semibold">S{{ $s->semester }}</span>
-                                    @endif
-                                    @if ($isBoard)
-                                        <span class="px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 font-semibold text-[10px]">Board</span>
-                                    @endif
-                                </span>
-                            @else
-                                <span class="text-slate-400">—</span>
-                            @endif
-                        </td>
-                        @if ($isAdmin)
-                            <td class="px-6 py-3 text-slate-600">{{ $s->creator?->name ?: '—' }}</td>
-                        @endif
-                        <td class="px-6 py-3" onclick="event.stopPropagation()">
-                            <a href="{{ $formUrl }}" target="_blank" rel="noopener" title="Open admission form"
-                               class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-pink-50 text-pink-700 hover:bg-pink-100 text-xs font-semibold transition">
-                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                                View Form
-                            </a>
-                        </td>
-                        <td class="px-6 py-3">
-                            <div class="flex items-center justify-end gap-1" onclick="event.stopPropagation()">
-                                @if ($s->active)
-                                    <span title="Active" class="w-2 h-2 rounded-full bg-emerald-500 mr-1.5"></span>
-                                @else
-                                    <span title="Inactive" class="w-2 h-2 rounded-full bg-rose-500 mr-1.5"></span>
+
+                        {{-- Mobile column (sm+) --}}
+                        <td class="px-4 sm:px-6 py-3 text-slate-600 hidden sm:table-cell whitespace-nowrap">{{ $s->mobile }}</td>
+
+                        {{-- Course + university + year/sem chips inline --}}
+                        <td class="px-4 sm:px-6 py-3">
+                            <div class="text-slate-700 font-medium truncate max-w-[16rem]">{{ $s->course?->name ?: '—' }}</div>
+                            <div class="flex items-center gap-1.5 flex-wrap mt-0.5">
+                                @if ($s->university)
+                                    <span class="text-[11px] text-slate-400 truncate max-w-[12rem]">{{ $s->university->name }}</span>
                                 @endif
-                                <a href="{{ $downloadUrl }}" title="Download form"
-                                   class="w-8 h-8 rounded-md text-slate-500 hover:bg-slate-100 hover:text-emerald-600 inline-flex items-center justify-center transition">
+                                @if ($s->course_year)
+                                    <span class="px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 text-[10px] font-semibold">Y{{ $s->course_year }}</span>
+                                @endif
+                                @if (! $isBoard && $s->semester)
+                                    <span class="px-1.5 py-0.5 rounded bg-pink-50 text-pink-700 text-[10px] font-semibold">S{{ $s->semester }}</span>
+                                @endif
+                                @if ($isBoard)
+                                    <span class="px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 text-[10px] font-semibold">Board</span>
+                                @endif
+                            </div>
+                        </td>
+
+                        {{-- Added By (admin, md+) --}}
+                        @if ($isAdmin)
+                            <td class="px-4 sm:px-6 py-3 text-slate-600 hidden md:table-cell whitespace-nowrap">
+                                {{ $s->creator?->name ?: '—' }}
+                            </td>
+                        @endif
+
+                        {{-- Status + actions cluster — all stop click-propagation
+                             so tapping any button never accidentally opens the
+                             View panel underneath. --}}
+                        <td class="px-4 sm:px-6 py-3">
+                            <div class="flex items-center justify-end gap-1.5" onclick="event.stopPropagation()">
+                                @if ($s->active)
+                                    <span class="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-semibold">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Active
+                                    </span>
+                                    <span class="sm:hidden w-2 h-2 rounded-full bg-emerald-500" title="Active"></span>
+                                @else
+                                    <span class="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 text-[10px] font-semibold">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Inactive
+                                    </span>
+                                    <span class="sm:hidden w-2 h-2 rounded-full bg-rose-500" title="Inactive"></span>
+                                @endif
+
+                                <a href="{{ $formUrl }}" target="_blank" rel="noopener" title="Open admission form"
+                                   class="w-8 h-8 rounded-md text-slate-500 hover:bg-pink-50 hover:text-pink-600 inline-flex items-center justify-center transition">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                </a>
+                                <a href="{{ $downloadUrl }}" title="Download admission form"
+                                   class="w-8 h-8 rounded-md text-slate-500 hover:bg-emerald-50 hover:text-emerald-600 inline-flex items-center justify-center transition">
                                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/></svg>
                                 </a>
                                 <button type="button" onclick="StudentsPanel.openEdit({{ $s->id }})"
@@ -329,7 +375,7 @@
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" title="Delete"
-                                            class="w-8 h-8 rounded-md text-slate-500 hover:bg-slate-100 hover:text-rose-600 inline-flex items-center justify-center transition">
+                                            class="w-8 h-8 rounded-md text-slate-500 hover:bg-rose-50 hover:text-rose-600 inline-flex items-center justify-center transition">
                                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3"/></svg>
                                     </button>
                                 </form>
@@ -338,7 +384,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="{{ $isAdmin ? 7 : 6 }}" class="px-6 py-16 text-center">
+                        <td colspan="{{ $isAdmin ? 5 : 4 }}" class="px-6 py-16 text-center">
                             <div class="flex flex-col items-center gap-2 text-slate-400">
                                 <div class="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center">
                                     <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
