@@ -62,6 +62,16 @@
             </p>
         </div>
 
+        {{-- Always-on PDF export — pulls every individual fee_payments
+             row in the picked date window with full student / course /
+             audit context. Opens the date-range modal below. --}}
+        <button type="button" onclick="document.getElementById('payFeeExportModal').classList.remove('hidden')"
+                class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 hover:border-pink-300 text-slate-700 hover:text-pink-600 text-sm font-semibold transition"
+                title="Export every fee-pay transaction for a date range as PDF">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/></svg>
+            Export PDF
+        </button>
+
         @if ($student && ! empty($schedule))
             <div class="flex items-center gap-x-6 gap-y-1 text-xs text-slate-500 flex-wrap">
                 <span>Total Fee: <span class="text-slate-800 font-semibold ml-1">₹{{ number_format($totals['fee']) }}</span></span>
@@ -496,4 +506,102 @@
     @endif
 </script>
 @endif
+
+{{-- ─────────── PDF EXPORT MODAL — date-range + filters ───────────
+     Submits via GET to /pay-fee/export which renders a print-ready
+     page and auto-fires the browser print dialog. --}}
+<div id="payFeeExportModal" class="hidden fixed inset-0 z-50 flex items-center justify-center px-4">
+    <div class="absolute inset-0 bg-slate-900/50" onclick="document.getElementById('payFeeExportModal').classList.add('hidden')"></div>
+    <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+        <div class="px-6 pt-5 pb-3 border-b border-slate-100 flex items-start justify-between">
+            <div>
+                <h3 class="text-base font-bold text-slate-800">Export Fee Payments</h3>
+                <p class="text-xs text-slate-500 mt-0.5">
+                    Every individual fee-pay transaction in the chosen window, with full student &amp; course details.
+                </p>
+            </div>
+            <button type="button" onclick="document.getElementById('payFeeExportModal').classList.add('hidden')"
+                    class="text-slate-400 hover:text-slate-700 transition" title="Close">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <form method="GET" action="{{ route('pay-fee.export') }}" target="_blank" rel="noopener" class="px-6 py-4 space-y-3">
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">From Date <span class="text-rose-500">*</span></label>
+                    <input type="date" name="from" required
+                           value="{{ now()->startOfMonth()->format('Y-m-d') }}"
+                           class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 outline-none transition text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">To Date <span class="text-rose-500">*</span></label>
+                    <input type="date" name="to" required
+                           value="{{ now()->format('Y-m-d') }}"
+                           class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 outline-none transition text-sm">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">University / Board</label>
+                <select name="university_id"
+                        class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 outline-none transition text-sm">
+                    <option value="">All universities &amp; boards</option>
+                    @if ($unisOnly->isNotEmpty())
+                        <optgroup label="Universities">
+                            @foreach ($unisOnly as $u)
+                                <option value="{{ $u->id }}" {{ (string) $universityId === (string) $u->id ? 'selected' : '' }}>{{ $u->name }}</option>
+                            @endforeach
+                        </optgroup>
+                    @endif
+                    @if ($boardsOnly->isNotEmpty())
+                        <optgroup label="Boards">
+                            @foreach ($boardsOnly as $u)
+                                <option value="{{ $u->id }}" {{ (string) $universityId === (string) $u->id ? 'selected' : '' }}>{{ $u->name }}</option>
+                            @endforeach
+                        </optgroup>
+                    @endif
+                </select>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Mode</label>
+                    <select name="mode"
+                            class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 outline-none transition text-sm">
+                        <option value="all">All modes</option>
+                        @foreach (\App\Models\FeePayment::MODES as $m)
+                            <option value="{{ $m }}">{{ strtoupper($m) }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Single Student (optional)</label>
+                    <select name="student_id"
+                            class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 outline-none transition text-sm">
+                        <option value="">Every student</option>
+                        @foreach ($students as $s)
+                            <option value="{{ $s->id }}" {{ (string) $studentId === (string) $s->id ? 'selected' : '' }}>
+                                {{ $s->name }}@if ($s->admission_no) · #{{ $s->admission_no }} @endif
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
+
+            <div class="bg-pink-50 border border-pink-100 rounded-lg px-3 py-2 text-[11px] text-pink-700 leading-snug">
+                A print-ready page opens in a new tab. Use your browser's print dialog to <b>Save as PDF</b>.
+            </div>
+
+            <div class="flex items-center justify-end gap-3 pt-1">
+                <button type="button" onclick="document.getElementById('payFeeExportModal').classList.add('hidden')"
+                        class="px-4 py-2 text-sm font-semibold text-slate-600 hover:text-slate-800 transition">Cancel</button>
+                <button type="submit"
+                        class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-pink-600 hover:bg-pink-700 text-white text-sm font-semibold transition">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/></svg>
+                    Generate PDF
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
 @endsection

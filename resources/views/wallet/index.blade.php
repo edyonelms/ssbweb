@@ -95,6 +95,17 @@
             @endif
         </div>
 
+        {{-- Date-range PDF export — opens the picker modal below. Hidden on
+             the Funds Request tab where a wallet ledger doesn't apply. --}}
+        @if ($tab !== 'requests')
+            <button type="button" onclick="document.getElementById('walletExportModal').classList.remove('hidden')"
+                    class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 hover:border-pink-300 text-slate-700 hover:text-pink-600 text-sm font-semibold transition"
+                    title="Export credit / debit / fee-pay transactions for a date range as PDF">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/></svg>
+                Export PDF
+            </button>
+        @endif
+
         @if ($tab === 'requests' && ! $isAdmin)
             <button type="button" onclick="WalletPanel.openAsk()"
                     class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-pink-600 hover:bg-pink-700 text-white text-sm font-semibold transition">
@@ -775,4 +786,78 @@
         else if (which === 'ask') WalletPanel.openAsk();
     })();
 </script>
+
+{{-- ─────────── PDF EXPORT MODAL — date-range + filters ───────────
+     Stays out of the main form/panel area so it doesn't collide with
+     the slide-in. Submits via GET to /wallet/export which renders a
+     print-friendly page and auto-fires the browser print dialog. --}}
+<div id="walletExportModal" class="hidden fixed inset-0 z-50 flex items-center justify-center px-4">
+    <div class="absolute inset-0 bg-slate-900/50" onclick="document.getElementById('walletExportModal').classList.add('hidden')"></div>
+    <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+        <div class="px-6 pt-5 pb-3 border-b border-slate-100 flex items-start justify-between">
+            <div>
+                <h3 class="text-base font-bold text-slate-800">Export Wallet Transactions</h3>
+                <p class="text-xs text-slate-500 mt-0.5">
+                    Every credit, debit and fee-pay entry in the chosen range, downloadable as a PDF.
+                </p>
+            </div>
+            <button type="button" onclick="document.getElementById('walletExportModal').classList.add('hidden')"
+                    class="text-slate-400 hover:text-slate-700 transition" title="Close">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <form method="GET" action="{{ route('wallet.export') }}" target="_blank" rel="noopener" class="px-6 py-4 space-y-3">
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">From Date <span class="text-rose-500">*</span></label>
+                    <input type="date" name="from" required
+                           value="{{ now()->startOfMonth()->format('Y-m-d') }}"
+                           class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 outline-none transition text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">To Date <span class="text-rose-500">*</span></label>
+                    <input type="date" name="to" required
+                           value="{{ now()->format('Y-m-d') }}"
+                           class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 outline-none transition text-sm">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Mode</label>
+                    <select name="mode"
+                            class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 outline-none transition text-sm">
+                        <option value="all">All modes</option>
+                        @foreach (\App\Models\WalletTransaction::MODES as $m)
+                            <option value="{{ $m }}">{{ strtoupper($m) }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Type</label>
+                    <select name="scope"
+                            class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 outline-none transition text-sm">
+                        <option value="all">All (Credit + Debit + Fee Pay)</option>
+                        <option value="credit">Credit only</option>
+                        <option value="debit">Debit / Fee Pay only</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="bg-pink-50 border border-pink-100 rounded-lg px-3 py-2 text-[11px] text-pink-700 leading-snug">
+                A print-ready page opens in a new tab. Use your browser's print dialog to <b>Save as PDF</b>.
+            </div>
+
+            <div class="flex items-center justify-end gap-3 pt-1">
+                <button type="button" onclick="document.getElementById('walletExportModal').classList.add('hidden')"
+                        class="px-4 py-2 text-sm font-semibold text-slate-600 hover:text-slate-800 transition">Cancel</button>
+                <button type="submit"
+                        class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-pink-600 hover:bg-pink-700 text-white text-sm font-semibold transition">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/></svg>
+                    Generate PDF
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
 @endsection

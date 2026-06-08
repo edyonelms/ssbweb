@@ -134,6 +134,13 @@
                 <span>Universities: <span class="text-pink-600 font-semibold ml-1">{{ $stats['universities']['university'] }}</span></span>
                 <span>Boards: <span class="text-emerald-600 font-semibold ml-1">{{ $stats['universities']['board'] }}</span></span>
             </div>
+            {{-- Single export opens a print-ready page with universities + courses + fee structures and auto-fires the browser print dialog → user picks "Save as PDF". --}}
+            <a href="{{ route('master.export') }}" target="_blank" rel="noopener"
+               class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 hover:border-pink-300 text-slate-700 hover:text-pink-600 text-sm font-semibold transition"
+               title="Download every university, course and fee structure as a PDF">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/></svg>
+                Export PDF
+            </a>
             @if ($isAdmin)
                 <button type="button" onclick="MasterPanel.openCreate('university')"
                         class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-pink-600 hover:bg-pink-700 text-white text-sm font-semibold transition">
@@ -147,6 +154,12 @@
                 <span>Universities: <span class="text-pink-600 font-semibold ml-1">{{ $stats['courses']['universities'] }}</span></span>
                 <span>Lateral Entry: <span class="text-emerald-600 font-semibold ml-1">{{ $stats['courses']['lateral'] }}</span></span>
             </div>
+            <a href="{{ route('master.export') }}" target="_blank" rel="noopener"
+               class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 hover:border-pink-300 text-slate-700 hover:text-pink-600 text-sm font-semibold transition"
+               title="Download universities + courses + fee structures as a PDF">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/></svg>
+                Export PDF
+            </a>
             @if ($isAdmin)
                 <button type="button" onclick="MasterPanel.openCreate('course')"
                         class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-pink-600 hover:bg-pink-700 text-white text-sm font-semibold transition">
@@ -160,6 +173,12 @@
                 <span>Priced: <span class="text-pink-600 font-semibold ml-1">{{ $stats['fees']['priced'] }}</span></span>
                 <span>Free: <span class="text-emerald-600 font-semibold ml-1">{{ $stats['fees']['free'] }}</span></span>
             </div>
+            <a href="{{ route('master.export') }}" target="_blank" rel="noopener"
+               class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 hover:border-pink-300 text-slate-700 hover:text-pink-600 text-sm font-semibold transition"
+               title="Download universities + courses + fee structures as a PDF">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/></svg>
+                Export PDF
+            </a>
             {{-- Fee structures are auto-synced from the course form; no manual add button. --}}
         @else
             @php

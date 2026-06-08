@@ -206,6 +206,54 @@ class MasterDataController extends Controller
     }
 
     // ────────────────────────────────────────────────────────────────────
+    //  Export — single print-ready page with every university / board,
+    //  every course, every fee structure and every field on each. The
+    //  Blade view auto-fires window.print() so the user lands straight
+    //  in the browser's "Save as PDF" dialog.
+    // ────────────────────────────────────────────────────────────────────
+
+    public function export(Request $request): View
+    {
+        $universities = University::with([
+                'courses' => fn ($q) => $q->orderBy('name'),
+                'courses.feeStructure',
+            ])
+            ->orderBy('type')
+            ->orderBy('name')
+            ->get();
+
+        $fees = FeeStructure::with([
+                'university:id,name,type',
+                'course:id,name,university_id,duration_years,registration_fee,fee_per_sem,mode,lateral_entry,subjects,current_semester',
+            ])
+            ->orderBy('university_id')
+            ->orderBy('id')
+            ->get();
+
+        // Quick student headcount per course for the courses table — same
+        // scoping rule the rest of master-data uses (sub-admin sees their
+        // own only).
+        $authUser = $request->user();
+        $studentScope = Student::query();
+        if (! $authUser->isAdmin()) {
+            $studentScope->where('created_by', $authUser->id);
+        }
+        $studentCounts = (clone $studentScope)
+            ->select('course_id', DB::raw('COUNT(*) as total'))
+            ->whereNotNull('course_id')
+            ->groupBy('course_id')
+            ->pluck('total', 'course_id');
+
+        return view('master.export', [
+            'universities'  => $universities,
+            'fees'          => $fees,
+            'studentCounts' => $studentCounts,
+            'generatedAt'   => now(),
+            'generatedBy'   => $authUser,
+        ]);
+    }
+
+    // ────────────────────────────────────────────────────────────────────
     //  Universities
     // ────────────────────────────────────────────────────────────────────
 

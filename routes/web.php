@@ -115,6 +115,7 @@ Route::middleware('auth')->group(function () {
     // their own students inside the controller).
     Route::prefix('pay-fee')->name('pay-fee.')->group(function () {
         Route::get('/', [PayFeeController::class, 'index'])->name('index');
+        Route::get('/export', [PayFeeController::class, 'export'])->name('export');
         Route::post('/', [PayFeeController::class, 'store'])->name('store');
         Route::delete('/payments/{feePayment}', [PayFeeController::class, 'destroy'])
             ->whereNumber('feePayment')->name('payments.destroy');
@@ -122,6 +123,7 @@ Route::middleware('auth')->group(function () {
 
     // Wallet — both roles see the listing; admin alone may update wallets.
     Route::get('/wallet', [WalletController::class, 'index'])->name('wallet.index');
+    Route::get('/wallet/export', [WalletController::class, 'export'])->name('wallet.export');
     Route::middleware('admin')->group(function () {
         Route::post('/wallet', [WalletController::class, 'store'])->name('wallet.store');
     });
@@ -141,6 +143,11 @@ Route::middleware('auth')->group(function () {
     // Master Data — admin manages universities/courses/fees, sub-admin reads only.
     Route::prefix('master-data')->name('master.')->group(function () {
         Route::get('/', [MasterDataController::class, 'index'])->name('index');
+
+        // Print-friendly dump of universities + courses + fee structures
+        // with every field. Opens a standalone page that auto-fires the
+        // browser print dialog so the user can "Save as PDF".
+        Route::get('/export', [MasterDataController::class, 'export'])->name('export');
 
         Route::middleware('admin')->group(function () {
             Route::post('/universities',                [MasterDataController::class, 'storeUniversity'])->name('universities.store');

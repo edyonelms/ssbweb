@@ -90,6 +90,93 @@ class PayFeeController extends Controller
         ]);
     }
 
+    // ────────────────────────────────────────────────────────────────────
+    //  Export — every single fee_payments row in the chosen date window
+    //  with full student, university, course and audit context. Admin
+    //  sees every transaction; sub-admin sees only payments they
+    //  recorded. Blade view auto-fires window.print() so the user can
+    //  Save as PDF in one click.
+    // ────────────────────────────────────────────────────────────────────
+
+    public function export(Request $request): View
+    {
+        $user    = $request->user();
+        $isAdmin = $user->isAdmin();
+
+        $data = $request->validate([
+            'from'          => ['nullable', 'date'],
+            'to'            => ['nullable', 'date', 'after_or_equal:from'],
+            'mode'          => ['nullable', 'in:all,'.implode(',', FeePayment::MODES)],
+            'university_id' => ['nullable', 'integer', 'exists:universities,id'],
+            'student_id'    => ['nullable', 'integer', 'exists:students,id'],
+        ]);
+
+        $from = ! empty($data['from'])
+            ? \Carbon\Carbon::parse($data['from'])->startOfDay()
+            : now()->startOfMonth();
+        $to   = ! empty($data['to'])
+            ? \Carbon\Carbon::parse($data['to'])->endOfDay()
+            : now()->endOfDay();
+
+        $mode         = $data['mode'] ?? 'all';
+        $universityId = $data['university_id'] ?? null;
+        $studentId    = $data['student_id'] ?? null;
+
+        $query = FeePayment::with([
+                'student:id,name,mobile,email,admission_no,father_name,parent_name,university_id,course_id,course_year,semester,address,city,state,pincode,created_by',
+                'student.university:id,name,type',
+                'student.course:id,name,duration_years,registration_fee,fee_per_sem,mode,university_id,current_semester',
+                'student.creator:id,name',
+                'recordedBy:id,name,role,mobile',
+            ])
+            ->whereBetween('paid_at', [$from, $to])
+            ->orderBy('paid_at');
+
+        if (! $isAdmin) {
+            // Sub-admin: only entries they recorded themselves.
+            $query->where('recorded_by', $user->id);
+        }
+
+        if ($mode !== 'all') {
+            $query->where('mode', $mode);
+        }
+
+        if ($universityId) {
+            $query->whereHas('student', fn ($q) => $q->where('university_id', $universityId));
+        }
+
+        if ($studentId) {
+            $query->where('student_id', $studentId);
+        }
+
+        $payments = $query->get();
+
+        $totals = [
+            'amount' => (float) $payments->sum('amount'),
+            'count'  => $payments->count(),
+            'by_mode' => $payments->groupBy('mode')->map(fn ($rows) => [
+                'count'  => $rows->count(),
+                'amount' => (float) $rows->sum('amount'),
+            ]),
+        ];
+
+        $universities = University::orderBy('name')->get(['id', 'name', 'type']);
+
+        return view('pay-fee.export', [
+            'payments'     => $payments,
+            'totals'       => $totals,
+            'from'         => $from,
+            'to'           => $to,
+            'mode'         => $mode,
+            'universityId' => $universityId,
+            'studentId'    => $studentId,
+            'universities' => $universities,
+            'isAdmin'      => $isAdmin,
+            'generatedAt'  => now(),
+            'generatedBy'  => $user,
+        ]);
+    }
+
     public function store(Request $request): RedirectResponse
     {
         $data = $request->validate([

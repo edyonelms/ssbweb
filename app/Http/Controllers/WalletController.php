@@ -163,6 +163,86 @@ class WalletController extends Controller
         ]);
     }
 
+    // ────────────────────────────────────────────────────────────────────
+    //  Export — print-ready PDF of every credit, debit and fee-pay
+    //  wallet entry between the chosen start and end dates. Admin sees
+    //  every transaction in the system, sub-admin sees only their own
+    //  wallet's rows. The Blade view auto-fires window.print() so the
+    //  user lands directly in "Save as PDF".
+    // ────────────────────────────────────────────────────────────────────
+
+    public function export(Request $request): View
+    {
+        $user    = $request->user();
+        $isAdmin = $user->isAdmin();
+
+        // Date range is required for the export so an admin doesn't
+        // accidentally dump the entire history into a print job. Default
+        // to the start of the current month → today when the user lands
+        // on the page without picking a range (e.g. via the menu link).
+        $data = $request->validate([
+            'from'  => ['nullable', 'date'],
+            'to'    => ['nullable', 'date', 'after_or_equal:from'],
+            'mode'  => ['nullable', 'in:all,'.implode(',', WalletTransaction::MODES)],
+            'scope' => ['nullable', 'in:all,credit,debit'],
+        ]);
+
+        $from = ! empty($data['from'])
+            ? \Carbon\Carbon::parse($data['from'])->startOfDay()
+            : now()->startOfMonth();
+        $to   = ! empty($data['to'])
+            ? \Carbon\Carbon::parse($data['to'])->endOfDay()
+            : now()->endOfDay();
+
+        $mode  = $data['mode']  ?? 'all';
+        $scope = $data['scope'] ?? 'all';
+
+        $query = WalletTransaction::with([
+                'user:id,name,mobile,role,email',
+                'creator:id,name,role',
+                'paymentRequest:id,wallet_transaction_id,topic,amount,approved_amount,admin_note',
+            ])
+            ->whereBetween('created_at', [$from, $to])
+            ->orderBy('created_at');
+
+        if (! $isAdmin) {
+            // Sub-admin's wallet only — both credits received and debits
+            // they incurred (fee collections etc.).
+            $query->where('user_id', $user->id);
+        }
+
+        if ($mode !== 'all') {
+            $query->where('mode', $mode);
+        }
+
+        if ($scope === 'credit') {
+            $query->where('amount', '>', 0);
+        } elseif ($scope === 'debit') {
+            $query->where('amount', '<', 0);
+        }
+
+        $transactions = $query->get();
+
+        $totals = [
+            'credit'  => (float) $transactions->where('amount', '>', 0)->sum('amount'),
+            'debit'   => abs((float) $transactions->where('amount', '<', 0)->sum('amount')),
+            'net'     => (float) $transactions->sum('amount'),
+            'count'   => $transactions->count(),
+        ];
+
+        return view('wallet.export', [
+            'transactions' => $transactions,
+            'totals'       => $totals,
+            'from'         => $from,
+            'to'           => $to,
+            'mode'         => $mode,
+            'scope'        => $scope,
+            'isAdmin'      => $isAdmin,
+            'generatedAt'  => now(),
+            'generatedBy'  => $user,
+        ]);
+    }
+
     public function store(Request $request): RedirectResponse
     {
         $data = $request->validate([
