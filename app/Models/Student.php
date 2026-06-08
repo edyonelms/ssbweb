@@ -5,9 +5,26 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
 
 class Student extends Model
 {
+    public const CATEGORIES = ['general', 'obc', 'sc', 'st', 'minor', 'nri', 'other'];
+
+    /** Mirror of the document fields the admission form collects. */
+    public const DOCUMENT_FIELDS = [
+        'photo_path',
+        'aadhar_front_path',
+        'aadhar_back_path',
+        'marksheet_x_path',
+        'marksheet_xii_path',
+        'marksheet_graduation_path',
+        'student_sign_path',
+        'abc_id_path',
+        'deb_id_path',
+        'other_doc_path',
+    ];
+
     protected $fillable = [
         'name',
         'mobile',
@@ -16,15 +33,45 @@ class Student extends Model
         'class_name',
         'university_id',
         'course_id',
+        'mode',
+        'enrollment_type',
+        'course_year',
+        'semester',
+        'father_name',
+        'mother_name',
+        'dob',
+        'category',
+        'nationality',
+        'religion',
+        'aadhar_number',
         'gender',
         'parent_name',
         'address',
+        'country',
+        'state',
+        'city',
+        'pincode',
+        'photo_path',
+        'aadhar_front_path',
+        'aadhar_back_path',
+        'marksheet_x_path',
+        'marksheet_xii_path',
+        'marksheet_graduation_path',
+        'student_sign_path',
+        'abc_id_path',
+        'deb_id_path',
+        'other_doc_path',
+        'academic_records',
         'active',
         'created_by',
     ];
 
     protected $casts = [
-        'active' => 'boolean',
+        'active'           => 'boolean',
+        'dob'              => 'date',
+        'academic_records' => 'array',
+        'course_year'      => 'integer',
+        'semester'         => 'integer',
     ];
 
     public function creator(): BelongsTo
@@ -45,6 +92,26 @@ class Student extends Model
     public function feePayments(): HasMany
     {
         return $this->hasMany(FeePayment::class)->orderBy('semester')->orderByDesc('paid_at');
+    }
+
+    /**
+     * Build a URL for a stored document path; null when the file is
+     * missing so callers can render a graceful placeholder.
+     */
+    public function documentUrl(string $field): ?string
+    {
+        $path = $this->{$field} ?? null;
+        if (! $path) {
+            return null;
+        }
+        try {
+            if (Storage::disk('public')->exists($path)) {
+                return Storage::disk('public')->url($path);
+            }
+        } catch (\Throwable $e) {
+            // Disk misconfigured — fall through and return null.
+        }
+        return null;
     }
 
     /**

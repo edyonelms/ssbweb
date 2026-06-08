@@ -3,23 +3,48 @@
 @section('title', 'Students - SSB Education')
 
 @php
-    $studentsData = $students->map(fn ($s) => [
-        'id'              => $s->id,
-        'name'            => $s->name,
-        'mobile'          => $s->mobile,
-        'email'           => $s->email,
-        'admission_no'    => $s->admission_no,
-        'class_name'      => $s->class_name,
-        'university_id'   => $s->university_id,
-        'university_name' => $s->university?->name,
-        'course_id'       => $s->course_id,
-        'course_name'     => $s->course?->name,
-        'gender'          => $s->gender,
-        'parent_name'     => $s->parent_name,
-        'address'         => $s->address,
-        'active'          => (bool) $s->active,
-        'created_at'      => $s->created_at?->format('d M Y'),
-    ])->keyBy('id');
+    $studentsData = $students->map(function ($s) {
+        $docs = [];
+        foreach (\App\Models\Student::DOCUMENT_FIELDS as $field) {
+            $docs[$field] = $s->documentUrl($field);
+        }
+        return [
+            'id'                    => $s->id,
+            'name'                  => $s->name,
+            'mobile'                => $s->mobile,
+            'email'                 => $s->email,
+            'admission_no'          => $s->admission_no,
+            'class_name'            => $s->class_name,
+            'university_id'         => $s->university_id,
+            'university_name'       => $s->university?->name,
+            'university_type'       => $s->university?->type,
+            'course_id'             => $s->course_id,
+            'course_name'           => $s->course?->name,
+            'mode'                  => $s->mode,
+            'enrollment_type'       => $s->enrollment_type,
+            'course_year'           => $s->course_year,
+            'semester'              => $s->semester,
+            'father_name'           => $s->father_name,
+            'mother_name'           => $s->mother_name,
+            'parent_name'           => $s->parent_name,
+            'gender'                => $s->gender,
+            'dob'                   => $s->dob?->format('Y-m-d'),
+            'category'              => $s->category,
+            'nationality'           => $s->nationality,
+            'religion'              => $s->religion,
+            'aadhar_number'         => $s->aadhar_number,
+            'address'               => $s->address,
+            'country'               => $s->country,
+            'state'                 => $s->state,
+            'city'                  => $s->city,
+            'pincode'               => $s->pincode,
+            'academic_records'      => $s->academic_records ?? [],
+            'documents'             => $docs,
+            'active'                => (bool) $s->active,
+            'creator_name'          => $s->creator?->name,
+            'created_at'            => $s->created_at?->format('d M Y'),
+        ];
+    })->keyBy('id');
 
     $statusChips = [
         'all'      => 'All',
@@ -27,13 +52,28 @@
         'inactive' => 'Inactive',
     ];
 
-    $buildUrl = function (array $overrides) use ($status, $search) {
-        $params = array_filter(array_merge([
-            'status' => $status === 'all' ? null : $status,
-            'q'      => $search !== '' ? $search : null,
-        ], $overrides), fn ($v) => $v !== null && $v !== '');
+    $isAdmin = auth()->user()->isAdmin();
+
+    $buildUrl = function (array $overrides) use ($status, $search, $universityId, $courseId, $createdBy) {
+        $params = array_merge([
+            'status'        => $status === 'all' ? null : $status,
+            'q'             => $search !== '' ? $search : null,
+            'university_id' => $universityId,
+            'course_id'     => $courseId,
+            'created_by'    => $createdBy,
+        ], $overrides);
+        $params = array_filter($params, fn ($v) => $v !== null && $v !== '' && $v !== 0);
         return route('students.index').($params ? '?'.http_build_query($params) : '');
     };
+
+    $exportParams = array_filter([
+        'status'        => $status === 'all' ? null : $status,
+        'q'             => $search !== '' ? $search : null,
+        'university_id' => $universityId,
+        'course_id'     => $courseId,
+        'created_by'    => $createdBy,
+    ], fn ($v) => $v !== null && $v !== '' && $v !== 0);
+    $exportUrl = route('students.export').($exportParams ? '?'.http_build_query($exportParams) : '');
 @endphp
 
 @section('admin-header')
@@ -51,7 +91,7 @@
             <span>Inactive: <span class="text-amber-600 font-semibold ml-1">{{ $stats['inactive'] }}</span></span>
         </div>
 
-        <a href="{{ route('students.export') }}"
+        <a href="{{ $exportUrl }}"
            class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-semibold transition">
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/>
@@ -67,57 +107,123 @@
     </div>
 
     {{-- Filter row --}}
-    <div class="px-6 lg:px-10 py-2.5 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs">
+    <form method="GET" action="{{ route('students.index') }}"
+          class="px-6 lg:px-10 py-2.5 flex flex-wrap items-center gap-x-3 gap-y-2 text-xs">
         <div class="flex items-center gap-1.5 text-slate-500">
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
             </svg>
-            <span class="font-semibold text-slate-600">Filter by:</span>
+            <span class="font-semibold text-slate-600">Filter:</span>
         </div>
 
-        <div class="flex items-center gap-1.5">
-            <span class="text-slate-500">Status:</span>
-            <div class="flex items-center gap-1">
-                @foreach ($statusChips as $key => $label)
-                    @php $isActive = $status === $key; @endphp
-                    <a href="{{ $buildUrl(['status' => $key === 'all' ? null : $key]) }}"
-                       class="px-3 py-1 rounded-full text-xs font-semibold transition
-                              {{ $isActive
-                                    ? 'bg-pink-600 text-white shadow-sm shadow-pink-500/30'
-                                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200' }}">
-                        {{ $label }}
-                    </a>
+        <select name="university_id" data-filter-uni
+                onchange="this.form.submit()"
+                class="px-2.5 py-1 bg-white border border-slate-200 rounded-md text-xs text-slate-700 focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 outline-none">
+            <option value="">All Universities / Boards</option>
+            @php
+                $unisOnly   = $allUniversities->where('type', \App\Models\University::TYPE_UNIVERSITY);
+                $boardsOnly = $allUniversities->where('type', \App\Models\University::TYPE_BOARD);
+            @endphp
+            @if ($unisOnly->isNotEmpty())
+                <optgroup label="Universities">
+                    @foreach ($unisOnly as $u)
+                        <option value="{{ $u->id }}" @selected($universityId === $u->id)>{{ $u->name }}</option>
+                    @endforeach
+                </optgroup>
+            @endif
+            @if ($boardsOnly->isNotEmpty())
+                <optgroup label="Boards">
+                    @foreach ($boardsOnly as $u)
+                        <option value="{{ $u->id }}" @selected($universityId === $u->id)>{{ $u->name }}</option>
+                    @endforeach
+                </optgroup>
+            @endif
+        </select>
+
+        @if ($isAdmin)
+            <select name="created_by"
+                    onchange="this.form.submit()"
+                    class="px-2.5 py-1 bg-white border border-slate-200 rounded-md text-xs text-slate-700 focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 outline-none">
+                <option value="">All Users</option>
+                <option value="self" @selected($createdBy === (int) auth()->id())>Self</option>
+                @foreach ($userOptions as $u)
+                    @continue($u->id === auth()->id())
+                    <option value="{{ $u->id }}" @selected($createdBy === $u->id)>{{ $u->name }}</option>
                 @endforeach
-            </div>
-        </div>
+            </select>
+        @endif
 
-        <form method="GET" action="{{ route('students.index') }}" class="ml-auto flex items-center gap-2">
-            @if ($status !== 'all')
-                <input type="hidden" name="status" value="{{ $status }}">
-            @endif
-            <div class="relative">
-                <div class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400">
-                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z"/>
-                    </svg>
-                </div>
-                <input type="text" name="q" value="{{ $search }}"
-                       placeholder="Search name, mobile, admission, class..."
-                       class="w-60 sm:w-72 pl-7 pr-3 py-1.5 bg-white border border-slate-200 rounded-full text-xs placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 transition">
-            </div>
-            <button type="submit"
-                    class="px-3 py-1.5 rounded-full text-xs font-semibold bg-pink-600 hover:bg-pink-700 text-white transition">
-                Search
-            </button>
-            @if ($search !== '')
-                <a href="{{ $buildUrl(['q' => null]) }}"
-                   class="px-2 py-1.5 rounded-full text-xs font-semibold text-slate-500 hover:bg-slate-100 transition" title="Clear search">
-                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+        <select name="course_id" data-filter-course
+                onchange="this.form.submit()"
+                class="px-2.5 py-1 bg-white border border-slate-200 rounded-md text-xs text-slate-700 focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 outline-none">
+            <option value="">All Courses</option>
+            @foreach ($allCourses as $c)
+                <option value="{{ $c->id }}" data-university="{{ $c->university_id }}" @selected($courseId === $c->id)>{{ $c->name }}</option>
+            @endforeach
+        </select>
+
+        <div class="flex items-center gap-1">
+            @foreach ($statusChips as $key => $label)
+                @php $isActive = $status === $key; @endphp
+                <a href="{{ $buildUrl(['status' => $key === 'all' ? null : $key]) }}"
+                   class="px-2.5 py-1 rounded-full text-xs font-semibold transition
+                          {{ $isActive
+                                ? 'bg-pink-600 text-white shadow-sm shadow-pink-500/30'
+                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200' }}">
+                    {{ $label }}
                 </a>
-            @endif
-        </form>
-    </div>
+            @endforeach
+        </div>
+        {{-- The status chips are anchors, not part of the GET form; keep
+             their currently-active value as a hidden so any other field
+             being changed (e.g. course filter) preserves the status. --}}
+        @if ($status !== 'all')
+            <input type="hidden" name="status" value="{{ $status }}">
+        @endif
+
+        <div class="relative ml-auto">
+            <div class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400">
+                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z"/>
+                </svg>
+            </div>
+            <input type="text" name="q" value="{{ $search }}"
+                   placeholder="Search name, mobile, admission…"
+                   class="w-60 sm:w-72 pl-7 pr-3 py-1 bg-white border border-slate-200 rounded-full text-xs placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 transition">
+        </div>
+        <button type="submit"
+                class="px-3 py-1 rounded-full text-xs font-semibold bg-pink-600 hover:bg-pink-700 text-white transition">
+            Apply
+        </button>
+        @if ($universityId || $courseId || $createdBy || $search !== '' || $status !== 'all')
+            <a href="{{ route('students.index') }}"
+               class="px-2 py-1 rounded-full text-xs font-semibold text-slate-500 hover:bg-slate-100 transition" title="Clear filters">
+                Clear
+            </a>
+        @endif
+    </form>
 </div>
+
+<script>
+    // Cascade: course options should narrow to the picked university.
+    (function () {
+        const uniSel    = document.querySelector('[data-filter-uni]');
+        const courseSel = document.querySelector('[data-filter-course]');
+        if (!uniSel || !courseSel) return;
+        function apply() {
+            const uni = uniSel.value;
+            const selected = courseSel.value;
+            courseSel.querySelectorAll('option').forEach(opt => {
+                if (!opt.value) { opt.hidden = false; return; }
+                const ok = !uni || opt.dataset.university === uni;
+                opt.hidden = !ok;
+                if (!ok && opt.value === selected) courseSel.value = '';
+            });
+        }
+        uniSel.addEventListener('change', apply);
+        apply();
+    })();
+</script>
 @endsection
 
 @section('admin')
@@ -129,8 +235,10 @@
                 <tr>
                     <th class="text-left px-6 py-3 font-semibold">Student</th>
                     <th class="text-left px-6 py-3 font-semibold">Mobile</th>
-                    <th class="text-left px-6 py-3 font-semibold">Admission No</th>
-                    <th class="text-left px-6 py-3 font-semibold">Class</th>
+                    <th class="text-left px-6 py-3 font-semibold">Course</th>
+                    @if ($isAdmin)
+                        <th class="text-left px-6 py-3 font-semibold">Added By</th>
+                    @endif
                     <th class="text-left px-6 py-3 font-semibold">Status</th>
                     <th class="text-right px-6 py-3 font-semibold">Actions</th>
                 </tr>
@@ -140,20 +248,31 @@
                     <tr class="student-row hover:bg-slate-50 transition cursor-pointer" data-student-id="{{ $s->id }}" onclick="StudentsPanel.openView({{ $s->id }})">
                         <td class="px-6 py-3">
                             <div class="flex items-center gap-3">
-                                <div class="w-9 h-9 rounded-full bg-pink-50 text-pink-600 font-bold text-sm flex items-center justify-center">
-                                    {{ strtoupper(mb_substr($s->name, 0, 1)) }}
-                                </div>
-                                <div>
-                                    <div class="font-medium text-slate-800">{{ $s->name }}</div>
-                                    @if ($s->parent_name)
-                                        <div class="text-xs text-slate-500">{{ $s->parent_name }}</div>
+                                @if ($photoUrl = $s->documentUrl('photo_path'))
+                                    <img src="{{ $photoUrl }}" alt="" class="w-9 h-9 rounded-full object-cover">
+                                @else
+                                    <div class="w-9 h-9 rounded-full bg-pink-50 text-pink-600 font-bold text-sm flex items-center justify-center">
+                                        {{ strtoupper(mb_substr($s->name, 0, 1)) }}
+                                    </div>
+                                @endif
+                                <div class="min-w-0">
+                                    <div class="font-medium text-slate-800 truncate">{{ $s->name }}</div>
+                                    @if ($s->father_name || $s->parent_name)
+                                        <div class="text-xs text-slate-500 truncate">{{ $s->father_name ?: $s->parent_name }}</div>
                                     @endif
                                 </div>
                             </div>
                         </td>
                         <td class="px-6 py-3 text-slate-600">{{ $s->mobile }}</td>
-                        <td class="px-6 py-3 text-slate-600">{{ $s->admission_no ?: '—' }}</td>
-                        <td class="px-6 py-3 text-slate-600">{{ $s->class_name ?: '—' }}</td>
+                        <td class="px-6 py-3 text-slate-600">
+                            <div class="truncate max-w-[14rem]">{{ $s->course?->name ?: '—' }}</div>
+                            @if ($s->university)
+                                <div class="text-[11px] text-slate-400 truncate max-w-[14rem]">{{ $s->university->name }}</div>
+                            @endif
+                        </td>
+                        @if ($isAdmin)
+                            <td class="px-6 py-3 text-slate-600">{{ $s->creator?->name ?: '—' }}</td>
+                        @endif
                         <td class="px-6 py-3">
                             @if ($s->active)
                                 <span class="inline-flex items-center gap-1.5 text-emerald-700 text-xs font-medium">
@@ -186,7 +305,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="6" class="px-6 py-16 text-center">
+                        <td colspan="{{ $isAdmin ? 6 : 5 }}" class="px-6 py-16 text-center">
                             <div class="flex flex-col items-center gap-2 text-slate-400">
                                 <div class="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center">
                                     <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
@@ -210,7 +329,7 @@
 @endsection
 
 @section('slide-panel')
-{{-- SLIDE-IN PANEL --}}
+{{-- VIEW MODE: slide-in on the right (compact details + documents) --}}
 <aside id="slidePanel" class="absolute inset-0 z-30 hidden" aria-hidden="true">
     <div class="absolute inset-0 bg-slate-900/30 opacity-0 transition-opacity duration-200" id="slidePanelBackdrop" onclick="StudentsPanel.close()"></div>
     <div id="slidePanelCard"
@@ -221,11 +340,11 @@
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
         </button>
 
-        {{-- VIEW MODE --}}
-        <div id="panelView" class="panel-mode hidden flex-1 flex flex-col min-h-0">
+        <div id="panelView" class="flex-1 flex flex-col min-h-0">
             <div class="flex-1 overflow-y-auto p-6 space-y-5">
                 <div class="flex flex-col items-center text-center pb-5 border-b border-slate-100">
-                    <div class="w-20 h-20 rounded-full bg-pink-50 text-pink-600 font-bold text-2xl flex items-center justify-center">
+                    <div class="w-20 h-20 rounded-full bg-pink-50 text-pink-600 font-bold text-2xl flex items-center justify-center overflow-hidden">
+                        <img id="viewPhoto" src="" alt="" class="w-full h-full object-cover hidden">
                         <span id="viewInitial"></span>
                     </div>
                     <h4 id="viewName" class="mt-3 text-base font-bold text-slate-800"></h4>
@@ -233,38 +352,55 @@
                     <span id="viewStatus" class="mt-2 inline-flex items-center gap-1.5 text-xs font-medium"></span>
                 </div>
 
-                <dl class="space-y-4">
-                    <div class="grid grid-cols-2 gap-3">
-                        <div>
-                            <dt class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Admission No</dt>
-                            <dd id="viewAdmission" class="mt-0.5 text-sm text-slate-800"></dd>
-                        </div>
-                        <div>
-                            <dt class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Class</dt>
-                            <dd id="viewClass" class="mt-0.5 text-sm text-slate-800"></dd>
-                        </div>
-                        <div>
-                            <dt class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Gender</dt>
-                            <dd id="viewGender" class="mt-0.5 text-sm text-slate-800 capitalize"></dd>
-                        </div>
-                        <div>
-                            <dt class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Parent</dt>
-                            <dd id="viewParent" class="mt-0.5 text-sm text-slate-800"></dd>
-                        </div>
-                    </div>
-                    <div>
-                        <dt class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Email</dt>
-                        <dd id="viewEmail" class="mt-0.5 text-sm text-slate-800 break-words"></dd>
-                    </div>
-                    <div>
-                        <dt class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Address</dt>
-                        <dd id="viewAddress" class="mt-0.5 text-sm text-slate-800 whitespace-pre-line"></dd>
-                    </div>
-                    <div>
-                        <dt class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Added</dt>
-                        <dd id="viewCreated" class="mt-0.5 text-sm text-slate-800"></dd>
-                    </div>
-                </dl>
+                <div>
+                    <h5 class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2">Course Placement</h5>
+                    <dl class="grid grid-cols-2 gap-3 text-sm">
+                        <div><dt class="text-[11px] text-slate-500">University / Board</dt><dd id="viewUni" class="text-slate-800"></dd></div>
+                        <div><dt class="text-[11px] text-slate-500">Course</dt><dd id="viewCourse" class="text-slate-800"></dd></div>
+                        <div><dt class="text-[11px] text-slate-500">Mode</dt><dd id="viewModeF" class="text-slate-800 capitalize"></dd></div>
+                        <div><dt class="text-[11px] text-slate-500">Type</dt><dd id="viewTypeF" class="text-slate-800 capitalize"></dd></div>
+                        <div><dt class="text-[11px] text-slate-500">Year</dt><dd id="viewYear" class="text-slate-800"></dd></div>
+                        <div><dt class="text-[11px] text-slate-500">Semester</dt><dd id="viewSem" class="text-slate-800"></dd></div>
+                        <div><dt class="text-[11px] text-slate-500">Admission No</dt><dd id="viewAdmission" class="text-slate-800"></dd></div>
+                        <div><dt class="text-[11px] text-slate-500">Added By</dt><dd id="viewCreator" class="text-slate-800"></dd></div>
+                    </dl>
+                </div>
+
+                <div>
+                    <h5 class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2">Personal</h5>
+                    <dl class="grid grid-cols-2 gap-3 text-sm">
+                        <div><dt class="text-[11px] text-slate-500">Father</dt><dd id="viewFather" class="text-slate-800"></dd></div>
+                        <div><dt class="text-[11px] text-slate-500">Mother</dt><dd id="viewMother" class="text-slate-800"></dd></div>
+                        <div><dt class="text-[11px] text-slate-500">Gender</dt><dd id="viewGender" class="text-slate-800 capitalize"></dd></div>
+                        <div><dt class="text-[11px] text-slate-500">DOB</dt><dd id="viewDob" class="text-slate-800"></dd></div>
+                        <div><dt class="text-[11px] text-slate-500">Category</dt><dd id="viewCategory" class="text-slate-800 uppercase"></dd></div>
+                        <div><dt class="text-[11px] text-slate-500">Nationality</dt><dd id="viewNationality" class="text-slate-800"></dd></div>
+                        <div><dt class="text-[11px] text-slate-500">Religion</dt><dd id="viewReligion" class="text-slate-800"></dd></div>
+                        <div><dt class="text-[11px] text-slate-500">Aadhar</dt><dd id="viewAadhar" class="text-slate-800"></dd></div>
+                        <div class="col-span-2"><dt class="text-[11px] text-slate-500">Email</dt><dd id="viewEmail" class="text-slate-800 break-words"></dd></div>
+                    </dl>
+                </div>
+
+                <div>
+                    <h5 class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2">Address</h5>
+                    <dl class="grid grid-cols-2 gap-3 text-sm">
+                        <div class="col-span-2"><dt class="text-[11px] text-slate-500">Address</dt><dd id="viewAddress" class="text-slate-800 whitespace-pre-line"></dd></div>
+                        <div><dt class="text-[11px] text-slate-500">City</dt><dd id="viewCity" class="text-slate-800"></dd></div>
+                        <div><dt class="text-[11px] text-slate-500">State</dt><dd id="viewState" class="text-slate-800"></dd></div>
+                        <div><dt class="text-[11px] text-slate-500">Country</dt><dd id="viewCountry" class="text-slate-800"></dd></div>
+                        <div><dt class="text-[11px] text-slate-500">Pincode</dt><dd id="viewPincode" class="text-slate-800"></dd></div>
+                    </dl>
+                </div>
+
+                <div>
+                    <h5 class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2">Documents</h5>
+                    <div id="viewDocs" class="grid grid-cols-2 gap-2 text-xs"></div>
+                </div>
+
+                <div>
+                    <h5 class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2">Academic History</h5>
+                    <div id="viewAcademic" class="overflow-x-auto"></div>
+                </div>
             </div>
 
             <div class="shrink-0 px-6 py-3 border-t border-slate-100 bg-white flex items-center justify-end gap-3">
@@ -279,81 +415,127 @@
                         class="px-4 py-2 rounded-lg bg-pink-600 hover:bg-pink-700 text-white text-sm font-semibold transition">Edit Student</button>
             </div>
         </div>
-
-        {{-- CREATE FORM --}}
-        <form id="createForm" method="POST" action="{{ route('students.store') }}" class="panel-mode hidden flex-1 flex flex-col min-h-0">
-            @csrf
-            <div class="flex-1 overflow-y-auto p-6 space-y-4">
-                @include('students._fields')
-            </div>
-            <div class="shrink-0 px-6 py-3 border-t border-slate-100 bg-white flex items-center justify-end gap-3">
-                <button type="button" onclick="StudentsPanel.close()"
-                        class="px-4 py-2 text-sm font-semibold text-slate-600 hover:text-slate-800 transition">Cancel</button>
-                <button type="submit"
-                        class="px-4 py-2 rounded-lg bg-pink-600 hover:bg-pink-700 text-white text-sm font-semibold transition">Add Student</button>
-            </div>
-        </form>
-
-        {{-- EDIT FORM --}}
-        <form id="editForm" method="POST" action="" class="panel-mode hidden flex-1 flex flex-col min-h-0">
-            @csrf
-            @method('PUT')
-            <div class="flex-1 overflow-y-auto p-6 space-y-4">
-                @include('students._fields')
-            </div>
-            <div class="shrink-0 px-6 py-3 border-t border-slate-100 bg-white flex items-center justify-end gap-3">
-                <button type="button" onclick="StudentsPanel.close()"
-                        class="px-4 py-2 text-sm font-semibold text-slate-600 hover:text-slate-800 transition">Cancel</button>
-                <button type="submit"
-                        class="px-4 py-2 rounded-lg bg-pink-600 hover:bg-pink-700 text-white text-sm font-semibold transition">Save Changes</button>
-            </div>
-        </form>
     </div>
 </aside>
+
+{{-- FULL-SCREEN CREATE / EDIT FORM
+     Lives at the page root (z-50, fixed inset-0) so the sidebar and
+     topbar both stay behind it — the admission form is a heavy form
+     and benefits from the entire viewport. --}}
+<div id="studentFormShell" class="hidden fixed inset-0 z-50 bg-slate-50">
+    <form id="studentForm" method="POST" action="" enctype="multipart/form-data"
+          class="h-full flex flex-col"
+          onsubmit="StudentsPanel.beforeSubmit(this)">
+        @csrf
+        <input type="hidden" name="_method" id="studentFormMethod" value="POST">
+
+        {{-- header --}}
+        <div class="shrink-0 bg-white border-b border-slate-200 px-6 lg:px-10 py-3 flex items-center gap-3">
+            <button type="button" onclick="StudentsPanel.closeForm()" aria-label="Close"
+                    class="w-9 h-9 rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-700 inline-flex items-center justify-center transition">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+            </button>
+            <div class="mr-auto">
+                <h2 id="studentFormTitle" class="text-base font-bold text-slate-800">New Student Admission</h2>
+                <p class="text-xs text-slate-500 mt-0.5">Fill the form below — all uploads are optional and can be added later.</p>
+            </div>
+            <button type="button" onclick="StudentsPanel.closeForm()"
+                    class="px-4 py-2 text-sm font-semibold text-slate-600 hover:text-slate-800 transition">Cancel</button>
+            <button type="submit"
+                    class="px-4 py-2 rounded-lg bg-pink-600 hover:bg-pink-700 text-white text-sm font-semibold transition">
+                <span id="studentSubmitLabel">Save Student</span>
+            </button>
+        </div>
+
+        {{-- body --}}
+        <div class="flex-1 overflow-y-auto">
+            <div class="max-w-7xl mx-auto px-6 lg:px-10 py-6 space-y-5">
+                @include('students._fields', ['mode' => 'create'])
+            </div>
+        </div>
+    </form>
+</div>
 
 <script>
     window.STUDENTS_DATA = @json($studentsData);
     window.STUDENT_UPDATE_URL_TEMPLATE = @json(url('/students/__ID__'));
     window.STUDENT_DESTROY_URL_TEMPLATE = @json(url('/students/__ID__'));
+    window.STUDENT_STORE_URL = @json(route('students.store'));
 
     const StudentsPanel = (function () {
-        const panel    = document.getElementById('slidePanel');
-        const card     = document.getElementById('slidePanelCard');
-        const backdrop = document.getElementById('slidePanelBackdrop');
-        const modes    = document.querySelectorAll('.panel-mode');
+        const slide    = document.getElementById('slidePanel');
+        const slideCrd = document.getElementById('slidePanelCard');
+        const slideBd  = document.getElementById('slidePanelBackdrop');
+        const formShell = document.getElementById('studentFormShell');
+        const form     = document.getElementById('studentForm');
 
-        function show(modeId) {
-            modes.forEach(m => m.classList.toggle('hidden', m.id !== modeId));
-            panel.classList.remove('hidden');
-            panel.setAttribute('aria-hidden', 'false');
+        function openSlide() {
+            slide.classList.remove('hidden');
+            slide.setAttribute('aria-hidden', 'false');
             requestAnimationFrame(() => {
-                backdrop.classList.add('opacity-100');
-                backdrop.classList.remove('opacity-0');
-                card.classList.remove('translate-x-full');
+                slideBd.classList.add('opacity-100');
+                slideBd.classList.remove('opacity-0');
+                slideCrd.classList.remove('translate-x-full');
             });
         }
-
-        function close() {
-            backdrop.classList.remove('opacity-100');
-            backdrop.classList.add('opacity-0');
-            card.classList.add('translate-x-full');
+        function closeSlide() {
+            slideBd.classList.remove('opacity-100');
+            slideBd.classList.add('opacity-0');
+            slideCrd.classList.add('translate-x-full');
             setTimeout(() => {
-                panel.classList.add('hidden');
-                panel.setAttribute('aria-hidden', 'true');
+                slide.classList.add('hidden');
+                slide.setAttribute('aria-hidden', 'true');
             }, 250);
         }
 
+        function openForm() {
+            formShell.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+        function closeForm() {
+            formShell.classList.add('hidden');
+            document.body.style.overflow = '';
+        }
+        function close() { closeSlide(); closeForm(); }
+
+        function setText(id, val) { const el = document.getElementById(id); if (el) el.textContent = val || '—'; }
+
         function fillView(s) {
-            document.getElementById('viewInitial').textContent  = (s.name || '?').charAt(0).toUpperCase();
-            document.getElementById('viewName').textContent     = s.name;
-            document.getElementById('viewMobile').textContent   = s.mobile;
-            document.getElementById('viewAdmission').textContent= s.admission_no || '—';
-            document.getElementById('viewClass').textContent    = s.class_name || '—';
-            document.getElementById('viewGender').textContent   = s.gender || '—';
-            document.getElementById('viewParent').textContent   = s.parent_name || '—';
-            document.getElementById('viewEmail').textContent    = s.email || '—';
-            document.getElementById('viewAddress').textContent  = s.address || '—';
-            document.getElementById('viewCreated').textContent  = s.created_at || '—';
+            setText('viewName',        s.name);
+            setText('viewMobile',      s.mobile);
+            setText('viewAdmission',   s.admission_no);
+            setText('viewCreator',     s.creator_name);
+            setText('viewUni',         s.university_name);
+            setText('viewCourse',      s.course_name);
+            setText('viewModeF',       s.mode);
+            setText('viewTypeF',       s.enrollment_type);
+            setText('viewYear',        s.course_year);
+            setText('viewSem',         s.university_type === 'board' ? null : s.semester);
+            setText('viewFather',      s.father_name || s.parent_name);
+            setText('viewMother',      s.mother_name);
+            setText('viewGender',      s.gender);
+            setText('viewDob',         s.dob);
+            setText('viewCategory',    s.category);
+            setText('viewNationality', s.nationality);
+            setText('viewReligion',    s.religion);
+            setText('viewAadhar',      s.aadhar_number);
+            setText('viewEmail',       s.email);
+            setText('viewAddress',     s.address);
+            setText('viewCity',        s.city);
+            setText('viewState',       s.state);
+            setText('viewCountry',     s.country);
+            setText('viewPincode',     s.pincode);
+
+            const photoImg = document.getElementById('viewPhoto');
+            const initial  = document.getElementById('viewInitial');
+            const photo    = s.documents && s.documents.photo_path;
+            if (photo) {
+                photoImg.src = photo; photoImg.classList.remove('hidden');
+                initial.textContent = '';
+            } else {
+                photoImg.classList.add('hidden');
+                initial.textContent = (s.name || '?').charAt(0).toUpperCase();
+            }
 
             const status = document.getElementById('viewStatus');
             if (s.active) {
@@ -364,31 +546,116 @@
                 status.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Inactive';
             }
 
+            const docLabels = {
+                photo_path: 'Photo', student_sign_path: 'Sign',
+                aadhar_front_path: 'Aadhar Front', aadhar_back_path: 'Aadhar Back',
+                marksheet_x_path: 'X Marksheet', marksheet_xii_path: 'XII Marksheet',
+                marksheet_graduation_path: 'Graduation Marksheet',
+                abc_id_path: 'ABC ID', deb_id_path: 'DEB ID', other_doc_path: 'Other Doc',
+            };
+            const docsBox = document.getElementById('viewDocs');
+            docsBox.innerHTML = '';
+            Object.keys(docLabels).forEach(k => {
+                const url = s.documents && s.documents[k];
+                const cell = document.createElement('div');
+                cell.className = 'p-2 rounded-md border border-slate-100 ' + (url ? 'bg-emerald-50' : 'bg-slate-50');
+                cell.innerHTML = url
+                    ? '<div class="text-[11px] text-slate-500">' + docLabels[k] + '</div><a href="' + url + '" target="_blank" class="text-pink-600 font-semibold text-xs hover:underline">View</a>'
+                    : '<div class="text-[11px] text-slate-500">' + docLabels[k] + '</div><span class="text-slate-400 text-xs">—</span>';
+                docsBox.appendChild(cell);
+            });
+
+            const acad = document.getElementById('viewAcademic');
+            if (!s.academic_records || s.academic_records.length === 0) {
+                acad.innerHTML = '<p class="text-xs text-slate-400">No academic records on file.</p>';
+            } else {
+                let html = '<table class="w-full text-xs"><thead class="text-slate-500"><tr>'
+                    + '<th class="text-left py-1 pr-2">Exam</th><th class="text-left py-1 px-2">Board / Univ</th><th class="text-left py-1 px-2">Subject</th><th class="text-left py-1 px-2">Year</th><th class="text-left py-1 pl-2">Grade</th></tr></thead><tbody>';
+                s.academic_records.forEach(r => {
+                    html += '<tr class="border-t border-slate-100"><td class="py-1 pr-2 font-semibold text-slate-700">' + (r.level || '') + '</td>'
+                        + '<td class="py-1 px-2">' + (r.board || '—') + '</td>'
+                        + '<td class="py-1 px-2">' + (r.subject || '—') + '</td>'
+                        + '<td class="py-1 px-2">' + (r.year || '—') + '</td>'
+                        + '<td class="py-1 pl-2">' + (r.grade || '—') + '</td></tr>';
+                });
+                html += '</tbody></table>';
+                acad.innerHTML = html;
+            }
+
             document.getElementById('viewDeleteForm').action = window.STUDENT_DESTROY_URL_TEMPLATE.replace('__ID__', s.id);
             document.getElementById('viewEditBtn').onclick = () => StudentsPanel.openEdit(s.id);
         }
 
-        function fillForm(formId, s) {
-            const f = document.getElementById(formId);
-            f.querySelector('[name="name"]').value          = s?.name || '';
-            f.querySelector('[name="mobile"]').value        = s?.mobile || '';
-            f.querySelector('[name="email"]').value         = s?.email || '';
-            f.querySelector('[name="admission_no"]').value  = s?.admission_no || '';
-            f.querySelector('[name="class_name"]').value    = s?.class_name || '';
-            f.querySelector('[name="university_id"]').value = s?.university_id || '';
-            applyCourseFilter(f);
-            f.querySelector('[name="course_id"]').value     = s?.course_id || '';
-            f.querySelector('[name="gender"]').value        = s?.gender || '';
-            f.querySelector('[name="parent_name"]').value   = s?.parent_name || '';
-            f.querySelector('[name="address"]').value       = s?.address || '';
-            f.querySelector('[name="active"]').checked      = s ? !!s.active : true;
+        function setValue(name, val) {
+            const el = form.querySelector('[name="' + name + '"]');
+            if (!el) return;
+            if (el.type === 'checkbox') el.checked = !!val;
+            else el.value = val == null ? '' : val;
         }
 
-        // Hide/show course options based on the picked university.
-        function applyCourseFilter(form) {
-            const uni = form.querySelector('[data-student-uni]')?.value || '';
+        function fillForm(s) {
+            form.reset();
+            if (!s) {
+                setValue('active', true);
+                applyCourseFilter();
+                applyBoardSemester();
+                resetUploadLabels();
+                return;
+            }
+
+            setValue('name',            s.name);
+            setValue('mobile',          s.mobile);
+            setValue('email',           s.email);
+            setValue('admission_no',    s.admission_no);
+            setValue('class_name',      s.class_name);
+            setValue('university_id',   s.university_id);
+            applyCourseFilter();
+            setValue('course_id',       s.course_id);
+            setValue('mode',            s.mode);
+            setValue('enrollment_type', s.enrollment_type);
+            setValue('course_year',     s.course_year);
+            setValue('semester',        s.semester);
+            setValue('father_name',     s.father_name);
+            setValue('mother_name',     s.mother_name);
+            setValue('gender',          s.gender);
+            setValue('dob',             s.dob);
+            setValue('category',        s.category);
+            setValue('nationality',     s.nationality);
+            setValue('religion',        s.religion);
+            setValue('aadhar_number',   s.aadhar_number);
+            setValue('address',         s.address);
+            setValue('country',         s.country);
+            setValue('state',           s.state);
+            setValue('city',            s.city);
+            setValue('pincode',         s.pincode);
+            setValue('active',          !!s.active);
+
+            // Academic records — fill the 5 fixed rows in order, falling
+            // back to empty when the level wasn't recorded.
+            const levels = ['X', 'XII', 'UG', 'PG', 'OTHER'];
+            const boardInputs = form.querySelectorAll('input[name="academic_board[]"]');
+            const subjInputs  = form.querySelectorAll('input[name="academic_subject[]"]');
+            const yearInputs  = form.querySelectorAll('input[name="academic_year[]"]');
+            const gradeInputs = form.querySelectorAll('input[name="academic_grade[]"]');
+            const map = {};
+            (s.academic_records || []).forEach(r => { if (r && r.level) map[String(r.level).toUpperCase()] = r; });
+            levels.forEach((lvl, i) => {
+                const row = map[lvl] || {};
+                if (boardInputs[i]) boardInputs[i].value = row.board || '';
+                if (subjInputs[i])  subjInputs[i].value  = row.subject || '';
+                if (yearInputs[i])  yearInputs[i].value  = row.year || '';
+                if (gradeInputs[i]) gradeInputs[i].value = row.grade || '';
+            });
+
+            applyBoardSemester();
+            resetUploadLabels(s.documents);
+        }
+
+        function applyCourseFilter() {
+            const uniSel = form.querySelector('[data-student-uni]');
             const courseSel = form.querySelector('[data-student-course]');
-            if (!courseSel) return;
+            if (!uniSel || !courseSel) return;
+            const uni = uniSel.value;
             const selected = courseSel.value;
             courseSel.querySelectorAll('option').forEach(opt => {
                 if (!opt.value) { opt.hidden = false; return; }
@@ -397,8 +664,54 @@
                 if (!ok && opt.value === selected) courseSel.value = '';
             });
         }
-        document.querySelectorAll('[data-student-uni]').forEach(sel => {
-            sel.addEventListener('change', () => applyCourseFilter(sel.closest('form')));
+
+        function applyBoardSemester() {
+            const uniSel = form.querySelector('[data-student-uni]');
+            const wrap   = form.querySelector('[data-semester-wrap]');
+            const sem    = form.querySelector('[name="semester"]');
+            if (!uniSel || !wrap || !sem) return;
+            const opt = uniSel.options[uniSel.selectedIndex];
+            const isBoard = opt && opt.dataset.type === 'board';
+            if (isBoard) {
+                wrap.classList.add('opacity-50', 'pointer-events-none');
+                sem.value = '';
+            } else {
+                wrap.classList.remove('opacity-50', 'pointer-events-none');
+            }
+        }
+
+        function resetUploadLabels(docs) {
+            form.querySelectorAll('[data-upload-input]').forEach(input => {
+                const wrap = input.closest('div');
+                if (!wrap) return;
+                const label = wrap.querySelector('[data-upload-label]');
+                if (label) label.textContent = 'Choose file';
+                const link  = wrap.querySelector('[data-existing-link]');
+                if (link) {
+                    const docKey = input.name === 'photo'         ? 'photo_path'
+                                 : input.name === 'student_sign'  ? 'student_sign_path'
+                                 : input.name + '_path';
+                    const url = docs && docs[docKey];
+                    if (url) {
+                        link.textContent = '✓ Already uploaded — pick a new file to replace it.';
+                        link.classList.remove('hidden');
+                    } else {
+                        link.classList.add('hidden');
+                    }
+                }
+            });
+        }
+
+        function beforeSubmit(_form) { /* hook for future client-side normalization */ }
+
+        // Wire change handlers once (form lives in DOM permanently)
+        form.querySelector('[data-student-uni]')?.addEventListener('change', () => { applyCourseFilter(); applyBoardSemester(); });
+        form.querySelectorAll('[data-upload-input]').forEach(input => {
+            input.addEventListener('change', () => {
+                const wrap = input.closest('div');
+                const label = wrap?.querySelector('[data-upload-label]');
+                if (label) label.textContent = input.files[0]?.name || 'Choose file';
+            });
         });
 
         return {
@@ -406,22 +719,31 @@
                 const s = window.STUDENTS_DATA[id];
                 if (!s) return;
                 fillView(s);
-                show('panelView');
+                openSlide();
             },
             openCreate: function () {
-                document.getElementById('createForm').reset();
-                fillForm('createForm', null);
-                show('createForm');
+                document.getElementById('studentFormTitle').textContent  = 'New Student Admission';
+                document.getElementById('studentSubmitLabel').textContent = 'Save Student';
+                document.getElementById('studentFormMethod').value = 'POST';
+                form.action = window.STUDENT_STORE_URL;
+                fillForm(null);
+                closeSlide();
+                openForm();
             },
             openEdit: function (id) {
                 const s = window.STUDENTS_DATA[id];
                 if (!s) return;
-                const f = document.getElementById('editForm');
-                f.action = window.STUDENT_UPDATE_URL_TEMPLATE.replace('__ID__', s.id);
-                fillForm('editForm', s);
-                show('editForm');
+                document.getElementById('studentFormTitle').textContent  = 'Edit Student — ' + (s.name || '');
+                document.getElementById('studentSubmitLabel').textContent = 'Save Changes';
+                document.getElementById('studentFormMethod').value = 'PUT';
+                form.action = window.STUDENT_UPDATE_URL_TEMPLATE.replace('__ID__', s.id);
+                fillForm(s);
+                closeSlide();
+                openForm();
             },
-            close: close,
+            close:      close,
+            closeForm:  closeForm,
+            beforeSubmit: beforeSubmit,
         };
     })();
 
@@ -429,7 +751,7 @@
         if (e.key === 'Escape') StudentsPanel.close();
     });
 
-    // Open the create panel when arriving via dashboard quick link (?panel=create).
+    // Open the create form when arriving via dashboard quick link (?panel=create).
     (function () {
         const params = new URLSearchParams(window.location.search);
         if (params.get('panel') === 'create') {
