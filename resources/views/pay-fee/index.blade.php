@@ -14,9 +14,13 @@
     /** @var array $schedule */
     /** @var \Illuminate\Support\Collection $payments */
     /** @var array $totals */
+    /** @var float $walletBalance */
 
     $unisOnly   = $universities->where('type', \App\Models\University::TYPE_UNIVERSITY);
     $boardsOnly = $universities->where('type', \App\Models\University::TYPE_BOARD);
+
+    $studentIsBoard = $student?->course?->isBoard() ?? false;
+    $periodWord     = $studentIsBoard ? 'Year' : 'Semester';
 
     $modeChips = [
         'cash'   => 'Cash',
@@ -190,23 +194,26 @@
                         {{ $student->course?->name ?? '—' }}
                     </span>
                     <span class="text-slate-500">
-                        {{ rtrim(rtrim(number_format((float) $student->course?->duration_years, 1), '0'), '.') }} yrs · {{ $student->course?->semesterCount() }} sem
+                        {{ rtrim(rtrim(number_format((float) $student->course?->duration_years, 1), '0'), '.') }} yrs
+                        @if (! $studentIsBoard)
+                            · {{ $student->course?->semesterCount() }} sem
+                        @endif
                     </span>
                 </div>
             </div>
         </div>
     </div>
 
-    {{-- SEMESTER-WISE FEE BREAKDOWN --}}
+    {{-- PERIOD-WISE FEE BREAKDOWN --}}
     <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
         <div class="px-5 sm:px-6 py-3 border-b border-slate-100 flex items-center gap-3">
             <h3 class="text-sm font-bold text-slate-800">Fee Schedule</h3>
-            <span class="text-[11px] text-slate-500">Per-semester breakdown — overflow on a single payment moves forward automatically.</span>
+            <span class="text-[11px] text-slate-500">{{ $studentIsBoard ? 'Per-year' : 'Per-semester' }} breakdown — overflow on a single payment moves forward automatically.</span>
         </div>
         <table class="w-full text-sm">
             <thead class="text-[11px] font-semibold tracking-wider uppercase text-slate-500 border-b border-slate-200">
                 <tr>
-                    <th class="text-left px-5 sm:px-6 py-3">Semester</th>
+                    <th class="text-left px-5 sm:px-6 py-3">{{ $periodWord }}</th>
                     <th class="text-right px-4 py-3">Fee</th>
                     <th class="text-right px-4 py-3">Paid</th>
                     <th class="text-right px-4 py-3">Balance</th>
@@ -356,9 +363,9 @@
 
             <div class="flex-1 overflow-y-auto p-5 space-y-4">
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Starting Semester <span class="text-rose-500">*</span></label>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Starting {{ $periodWord }} <span class="text-rose-500">*</span></label>
                     @php
-                        // Default to the first semester still owing.
+                        // Default to the first period still owing.
                         $defaultSem = collect($schedule)->firstWhere('balance', '>', 0)['semester'] ?? ($schedule[0]['semester'] ?? 1);
                     @endphp
                     <select name="start_semester" required
@@ -375,15 +382,26 @@
                         @endforeach
                     </select>
                     @error('start_semester')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror
-                    <p class="mt-1 text-[11px] text-slate-400">Overflow rolls into the next unpaid semester automatically.</p>
+                    <p class="mt-1 text-[11px] text-slate-400">Overflow rolls into the next unpaid {{ strtolower($periodWord) }} automatically.</p>
                 </div>
 
+                @php $maxAllowed = min($totals['balance'], $walletBalance); @endphp
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1">Amount (₹) <span class="text-rose-500">*</span></label>
-                    <input type="number" step="0.01" min="0.01" name="amount" required
+                    <input type="number" step="0.01" min="0.01"
+                           max="{{ $maxAllowed > 0 ? number_format($maxAllowed, 2, '.', '') : '' }}"
+                           name="amount" required
                            value="{{ old('amount') }}"
                            placeholder="e.g. 2000"
                            class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 outline-none transition text-sm">
+                    <div class="mt-1 flex items-center justify-between text-[11px]">
+                        <span class="text-slate-500">
+                            Wallet balance: <span class="font-semibold {{ $walletBalance > 0 ? 'text-emerald-600' : 'text-rose-600' }}">₹{{ number_format($walletBalance, 2) }}</span>
+                        </span>
+                        @if ($walletBalance <= 0)
+                            <span class="text-rose-600 font-semibold">Top up your wallet to record payments.</span>
+                        @endif
+                    </div>
                     @error('amount')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror
                 </div>
 
@@ -420,8 +438,12 @@
                         <span>Outstanding total</span>
                         <span class="font-semibold text-rose-600">₹{{ number_format($totals['balance'], 2) }}</span>
                     </div>
+                    <div class="flex items-center justify-between">
+                        <span>Your wallet balance</span>
+                        <span class="font-semibold {{ $walletBalance > 0 ? 'text-emerald-600' : 'text-rose-600' }}">₹{{ number_format($walletBalance, 2) }}</span>
+                    </div>
                     <div class="text-slate-400">
-                        Anything above the picked semester's balance is auto-applied to the following semester(s).
+                        Capped at your wallet balance — this amount is debited from your wallet when recorded. Anything above the picked {{ strtolower($periodWord) }}'s balance is auto-applied to the following one.
                     </div>
                 </div>
             </div>

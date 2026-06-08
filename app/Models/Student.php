@@ -79,16 +79,22 @@ class Student extends Model
             ];
         }
 
-        $semFee = (float) $course->fee_per_sem;
-        $semCount = $course->semesterCount();
-        for ($i = 1; $i <= $semCount; $i++) {
+        // Boards charge annually, universities per semester. The semester
+        // column on fee_payments doubles as the period index (1 = first
+        // year for boards / first semester for universities) so existing
+        // payments line up with the new schedule layout.
+        $periodFee   = (float) $course->fee_per_sem;
+        $periodCount = $course->feePeriodCount();
+        $isBoard     = $course->isBoard();
+        $unitLabel   = $isBoard ? 'Year' : 'Semester';
+        for ($i = 1; $i <= $periodCount; $i++) {
             $paid = (float) ($payments[$i] ?? collect())->sum('amount');
             $rows[] = [
                 'semester' => $i,
-                'label'    => 'Semester '.$i,
-                'fee'      => $semFee,
+                'label'    => $unitLabel.' '.$i,
+                'fee'      => $periodFee,
                 'paid'     => $paid,
-                'balance'  => max(0, $semFee - $paid),
+                'balance'  => max(0, $periodFee - $paid),
             ];
         }
 

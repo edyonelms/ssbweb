@@ -83,17 +83,30 @@ class WalletController extends Controller
         $myBalance = WalletTransaction::balanceFor($user->id);
 
         if ($isAdmin) {
-            $disbursed = (float) WalletTransaction::where('created_by', $user->id)->sum('amount');
+            // Credits I issued (positive amounts only — top-ups + approved
+            // requests) and debits routed through my account (fee
+            // collections, manual deductions). Kept as two clean numbers
+            // so the header tells the story without a meaningless
+            // "system total" lump-sum.
+            $credited  = (float) WalletTransaction::where('created_by', $user->id)
+                ->where('amount', '>', 0)->sum('amount');
+            $collected = abs((float) WalletTransaction::where('user_id', $user->id)
+                ->where('amount', '<', 0)->sum('amount'));
             $stats = [
                 'balance'      => $myBalance,
-                'disbursed'    => $disbursed,
+                'credited'     => $credited,
+                'collected'    => $collected,
                 'transactions' => WalletTransaction::count(),
-                'system_total' => (float) WalletTransaction::sum('amount'),
             ];
         } else {
+            $credits = (float) WalletTransaction::where('user_id', $user->id)
+                ->where('amount', '>', 0)->sum('amount');
+            $debits  = abs((float) WalletTransaction::where('user_id', $user->id)
+                ->where('amount', '<', 0)->sum('amount'));
             $stats = [
                 'balance'      => $myBalance,
-                'received'     => (float) WalletTransaction::where('user_id', $user->id)->sum('amount'),
+                'received'     => $credits,
+                'spent'        => $debits,
                 'transactions' => WalletTransaction::where('user_id', $user->id)->count(),
             ];
         }

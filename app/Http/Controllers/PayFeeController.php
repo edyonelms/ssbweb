@@ -7,6 +7,7 @@ use App\Models\Course;
 use App\Models\FeePayment;
 use App\Models\Student;
 use App\Models\University;
+use App\Models\WalletTransaction;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -72,17 +73,20 @@ class PayFeeController extends Controller
         }
 
         return view('pay-fee.index', [
-            'isAdmin'      => $isAdmin,
-            'authUser'     => $user,
-            'universities' => $universities,
-            'students'     => $students,
-            'universityId' => $universityId,
-            'studentId'    => $studentId,
-            'search'       => $search,
-            'student'      => $student,
-            'schedule'     => $schedule,
-            'payments'     => $payments,
-            'totals'       => $totals,
+            'isAdmin'       => $isAdmin,
+            'authUser'      => $user,
+            'universities'  => $universities,
+            'students'      => $students,
+            'universityId'  => $universityId,
+            'studentId'     => $studentId,
+            'search'        => $search,
+            'student'       => $student,
+            'schedule'      => $schedule,
+            'payments'      => $payments,
+            'totals'        => $totals,
+            // Surfaced so the slide-in form can cap the amount + show a
+            // "you only have ₹X left" hint before submit.
+            'walletBalance' => WalletTransaction::balanceFor($user->id),
         ]);
     }
 
@@ -165,10 +169,23 @@ class PayFeeController extends Controller
             ]);
         }
 
+        // Block postings that the recorder can't actually cover from their
+        // wallet. The total they're entering can only be as large as their
+        // current balance (cash they've previously received via Update
+        // Wallet / approved Ask Payment).
+        $amount = (float) $data['amount'];
+        $walletBalance = WalletTransaction::balanceFor($user->id);
+        if ($amount > $walletBalance + 0.009) {
+            throw ValidationException::withMessages([
+                'amount' => 'Insufficient wallet balance — you have ₹'.number_format($walletBalance, 2)
+                    .' available, cannot record ₹'.number_format($amount, 2).'.',
+            ]);
+        }
+
         $batchId = (string) Str::uuid();
         $paidAt  = now();
 
-        DB::transaction(function () use ($allocations, $student, $data, $user, $batchId, $paidAt) {
+        DB::transaction(function () use ($allocations, $student, $data, $user, $batchId, $paidAt, $amount) {
             foreach ($allocations as $alloc) {
                 FeePayment::create([
                     'student_id'        => $student->id,
@@ -182,15 +199,27 @@ class PayFeeController extends Controller
                     'paid_at'           => $paidAt,
                 ]);
             }
+
+            // Mirror the fee collection as a debit on the recorder's
+            // wallet so the wallet history reflects the cash that just
+            // left their hands.
+            WalletTransaction::create([
+                'user_id'    => $user->id,
+                'amount'     => -1 * $amount,
+                'mode'       => $data['mode'],
+                'note'       => 'Fee payment · '.$student->name
+                    .' · '.count($allocations).' '.(count($allocations) === 1 ? 'period' : 'periods'),
+                'created_by' => $user->id,
+            ]);
         });
 
         ActivityLog::record(
             'fee.paid',
-            'Collected ₹'.number_format((float) $data['amount'], 2).' from '.$student->name,
+            'Collected ₹'.number_format($amount, 2).' from '.$student->name,
             $student,
             [
                 'student_id' => $student->id,
-                'amount'     => (float) $data['amount'],
+                'amount'     => $amount,
                 'mode'       => $data['mode'],
                 'batch_id'   => $batchId,
                 'splits'     => $allocations,
@@ -213,15 +242,34 @@ class PayFeeController extends Controller
         // Only admin can delete posted fee payments to keep audit trails clean.
         abort_unless($user->isAdmin(), 403);
 
-        $student = $feePayment->student;
-        $feePayment->delete();
+        $student   = $feePayment->student;
+        $amount    = (float) $feePayment->amount;
+        $recorder  = $feePayment->recorded_by;
+        $semLabel  = $feePayment->semester_label;
+
+        DB::transaction(function () use ($feePayment, $amount, $recorder, $student, $semLabel, $user) {
+            $feePayment->delete();
+
+            // Credit the amount back to whoever's wallet was debited when
+            // the payment was recorded, so balances stay consistent. Falls
+            // back to the admin doing the removal if the original recorder
+            // is unknown.
+            WalletTransaction::create([
+                'user_id'    => $recorder ?: $user->id,
+                'amount'     => $amount,
+                'mode'       => $feePayment->mode,
+                'note'       => 'Refund · removed '.$semLabel.' fee entry'
+                    .($student ? ' for '.$student->name : ''),
+                'created_by' => $user->id,
+            ]);
+        });
 
         ActivityLog::record(
             'fee.payment_removed',
-            'Removed a ₹'.number_format((float) $feePayment->amount, 2).' fee entry for '.($student?->name ?? 'student'),
+            'Removed a ₹'.number_format($amount, 2).' fee entry for '.($student?->name ?? 'student'),
             $student
         );
 
-        return back()->with('status', 'Fee payment entry removed.');
+        return back()->with('status', 'Fee payment entry removed and wallet refunded.');
     }
 }

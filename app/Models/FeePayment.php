@@ -39,6 +39,11 @@ class FeePayment extends Model
 
     public function getSemesterLabelAttribute(): string
     {
-        return $this->semester === 0 ? 'Registration' : 'Semester '.$this->semester;
+        if ($this->semester === 0) {
+            return 'Registration';
+        }
+        // Boards charge annually, so reframe the index as a year number.
+        $isBoard = $this->student?->course?->isBoard() ?? false;
+        return ($isBoard ? 'Year ' : 'Semester ').$this->semester;
     }
 }

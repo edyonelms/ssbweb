@@ -77,21 +77,21 @@
             </p>
         </div>
 
-        <div class="flex items-center gap-x-6 gap-y-1 text-xs text-slate-500 flex-wrap">
+        <div class="flex items-center gap-x-4 gap-y-1 text-xs text-slate-500 flex-wrap">
             @if ($tab === 'requests')
                 <span>Pending: <span class="text-amber-600 font-bold ml-1">{{ $requestStats['pending'] }}</span></span>
                 <span>Approved: <span class="text-emerald-600 font-semibold ml-1">{{ $requestStats['approved'] }}</span></span>
                 <span>Rejected: <span class="text-rose-600 font-semibold ml-1">{{ $requestStats['rejected'] }}</span></span>
             @else
-                <span>My Balance: <span class="text-emerald-600 font-bold ml-1">₹{{ number_format($stats['balance']) }}</span></span>
+                <span>Balance: <span class="text-emerald-600 font-bold ml-1">₹{{ number_format($stats['balance']) }}</span></span>
                 @if ($isAdmin)
-                    <span>Disbursed by me: <span class="text-pink-600 font-semibold ml-1">₹{{ number_format($stats['disbursed']) }}</span></span>
-                    <span>Txns: <span class="text-slate-800 font-semibold ml-1">{{ $stats['transactions'] }}</span></span>
-                    <span>System: <span class="text-slate-800 font-semibold ml-1">₹{{ number_format($stats['system_total']) }}</span></span>
+                    <span>Credited: <span class="text-pink-600 font-semibold ml-1">₹{{ number_format($stats['credited']) }}</span></span>
+                    <span>Collected: <span class="text-violet-600 font-semibold ml-1">₹{{ number_format($stats['collected']) }}</span></span>
                 @else
-                    <span>Total Credits: <span class="text-pink-600 font-semibold ml-1">₹{{ number_format($stats['received']) }}</span></span>
-                    <span>Txns: <span class="text-slate-800 font-semibold ml-1">{{ $stats['transactions'] }}</span></span>
+                    <span>Received: <span class="text-pink-600 font-semibold ml-1">₹{{ number_format($stats['received']) }}</span></span>
+                    <span>Spent: <span class="text-rose-600 font-semibold ml-1">₹{{ number_format($stats['spent']) }}</span></span>
                 @endif
+                <span>Txns: <span class="text-slate-800 font-semibold ml-1">{{ $stats['transactions'] }}</span></span>
             @endif
         </div>
 
@@ -368,10 +368,11 @@
                 <thead class="text-[11px] font-semibold tracking-wider uppercase text-slate-500 border-b border-slate-200">
                     <tr>
                         <th class="text-left px-6 py-3">Date</th>
+                        <th class="text-left px-6 py-3">Type</th>
                         @if ($isAdmin && $tab === 'history')
-                            <th class="text-left px-6 py-3">Credited To</th>
+                            <th class="text-left px-6 py-3">Account</th>
                         @elseif ($isAdmin)
-                            <th class="text-left px-6 py-3">Credited To</th>
+                            <th class="text-left px-6 py-3">Account</th>
                             <th class="text-left px-6 py-3">By</th>
                             {{-- Extra column on the All Transactions tab to
                                  surface the recipient + reason side by side
@@ -391,10 +392,18 @@
                 </thead>
                 <tbody class="divide-y divide-slate-100">
                     @foreach ($transactions as $t)
+                        @php $isCredit = (float) $t->amount >= 0; @endphp
                         <tr class="hover:bg-slate-50 transition">
                             <td class="px-6 py-3 text-slate-600 whitespace-nowrap">
                                 <div class="text-slate-800 font-medium">{{ $t->created_at?->format('d M Y') }}</div>
                                 <div class="text-[11px] text-slate-400">{{ $t->created_at?->format('h:i A') }}</div>
+                            </td>
+                            <td class="px-6 py-3">
+                                @if ($isCredit)
+                                    <span class="text-[10px] font-semibold px-2 py-0.5 rounded uppercase bg-emerald-50 text-emerald-700">Credit</span>
+                                @else
+                                    <span class="text-[10px] font-semibold px-2 py-0.5 rounded uppercase bg-rose-50 text-rose-700">Debit</span>
+                                @endif
                             </td>
                             @if ($isAdmin && $tab === 'history')
                                 <td class="px-6 py-3">
