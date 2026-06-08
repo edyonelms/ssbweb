@@ -81,6 +81,25 @@ return [
             'report' => false,
         ],
 
+        // Dedicated backup target — keep this in a *different* bucket
+        // than the public uploads (and ideally with a separate IAM user
+        // scoped to write-only on this bucket) so a compromised app key
+        // can't nuke both at once. Enable S3 versioning on this bucket
+        // so accidental deletes still recover. Falls back to the
+        // primary AWS_* credentials if the dedicated ones aren't set.
+        'backup' => [
+            'driver'                  => 's3',
+            'key'                     => env('AWS_BACKUP_ACCESS_KEY_ID', env('AWS_ACCESS_KEY_ID')),
+            'secret'                  => env('AWS_BACKUP_SECRET_ACCESS_KEY', env('AWS_SECRET_ACCESS_KEY')),
+            'region'                  => env('AWS_BACKUP_REGION', env('AWS_DEFAULT_REGION', 'ap-south-1')),
+            'bucket'                  => env('AWS_BACKUP_BUCKET'),
+            'endpoint'                => env('AWS_BACKUP_ENDPOINT'),
+            'use_path_style_endpoint' => env('AWS_BACKUP_USE_PATH_STYLE_ENDPOINT', false),
+            'visibility'              => 'private',
+            'throw'                   => true,   // surface failures loudly — backup is the place silent fail is unacceptable
+            'report'                  => true,
+        ],
+
     ],
 
     /*
