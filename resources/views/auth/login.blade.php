@@ -3,7 +3,7 @@
 @section('title', 'Login - SSB Education')
 
 @section('content')
-<div class="h-screen w-full overflow-hidden flex">
+<div class="min-h-screen w-full overflow-hidden flex">
 
     {{-- LEFT PANEL : Mangalayatan University brand block (inlined data URI) --}}
     <div class="hidden lg:block w-1/2 h-screen bg-white">
@@ -12,8 +12,9 @@
              class="w-full h-full object-contain p-10">
     </div>
 
-    {{-- RIGHT PANEL : soft pink/lavender gradient with form --}}
-    <div class="w-full lg:w-1/2 flex items-center justify-center px-6 py-8 bg-gradient-to-br from-pink-100/50 via-rose-50/40 to-purple-100/40">
+    {{-- RIGHT PANEL : soft pink/lavender gradient with form
+         min-h-screen + pt-safe so notch / status bar don't overlap on iOS. --}}
+    <div class="w-full lg:w-1/2 min-h-screen flex items-center justify-center px-5 sm:px-6 py-8 pt-safe pb-safe bg-gradient-to-br from-pink-100/50 via-rose-50/40 to-purple-100/40">
         <div class="w-full max-w-md">
             <div class="text-center mb-6">
                 <img src="{{ $logoDataUri }}" alt="SSB Education"

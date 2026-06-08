@@ -132,11 +132,33 @@
     ];
 @endphp
 
+@php
+    // Bottom-nav picks the 4 most-used routes per role; the rest live in
+    // the "More" sheet (which is just the full nav opened from anywhere).
+    $bottomNavRoutes = $isAdmin
+        ? ['dashboard', 'users.*', 'students.*', 'pay-fee.*']
+        : ['dashboard', 'students.*', 'pay-fee.*', 'wallet.*'];
+    $bottomNavItems = collect($bottomNavRoutes)
+        ->map(fn ($route) => collect($nav)->firstWhere('route', $route))
+        ->filter()
+        ->values();
+@endphp
+
 <div class="h-screen overflow-hidden flex bg-gradient-to-br from-slate-50 via-pink-50/40 to-slate-50">
 
-    {{-- SIDEBAR --}}
-    <aside class="hidden md:flex md:w-64 bg-white border-r border-slate-200 flex-col relative z-40">
-        <div class="px-6 py-6 border-b border-slate-100 flex flex-col items-center text-center">
+    {{-- SIDEBAR (desktop persistent / mobile drawer)
+         Same markup serves both — `md:flex md:w-64 md:relative md:translate-x-0` on
+         desktop, `fixed inset-y-0 left-0 translate-x-full` on mobile until the
+         hamburger toggles it. The backdrop sibling only renders on small screens. --}}
+    <div id="mobileSidebarBackdrop"
+         class="md:hidden fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-200"
+         onclick="closeMobileSidebar()"></div>
+
+    <aside id="appSidebar"
+           class="fixed md:relative inset-y-0 left-0 z-50 w-72 md:w-64 bg-white border-r border-slate-200 flex flex-col
+                  -translate-x-full md:translate-x-0 transition-transform duration-300 ease-out
+                  pl-safe pt-safe">
+        <div class="px-6 py-6 border-b border-slate-100 flex flex-col items-center text-center relative">
             @if ($isAdmin)
                 <img src="{{ $logoDataUri }}" alt="SSB Education"
                      width="80" height="80" decoding="sync" fetchpriority="high"
@@ -147,20 +169,26 @@
                      width="602" height="414" decoding="sync" fetchpriority="high"
                      class="max-w-full h-auto max-h-28 object-contain drop-shadow">
             @endif
+
+            {{-- Close handle, only visible inside the mobile drawer --}}
+            <button type="button" onclick="closeMobileSidebar()" aria-label="Close menu"
+                    class="md:hidden absolute top-3 right-3 w-9 h-9 rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-700 inline-flex items-center justify-center transition tap">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
         </div>
 
         <div class="px-6 pt-5 pb-2 text-[11px] font-semibold tracking-[0.2em] text-slate-400 uppercase">
             Dashboard
         </div>
 
-        <nav class="flex-1 px-3 pb-4 space-y-1 overflow-y-auto">
+        <nav class="flex-1 px-3 pb-4 space-y-1 overflow-y-auto ios-scroll">
             @foreach ($nav as $item)
                 @php $active = $item['route'] && request()->routeIs($item['route']); @endphp
                 <a href="{{ $item['href'] }}"
-                   class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition
+                   class="flex items-center gap-3 px-3 py-3 md:py-2.5 rounded-xl text-sm font-medium transition
                           {{ $active
                                 ? 'bg-pink-50 text-pink-600 font-semibold ring-1 ring-pink-100'
-                                : 'text-slate-600 hover:bg-pink-50/60 hover:text-pink-600' }}">
+                                : 'text-slate-600 hover:bg-pink-50/60 hover:text-pink-600 active:bg-pink-50' }}">
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
                         {!! $icons[$item['icon']] !!}
                     </svg>
@@ -168,7 +196,7 @@
                 </a>
             @endforeach
 
-            <button type="button" onclick="openLogoutModal()" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-600 hover:bg-rose-50 hover:text-rose-600 transition">
+            <button type="button" onclick="openLogoutModal()" class="w-full flex items-center gap-3 px-3 py-3 md:py-2.5 rounded-xl text-sm font-medium text-slate-600 hover:bg-rose-50 hover:text-rose-600 active:bg-rose-50 transition">
                 <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
                     {!! $icons['logout'] !!}
                 </svg>
@@ -180,17 +208,40 @@
     {{-- MAIN --}}
     <main class="flex-1 flex flex-col overflow-hidden">
 
-        {{-- TOPBAR --}}
-        <header class="bg-white border-b border-slate-200 px-4 lg:px-6 py-3 flex items-center gap-3 lg:gap-4 relative z-40">
+        {{-- TOPBAR
+             Mobile: hamburger + tight wallet chip + bell + profile (no
+             Back, no search box, no logout — those live in the drawer
+             and bottom-nav More sheet).
+             Desktop: full topbar with Back, greeting, search, all icons. --}}
+        <header class="bg-white border-b border-slate-200 px-3 sm:px-4 lg:px-6 py-2.5 lg:py-3
+                       flex items-center gap-2 lg:gap-4 relative z-40 pt-safe pl-safe pr-safe">
 
+            {{-- Hamburger (mobile only) --}}
+            <button type="button" onclick="openMobileSidebar()" aria-label="Open menu"
+                    class="md:hidden tap w-10 h-10 rounded-xl bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 inline-flex items-center justify-center transition shadow-sm">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+            </button>
+
+            {{-- Back button (desktop only — mobile uses the OS back gesture
+                 / browser arrow, and the hamburger covers menu) --}}
             <button type="button" onclick="history.back()"
-                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 text-sm font-medium transition shadow-sm shrink-0">
+                    class="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 text-sm font-medium transition shadow-sm shrink-0">
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     {!! $icons['arrowLeft'] !!}
                 </svg>
                 Back
             </button>
 
+            {{-- Mobile-only title — replaces the greeting on small screens,
+                 keeps the topbar identifiable without a logo. --}}
+            <div class="md:hidden flex-1 min-w-0">
+                <div class="text-sm font-bold text-slate-800 truncate">
+                    {{ $isAdmin ? 'SSB Admin' : 'Hi, '.\Illuminate\Support\Str::of(auth()->user()->name)->before(' ') }}
+                </div>
+                <div class="text-[10px] text-pink-600 font-semibold">2026–27</div>
+            </div>
+
+            {{-- Desktop greeting --}}
             <div class="hidden md:flex items-center gap-2 shrink-0">
                 <span class="text-base text-slate-700">
                     Welcome! {{ $isAdmin ? 'SSB EDUCATION ADMIN' : auth()->user()->name }}
@@ -198,7 +249,8 @@
                 <span class="text-xs font-semibold text-pink-600 bg-pink-50 border border-pink-100 px-2 py-0.5 rounded-md">2026–27</span>
             </div>
 
-            <div class="flex-1 max-w-xl mx-auto">
+            {{-- Desktop search --}}
+            <div class="hidden md:block flex-1 max-w-xl mx-auto">
                 <div class="relative">
                     <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -210,16 +262,17 @@
                 </div>
             </div>
 
-            <div class="flex items-center gap-2 shrink-0">
-                <div class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-700 text-sm font-semibold">
+            <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                {{-- Wallet chip — full pill on sm+, compact icon-only on xs --}}
+                <div class="hidden xs:flex sm:flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 h-9 sm:h-auto sm:py-1.5 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-700 text-xs sm:text-sm font-semibold">
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         {!! $icons['wallet'] !!}
                     </svg>
-                    ₹{{ number_format($walletAmount) }}
+                    <span class="whitespace-nowrap">₹{{ number_format($walletAmount) }}</span>
                 </div>
 
                 <button type="button" title="Recent Activity" onclick="openActivityPanel()"
-                        class="relative w-10 h-10 rounded-full bg-amber-50 border border-amber-100 text-amber-600 hover:bg-amber-100 hover:text-amber-700 flex items-center justify-center transition">
+                        class="relative tap sm:tap-auto w-10 h-10 rounded-full bg-amber-50 border border-amber-100 text-amber-600 hover:bg-amber-100 hover:text-amber-700 flex items-center justify-center transition">
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
                         {!! $icons['bell'] !!}
                     </svg>
@@ -230,15 +283,17 @@
                     </span>
                 </button>
 
+                {{-- Profile + Logout are desktop-only; mobile uses the
+                     drawer + bottom-nav for these. --}}
                 <a href="{{ $isAdmin ? route('profile.index') : route('account.index') }}" title="Profile"
-                   class="w-10 h-10 rounded-full bg-pink-50 border border-pink-100 text-pink-600 hover:bg-pink-100 hover:text-pink-700 flex items-center justify-center transition">
+                   class="hidden sm:flex w-10 h-10 rounded-full bg-pink-50 border border-pink-100 text-pink-600 hover:bg-pink-100 hover:text-pink-700 items-center justify-center transition">
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
                         {!! $icons['user'] !!}
                     </svg>
                 </a>
 
                 <button type="button" onclick="openLogoutModal()" title="Logout"
-                        class="w-10 h-10 rounded-full bg-rose-50 border border-rose-100 text-rose-600 hover:bg-rose-100 hover:text-rose-700 flex items-center justify-center transition">
+                        class="hidden sm:flex w-10 h-10 rounded-full bg-rose-50 border border-rose-100 text-rose-600 hover:bg-rose-100 hover:text-rose-700 items-center justify-center transition">
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
                         {!! $icons['logout'] !!}
                     </svg>
@@ -252,9 +307,12 @@
              a panel using `absolute inset-0` lands flush against the topbar's
              bottom edge — no JS measurement, no gap, regardless of topbar height. --}}
         <div class="flex-1 relative overflow-hidden">
-            <div class="absolute inset-0 overflow-y-auto">
+            <div class="absolute inset-0 overflow-y-auto ios-scroll">
                 @yield('admin-header')
-                <div class="p-6 lg:p-10 space-y-8">
+                {{-- pb-28 on mobile so the floating bottom nav doesn't
+                     cover the last row of content. Restores normal
+                     padding from md+. --}}
+                <div class="p-4 sm:p-6 lg:p-10 space-y-6 sm:space-y-8 pb-28 md:pb-10 pl-safe pr-safe">
                     @yield('admin')
                 </div>
             </div>
@@ -355,10 +413,39 @@
     </main>
 </div>
 
-{{-- BOTTOM STATUS TOAST --}}
+{{-- MOBILE BOTTOM NAV — app-style sticky bar with the role's most-used
+     routes + a "More" tab that opens a sheet listing the rest. Hidden
+     on md+ where the sidebar handles navigation. --}}
+<nav id="mobileBottomNav"
+     class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur border-t border-slate-200 pb-safe pl-safe pr-safe">
+    <div class="grid grid-cols-5 gap-0.5 px-1 pt-1.5">
+        @foreach ($bottomNavItems as $item)
+            @php $active = $item['route'] && request()->routeIs($item['route']); @endphp
+            <a href="{{ $item['href'] }}"
+               class="flex flex-col items-center justify-center gap-0.5 py-1.5 rounded-xl transition
+                      {{ $active ? 'text-pink-600' : 'text-slate-500 active:bg-slate-50' }}">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+                    {!! $icons[$item['icon']] !!}
+                </svg>
+                <span class="text-[10px] font-semibold leading-none">{{ $item['label'] }}</span>
+                @if ($active)
+                    <span class="w-1 h-1 rounded-full bg-pink-500"></span>
+                @endif
+            </a>
+        @endforeach
+        <button type="button" onclick="openMobileSidebar()"
+                class="flex flex-col items-center justify-center gap-0.5 py-1.5 rounded-xl text-slate-500 active:bg-slate-50 transition">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z"/></svg>
+            <span class="text-[10px] font-semibold leading-none">More</span>
+        </button>
+    </div>
+</nav>
+
+{{-- BOTTOM STATUS TOAST — pushed above the mobile bottom-nav so it
+     never sits behind it. --}}
 @if (session('status'))
     <div id="statusToast"
-         class="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] px-4 py-2.5 rounded-lg bg-slate-900 text-white text-sm font-medium shadow-lg flex items-center gap-2 transition-all duration-300">
+         class="fixed bottom-24 md:bottom-6 left-1/2 -translate-x-1/2 z-[60] px-4 py-2.5 rounded-lg bg-slate-900 text-white text-sm font-medium shadow-lg flex items-center gap-2 transition-all duration-300 max-w-[90vw]">
         <svg class="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
         <span>{{ session('status') }}</span>
     </div>
@@ -464,6 +551,41 @@
         openConfirmModal(form, message, title);
         return false; // block native form submit
     }
+
+    // ───── Mobile sidebar drawer ─────
+    function openMobileSidebar() {
+        const aside = document.getElementById('appSidebar');
+        const back  = document.getElementById('mobileSidebarBackdrop');
+        if (!aside || !back) return;
+        aside.classList.remove('-translate-x-full');
+        back.classList.remove('opacity-0', 'pointer-events-none');
+        back.classList.add('opacity-100');
+        document.body.style.overflow = 'hidden';
+    }
+    function closeMobileSidebar() {
+        const aside = document.getElementById('appSidebar');
+        const back  = document.getElementById('mobileSidebarBackdrop');
+        if (!aside || !back) return;
+        aside.classList.add('-translate-x-full');
+        back.classList.add('opacity-0', 'pointer-events-none');
+        back.classList.remove('opacity-100');
+        document.body.style.overflow = '';
+    }
+    // The drawer pinning `-translate-x-full` at all viewport sizes plays
+    // poorly when you resize from mobile to desktop. Recompute on resize
+    // so md+ always wins.
+    window.addEventListener('resize', () => {
+        const aside = document.getElementById('appSidebar');
+        if (!aside) return;
+        if (window.matchMedia('(min-width: 768px)').matches) {
+            aside.classList.remove('-translate-x-full');
+            document.body.style.overflow = '';
+            document.getElementById('mobileSidebarBackdrop')
+                ?.classList.add('opacity-0', 'pointer-events-none');
+        } else {
+            aside.classList.add('-translate-x-full');
+        }
+    });
 
     // Cleared the moment the user opens the panel — we never want to
     // mark the same set of activities as seen twice in one page load.
@@ -604,6 +726,7 @@
 
     document.addEventListener('keydown', e => {
         if (e.key === 'Escape') {
+            closeMobileSidebar();
             closeLogoutModal();
             closeConfirmModal();
             closeActivityPanel();
