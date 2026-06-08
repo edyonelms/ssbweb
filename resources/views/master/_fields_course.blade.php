@@ -14,14 +14,14 @@
         @if ($unisOnly->isNotEmpty())
             <optgroup label="Universities">
                 @foreach ($unisOnly as $u)
-                    <option value="{{ $u->id }}">{{ $u->name }}</option>
+                    <option value="{{ $u->id }}" data-type="university">{{ $u->name }}</option>
                 @endforeach
             </optgroup>
         @endif
         @if ($boardsOnly->isNotEmpty())
             <optgroup label="Boards">
                 @foreach ($boardsOnly as $u)
-                    <option value="{{ $u->id }}">{{ $u->name }}</option>
+                    <option value="{{ $u->id }}" data-type="board">{{ $u->name }}</option>
                 @endforeach
             </optgroup>
         @endif
@@ -62,10 +62,11 @@
                class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 outline-none transition text-sm">
     </div>
     <div>
-        <label class="block text-xs font-semibold text-slate-700 mb-1">Semester Fee (₹)</label>
+        <label class="block text-xs font-semibold text-slate-700 mb-1" data-fee-label>Semester Fee (₹)</label>
         <input type="number" step="1" min="0" name="fee_per_sem"
                placeholder="e.g. 25000"
                class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 outline-none transition text-sm">
+        <p class="mt-1 text-[11px] text-slate-400">Switches to <span class="font-semibold">Annual Fee</span> automatically when a board is selected.</p>
     </div>
 </div>
 

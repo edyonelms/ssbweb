@@ -42,8 +42,27 @@ class Course extends Model
         return (int) ceil(((float) $this->duration_years) * 2);
     }
 
+    public function isBoard(): bool
+    {
+        return $this->university?->type === University::TYPE_BOARD;
+    }
+
+    // Boards charge per year; universities charge per semester. The
+    // course's fee_per_sem column doubles as the annual fee for boards.
+    public function feePeriodCount(): int
+    {
+        return $this->isBoard()
+            ? (int) ceil((float) $this->duration_years)
+            : $this->semesterCount();
+    }
+
+    public function feePeriodLabel(): string
+    {
+        return $this->isBoard() ? 'Annual' : 'Semester';
+    }
+
     public function totalFee(): float
     {
-        return (float) $this->fee_per_sem * $this->semesterCount() + (float) $this->registration_fee;
+        return (float) $this->fee_per_sem * $this->feePeriodCount() + (float) $this->registration_fee;
     }
 }

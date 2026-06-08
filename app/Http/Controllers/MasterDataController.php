@@ -28,7 +28,7 @@ class MasterDataController extends Controller
         // Load all universities + courses up-front so the slide-in panel
         // selects and JS-side filtering work without extra round-trips.
         $allUniversities = University::orderBy('name')->get();
-        $allCourses = Course::with('university:id,name')->orderBy('name')->get();
+        $allCourses = Course::with('university:id,name,type')->orderBy('name')->get();
 
         // Universities — name-filtered listing.
         $universitiesQuery = University::query()->orderByDesc('id');
@@ -60,7 +60,11 @@ class MasterDataController extends Controller
         $courses = $coursesQuery->get();
 
         // Fee structures — joined with course + university for display.
-        $feesQuery = FeeStructure::with(['university:id,name', 'course:id,name,duration_years'])
+        $feesQuery = FeeStructure::with([
+                'university:id,name',
+                'course:id,name,university_id,duration_years,registration_fee,fee_per_sem',
+                'course.university:id,name,type',
+            ])
             ->orderByDesc('id');
         if ($tab === 'fees') {
             if (! empty($universityFilter)) {

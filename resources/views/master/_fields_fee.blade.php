@@ -26,7 +26,7 @@
     <p class="mt-1 text-[11px] text-slate-400">
         Fees are configured on the course itself — picking a course here pulls in
         its <span class="font-semibold">Registration Fee</span> and
-        <span class="font-semibold">Semester Fee</span>.
+        per-period fee (semester for universities, annual for boards).
     </p>
 </div>
 
@@ -36,11 +36,11 @@
         <span data-reg-fee class="font-semibold text-slate-800">₹0</span>
     </div>
     <div class="flex items-center justify-between text-xs text-slate-600">
-        <span>Fee per semester</span>
+        <span data-period-label>Fee per semester</span>
         <span data-per-sem class="font-semibold text-slate-800">₹0</span>
     </div>
     <div class="flex items-center justify-between text-xs text-slate-600">
-        <span>Semesters (from duration)</span>
+        <span data-period-count-label>Semesters (from duration)</span>
         <span data-semesters class="font-semibold text-slate-800">0</span>
     </div>
     <div class="flex items-center justify-between border-t border-pink-100 pt-1.5 text-sm">

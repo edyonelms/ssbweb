@@ -60,6 +60,9 @@
         'lateral_entry'    => (bool) $c->lateral_entry,
         'subjects'         => $c->subjects,
         'semesters'        => $c->semesterCount(),
+        'is_board'         => $c->isBoard(),
+        'fee_period_count' => $c->feePeriodCount(),
+        'fee_period_label' => $c->feePeriodLabel(),
         'created_at'       => $c->created_at?->format('d M Y'),
     ])->keyBy('id');
 
@@ -71,6 +74,10 @@
         'registration_fee' => (float) $c->registration_fee,
         'fee_per_sem'      => (float) $c->fee_per_sem,
         'semesters'        => $c->semesterCount(),
+        'is_board'         => $c->isBoard(),
+        'fee_period_count' => $c->feePeriodCount(),
+        'fee_period_label' => $c->feePeriodLabel(),
+        'total_fee'        => $c->totalFee(),
     ])->values();
 
     $feesData = $fees->map(fn ($f) => [
@@ -83,7 +90,10 @@
         'semesters'        => $f->course?->semesterCount() ?? 0,
         'registration_fee' => (float) ($f->course?->registration_fee ?? 0),
         'fee_per_sem'      => (float) ($f->course?->fee_per_sem ?? $f->fee_per_sem),
-        'total_fee'        => $f->course?->totalFee() ?? $f->totalFee(),
+        'total_fee'        => (float) ($f->course?->totalFee() ?? $f->totalFee()),
+        'is_board'         => (bool) $f->course?->isBoard(),
+        'fee_period_count' => (int) ($f->course?->feePeriodCount() ?? 0),
+        'fee_period_label' => $f->course?->feePeriodLabel() ?? 'Semester',
         'created_at'       => $f->created_at?->format('d M Y'),
     ])->keyBy('id');
 @endphp
@@ -101,7 +111,7 @@
                 @elseif ($tab === 'courses')
                     Programs offered by each university or board
                 @else
-                    Per-semester fee per course; total auto-calculated from duration
+                    Auto-synced from the course form (annual for boards, per-semester for universities)
                 @endif
             </p>
         </div>
@@ -138,13 +148,7 @@
                 <span>Priced: <span class="text-pink-600 font-semibold ml-1">{{ $stats['fees']['priced'] }}</span></span>
                 <span>Free: <span class="text-emerald-600 font-semibold ml-1">{{ $stats['fees']['free'] }}</span></span>
             </div>
-            @if ($isAdmin)
-                <button type="button" onclick="MasterPanel.openCreate('fee')"
-                        class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-pink-600 hover:bg-pink-700 text-white text-sm font-semibold transition">
-                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
-                    Add Fee Structure
-                </button>
-            @endif
+            {{-- Fee structures are auto-synced from the course form; no manual add button. --}}
         @endif
     </div>
 
@@ -336,13 +340,18 @@
                             <th class="text-left px-6 py-3">Mode</th>
                             <th class="text-right px-6 py-3">Duration</th>
                             <th class="text-right px-6 py-3">Reg. Fee</th>
-                            <th class="text-right px-6 py-3">Fee / Sem</th>
+                            <th class="text-right px-6 py-3">Fee / Period</th>
                             <th class="text-left px-6 py-3">Lateral</th>
                             @if ($isAdmin)<th class="text-right px-6 py-3">Actions</th>@endif
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         @foreach ($courses as $c)
+                            @php
+                                $rowIsBoard = $c->isBoard();
+                                $rowShort   = $rowIsBoard ? 'yr' : 'sem';
+                                $rowDurExtra= $rowIsBoard ? '' : ' · '.$c->semesterCount().' sem';
+                            @endphp
                             <tr class="hover:bg-slate-50 transition cursor-pointer" onclick="MasterPanel.openView('course', {{ $c->id }})">
                                 <td class="px-6 py-3">
                                     <div class="font-medium text-slate-800">{{ $c->name }}</div>
@@ -350,9 +359,9 @@
                                 </td>
                                 <td class="px-6 py-3 text-slate-600">{{ $c->university?->name ?: '—' }}</td>
                                 <td class="px-6 py-3 text-slate-600 capitalize">{{ $c->mode ?: '—' }}</td>
-                                <td class="px-6 py-3 text-right text-slate-700">{{ rtrim(rtrim(number_format((float) $c->duration_years, 1), '0'), '.') }} yrs · {{ $c->semesterCount() }} sem</td>
+                                <td class="px-6 py-3 text-right text-slate-700">{{ rtrim(rtrim(number_format((float) $c->duration_years, 1), '0'), '.') }} yrs{{ $rowDurExtra }}</td>
                                 <td class="px-6 py-3 text-right text-slate-700">₹{{ number_format((float) $c->registration_fee) }}</td>
-                                <td class="px-6 py-3 text-right text-slate-700 font-medium">₹{{ number_format((float) $c->fee_per_sem) }}</td>
+                                <td class="px-6 py-3 text-right text-slate-700 font-medium">₹{{ number_format((float) $c->fee_per_sem) }} <span class="text-[10px] text-slate-400">/{{ $rowShort }}</span></td>
                                 <td class="px-6 py-3">
                                     @if ($c->lateral_entry)
                                         <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700">Yes</span>
@@ -386,7 +395,7 @@
     {{-- ────────────── FEE STRUCTURE TAB ────────────── --}}
     @else
         @if ($fees->isEmpty())
-            @include('master._empty', ['icon' => 'fee', 'title' => 'No fee structures yet', 'subtitle' => 'Define per-semester fees for each course.', 'action' => $isAdmin ? 'fee' : null])
+            @include('master._empty', ['icon' => 'fee', 'title' => 'No fee structures yet', 'subtitle' => 'Fee structures appear here automatically once a course has a fee set.', 'action' => null])
         @else
             <div class="overflow-x-auto">
                 <table class="w-full text-sm">
@@ -394,24 +403,29 @@
                         <tr>
                             <th class="text-left px-6 py-3">University</th>
                             <th class="text-left px-6 py-3">Course</th>
-                            <th class="text-right px-6 py-3">Semesters</th>
+                            <th class="text-right px-6 py-3">Periods</th>
                             <th class="text-right px-6 py-3">Reg. Fee</th>
-                            <th class="text-right px-6 py-3">Fee / Sem</th>
+                            <th class="text-right px-6 py-3">Fee / Period</th>
                             <th class="text-right px-6 py-3">Total Fee</th>
                             @if ($isAdmin)<th class="text-right px-6 py-3">Actions</th>@endif
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         @foreach ($fees as $f)
+                            @php
+                                $isBoardRow = $f->course?->isBoard() ?? false;
+                                $periodCount = $f->course?->feePeriodCount() ?? 0;
+                                $periodShort = $isBoardRow ? 'yr' : 'sem';
+                            @endphp
                             <tr class="hover:bg-slate-50 transition cursor-pointer" onclick="MasterPanel.openView('fee', {{ $f->id }})">
                                 <td class="px-6 py-3 text-slate-600">{{ $f->university?->name ?: '—' }}</td>
                                 <td class="px-6 py-3">
                                     <div class="font-medium text-slate-800">{{ $f->course?->name ?: '—' }}</div>
                                     <div class="text-xs text-slate-500">{{ rtrim(rtrim(number_format((float) ($f->course?->duration_years ?? 0), 1), '0'), '.') }} years</div>
                                 </td>
-                                <td class="px-6 py-3 text-right text-slate-700">{{ $f->course?->semesterCount() ?? 0 }}</td>
+                                <td class="px-6 py-3 text-right text-slate-700">{{ $periodCount }} {{ $periodShort }}</td>
                                 <td class="px-6 py-3 text-right text-slate-700">₹{{ number_format((float) ($f->course?->registration_fee ?? 0)) }}</td>
-                                <td class="px-6 py-3 text-right text-slate-700 font-medium">₹{{ number_format((float) ($f->course?->fee_per_sem ?? $f->fee_per_sem)) }}</td>
+                                <td class="px-6 py-3 text-right text-slate-700 font-medium">₹{{ number_format((float) ($f->course?->fee_per_sem ?? $f->fee_per_sem)) }} <span class="text-[10px] text-slate-400">/{{ $periodShort }}</span></td>
                                 <td class="px-6 py-3 text-right text-pink-600 font-semibold">₹{{ number_format($f->course?->totalFee() ?? $f->totalFee()) }}</td>
                                 @if ($isAdmin)
                                     <td class="px-6 py-3">
@@ -527,7 +541,10 @@
             document.getElementById('viewCourseName').textContent       = c.name;
             document.getElementById('viewCourseUniversity').textContent = c.university || '—';
             document.getElementById('viewCourseMode').textContent       = c.mode || '—';
-            document.getElementById('viewCourseDuration').textContent   = (c.duration_years || 0) + ' yrs · ' + (c.semesters || 0) + ' sem';
+            const durText = c.is_board
+                ? (c.duration_years || 0) + ' yrs'
+                : (c.duration_years || 0) + ' yrs · ' + (c.semesters || 0) + ' sem';
+            document.getElementById('viewCourseDuration').textContent   = durText;
             document.getElementById('viewCourseLateral').textContent    = c.lateral_entry ? 'Yes' : 'No';
             document.getElementById('viewCourseSubjects').textContent   = c.subjects || '—';
             if (window.IS_ADMIN) {
@@ -545,21 +562,44 @@
             f.querySelector('[name="fee_per_sem"]').value      = c?.fee_per_sem ?? '';
             f.querySelector('[name="lateral_entry"]').checked  = !!c?.lateral_entry;
             f.querySelector('[name="subjects"]').value         = c?.subjects || '';
+            // Sync the fee label (Semester / Annual) with the selected university type.
+            syncCourseFeeLabel(f);
+        }
+
+        // Boards charge per year, universities per semester. Reflect that in
+        // the course form's fee field label so the admin knows what they're
+        // entering.
+        function syncCourseFeeLabel(form) {
+            const uniSel    = form.querySelector('[name="university_id"]');
+            const opt       = uniSel?.selectedOptions?.[0];
+            const isBoard   = opt?.dataset?.type === 'board';
+            const label     = form.querySelector('[data-fee-label]');
+            const input     = form.querySelector('[name="fee_per_sem"]');
+            if (label) label.textContent = isBoard ? 'Annual Fee (₹)' : 'Semester Fee (₹)';
+            if (input) input.placeholder = isBoard ? 'e.g. 25000 per year' : 'e.g. 25000 per semester';
         }
 
         // ────── Fee ──────
         function recomputeFeeTotal(form) {
             const courseId = parseInt(form.querySelector('[name="course_id"]').value || 0, 10);
             const course   = window.ALL_COURSES.find(c => c.id === courseId);
-            const sems     = course?.semesters || 0;
+            const isBoard  = !!course?.is_board;
+            const periods  = course?.fee_period_count || (isBoard ? Math.ceil(course?.duration_years || 0) : (course?.semesters || 0));
             const regFee   = course?.registration_fee || 0;
-            const perSem   = course?.fee_per_sem || 0;
-            const total    = perSem * sems + regFee;
+            const perFee   = course?.fee_per_sem || 0;
+            const total    = course?.total_fee ?? (perFee * periods + regFee);
+            const label    = course?.fee_period_label || (isBoard ? 'Annual' : 'Semester');
             const fmt = v => '₹' + Number(v).toLocaleString('en-IN');
             const r = form.querySelector('[data-reg-fee]');     if (r) r.textContent = fmt(regFee);
-            const p = form.querySelector('[data-per-sem]');     if (p) p.textContent = fmt(perSem);
-            const s = form.querySelector('[data-semesters]');   if (s) s.textContent = sems;
+            const p = form.querySelector('[data-per-sem]');     if (p) p.textContent = fmt(perFee);
+            const s = form.querySelector('[data-semesters]');   if (s) s.textContent = periods;
             const t = form.querySelector('[data-total-fee]');   if (t) t.textContent = fmt(total);
+            form.querySelectorAll('[data-period-label]').forEach(el => {
+                el.textContent = label === 'Annual' ? 'Fee per year' : 'Fee per semester';
+            });
+            form.querySelectorAll('[data-period-count-label]').forEach(el => {
+                el.textContent = label === 'Annual' ? 'Years (from duration)' : 'Semesters (from duration)';
+            });
         }
         function rebuildFeeCourseSelect(form, universityId, selectedCourseId) {
             const sel = form.querySelector('[name="course_id"]');
@@ -577,12 +617,24 @@
             recomputeFeeTotal(form);
         }
         function fillFeeView(f) {
+            const isBoard = !!f.is_board;
+            const periods = f.fee_period_count || (isBoard ? Math.ceil(f.duration_years || 0) : (f.semesters || 0));
+            const regFee  = Number(f.registration_fee || 0);
+            const perFee  = Number(f.fee_per_sem || 0);
+            const total   = Number(f.total_fee ?? (perFee * periods + regFee));
+            const fmt = v => '₹' + v.toLocaleString('en-IN');
+
             document.getElementById('viewFeeUniversity').textContent = f.university || '—';
             document.getElementById('viewFeeCourse').textContent     = f.course || '—';
-            document.getElementById('viewFeeDuration').textContent   = (f.duration_years || 0) + ' yrs · ' + (f.semesters || 0) + ' sem';
-            document.getElementById('viewFeeRegistration').textContent = '₹' + Number(f.registration_fee || 0).toLocaleString('en-IN');
-            document.getElementById('viewFeePerSem').textContent     = '₹' + Number(f.fee_per_sem || 0).toLocaleString('en-IN');
-            document.getElementById('viewFeeTotal').textContent      = '₹' + Number(f.total_fee || 0).toLocaleString('en-IN');
+            const durText = isBoard
+                ? (f.duration_years || 0) + ' yrs'
+                : (f.duration_years || 0) + ' yrs · ' + (f.semesters || 0) + ' sem';
+            document.getElementById('viewFeeDuration').textContent   = durText;
+            document.getElementById('viewFeeRegistration').textContent = fmt(regFee);
+            document.getElementById('viewFeePerSem').textContent     = fmt(perFee);
+            document.getElementById('viewFeeTotal').textContent      = fmt(total);
+            const perLabel = document.getElementById('viewFeePerSemLabel');
+            if (perLabel) perLabel.textContent = isBoard ? 'Fee per year' : 'Fee per semester';
             if (window.IS_ADMIN) {
                 document.getElementById('viewFeeEdit').onclick = () => openEdit('fee', f.id);
                 document.getElementById('viewFeeDeleteForm').action = @json(url('/master-data/fees/__ID__')).replace('__ID__', f.id);
@@ -647,7 +699,7 @@
             }
         }
 
-        return { openCreate, openEdit, openView, close, rebuildFeeCourseSelect, recomputeFeeTotal };
+        return { openCreate, openEdit, openView, close, rebuildFeeCourseSelect, recomputeFeeTotal, syncCourseFeeLabel };
     })();
 
     document.addEventListener('keydown', e => {
@@ -661,6 +713,13 @@
         const uniSel = form.querySelector('[name="university_id_picker"]');
         uniSel?.addEventListener('change', () => MasterPanel.rebuildFeeCourseSelect(form, uniSel.value, null));
         form.querySelector('[name="course_id"]')?.addEventListener('change', () => MasterPanel.recomputeFeeTotal(form));
+    });
+
+    // Course forms: switch the Semester/Annual fee label when the
+    // selected university type changes.
+    document.querySelectorAll('#formCourseCreate, #formCourseEdit').forEach(form => {
+        const uniSel = form.querySelector('[name="university_id"]');
+        uniSel?.addEventListener('change', () => MasterPanel.syncCourseFeeLabel(form));
     });
 
     // File-name echo for image uploads.

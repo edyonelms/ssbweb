@@ -104,7 +104,7 @@
                         <dd id="viewFeeRegistration" class="text-sm font-semibold text-slate-800"></dd>
                     </div>
                     <div class="flex items-center justify-between">
-                        <dt class="text-sm text-slate-500">Fee per semester</dt>
+                        <dt id="viewFeePerSemLabel" class="text-sm text-slate-500">Fee per semester</dt>
                         <dd id="viewFeePerSem" class="text-sm font-semibold text-slate-800"></dd>
                     </div>
                     <div class="flex items-center justify-between pt-3 border-t border-slate-100">
