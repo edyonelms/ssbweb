@@ -154,6 +154,12 @@ Route::middleware('auth')->group(function () {
             Route::post('/fees',          [MasterDataController::class, 'storeFee'])->name('fees.store');
             Route::put('/fees/{fee}',     [MasterDataController::class, 'updateFee'])->whereNumber('fee')->name('fees.update');
             Route::delete('/fees/{fee}',  [MasterDataController::class, 'destroyFee'])->whereNumber('fee')->name('fees.destroy');
+
+            // Bump the current semester / year for one course (or every
+            // course at once) — every enrolled student also moves up,
+            // clamped by the course's total period count.
+            Route::post('/upgrade-semester', [MasterDataController::class, 'upgradeSemester'])
+                ->name('upgrade.semester');
         });
     });
 

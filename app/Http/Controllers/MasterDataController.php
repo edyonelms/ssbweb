@@ -4,16 +4,18 @@ namespace App\Http\Controllers;
 
 use App\Models\Course;
 use App\Models\FeeStructure;
+use App\Models\Student;
 use App\Models\University;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class MasterDataController extends Controller
 {
-    private const TABS = ['university', 'courses', 'fees'];
+    private const TABS = ['university', 'courses', 'fees', 'upgrade'];
 
     public function index(Request $request): View
     {
@@ -98,6 +100,67 @@ class MasterDataController extends Controller
             ],
         ];
 
+        // Per-course upgrade-tab rollup: how many students currently sit
+        // in each period of each course. For boards the period is a year
+        // (course_year), for universities it's the semester column.
+        // Sub-admins see their own students only — same scoping rule the
+        // students module uses.
+        $authUser = $request->user();
+        $studentScope = Student::query();
+        if (! $authUser->isAdmin()) {
+            $studentScope->where('created_by', $authUser->id);
+        }
+
+        $semBuckets = (clone $studentScope)
+            ->select('course_id', 'semester', DB::raw('COUNT(*) as total'))
+            ->whereNotNull('course_id')
+            ->whereNotNull('semester')
+            ->groupBy('course_id', 'semester')
+            ->get()
+            ->groupBy('course_id');
+
+        $yearBuckets = (clone $studentScope)
+            ->select('course_id', 'course_year', DB::raw('COUNT(*) as total'))
+            ->whereNotNull('course_id')
+            ->whereNotNull('course_year')
+            ->groupBy('course_id', 'course_year')
+            ->get()
+            ->groupBy('course_id');
+
+        $totals = (clone $studentScope)
+            ->select('course_id', DB::raw('COUNT(*) as total'))
+            ->whereNotNull('course_id')
+            ->groupBy('course_id')
+            ->pluck('total', 'course_id');
+
+        $upgradeRows = $allCourses->map(function (Course $c) use ($semBuckets, $yearBuckets, $totals) {
+            $isBoard = $c->isBoard();
+            $periods = max(1, (int) $c->feePeriodCount());
+
+            $buckets = [];
+            $rawBuckets = $isBoard
+                ? ($yearBuckets[$c->id] ?? collect())
+                : ($semBuckets[$c->id] ?? collect());
+            for ($i = 1; $i <= $periods; $i++) {
+                $field = $isBoard ? 'course_year' : 'semester';
+                $row = $rawBuckets->firstWhere($field, $i);
+                $buckets[$i] = (int) ($row->total ?? 0);
+            }
+
+            return [
+                'id'               => $c->id,
+                'name'             => $c->name,
+                'university'       => $c->university?->name,
+                'is_board'         => $isBoard,
+                'periods'          => $periods,
+                'period_label'     => $isBoard ? 'Year' : 'Semester',
+                'period_short'     => $isBoard ? 'Y' : 'S',
+                'current_semester' => max(1, (int) ($c->current_semester ?? 1)),
+                'buckets'          => $buckets,
+                'student_total'    => (int) ($totals[$c->id] ?? 0),
+            ];
+        })->values();
+
         return view('master.index', [
             'tab'              => $tab,
             'search'           => $search,
@@ -110,6 +173,7 @@ class MasterDataController extends Controller
             'allCourses'       => $allCourses,
             'stats'            => $stats,
             'isAdmin'          => $request->user()->isAdmin(),
+            'upgradeRows'      => $upgradeRows,
         ]);
     }
 
@@ -269,6 +333,70 @@ class MasterDataController extends Controller
         return redirect()
             ->route('master.index', ['tab' => 'fees'])
             ->with('status', 'Fee structure deleted.');
+    }
+
+    // ────────────────────────────────────────────────────────────────────
+    //  Upgrade Semester
+    // ────────────────────────────────────────────────────────────────────
+
+    /**
+     * Bump the current semester / year by one for either a single
+     * course (when course_id is posted) or every course at once. Every
+     * enrolled student of the affected course(s) is moved up too:
+     *   • boards bump course_year by 1
+     *   • universities bump semester by 1
+     * The increment is clamped to the course's total period count, so
+     * students who are already in the final semester stay put.
+     */
+    public function upgradeSemester(Request $request): RedirectResponse
+    {
+        $courseId = (int) $request->input('course_id');
+
+        $courses = $courseId
+            ? Course::where('id', $courseId)->get()
+            : Course::all();
+
+        if ($courses->isEmpty()) {
+            return redirect()
+                ->route('master.index', ['tab' => 'upgrade'])
+                ->with('status', 'No matching course found to upgrade.');
+        }
+
+        $bumpedCourses = 0;
+        $bumpedStudents = 0;
+
+        DB::transaction(function () use ($courses, &$bumpedCourses, &$bumpedStudents) {
+            foreach ($courses as $course) {
+                $periods = max(1, (int) $course->feePeriodCount());
+                $isBoard = $course->isBoard();
+                $field   = $isBoard ? 'course_year' : 'semester';
+
+                // Bump the course's marker if it's not already at the
+                // last period. The marker is what the listing surfaces
+                // as "currently running".
+                $current = max(1, (int) ($course->current_semester ?? 1));
+                if ($current < $periods) {
+                    $course->forceFill(['current_semester' => $current + 1])->save();
+                    $bumpedCourses++;
+                }
+
+                // Move every student of this course up by one period,
+                // clamped at the course's total period count so the
+                // graduating cohort doesn't overshoot.
+                $bumpedStudents += Student::where('course_id', $course->id)
+                    ->whereNotNull($field)
+                    ->where($field, '<', $periods)
+                    ->update([$field => DB::raw($field.' + 1')]);
+            }
+        });
+
+        $msg = $courseId
+            ? "Upgraded {$bumpedStudents} student(s) for the selected course."
+            : "Upgraded {$bumpedStudents} student(s) across {$courses->count()} course(s).";
+
+        return redirect()
+            ->route('master.index', ['tab' => 'upgrade'])
+            ->with('status', $msg);
     }
 
     // ────────────────────────────────────────────────────────────────────

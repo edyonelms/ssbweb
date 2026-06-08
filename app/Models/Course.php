@@ -15,6 +15,7 @@ class Course extends Model
         'duration_years',
         'registration_fee',
         'fee_per_sem',
+        'current_semester',
         'lateral_entry',
         'subjects',
     ];
@@ -23,8 +24,20 @@ class Course extends Model
         'duration_years'   => 'decimal:1',
         'registration_fee' => 'decimal:2',
         'fee_per_sem'      => 'decimal:2',
+        'current_semester' => 'integer',
         'lateral_entry'    => 'boolean',
     ];
+
+    /**
+     * Convenience for the Upgrade Semester tab — boards track current
+     * "Year N", universities track "Semester N". Same column, different
+     * vocabulary.
+     */
+    public function currentPeriodLabel(): string
+    {
+        $unit = $this->isBoard() ? 'Year' : 'Semester';
+        return $unit.' '.max(1, (int) ($this->current_semester ?? 1));
+    }
 
     public function university(): BelongsTo
     {

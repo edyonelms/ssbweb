@@ -19,6 +19,7 @@
         'university' => 'University',
         'courses'    => 'Courses',
         'fees'       => 'Fee Structure',
+        'upgrade'    => 'Upgrade Semester',
     ];
 
     $tabUrl = function (string $key) {
@@ -63,6 +64,8 @@
         'is_board'         => $c->isBoard(),
         'fee_period_count' => $c->feePeriodCount(),
         'fee_period_label' => $c->feePeriodLabel(),
+        'current_period'   => $c->currentPeriodLabel(),
+        'current_semester' => (int) ($c->current_semester ?? 1),
         'created_at'       => $c->created_at?->format('d M Y'),
     ])->keyBy('id');
 
@@ -110,8 +113,10 @@
                     Manage universities &amp; boards used across the platform
                 @elseif ($tab === 'courses')
                     Programs offered by each university or board
-                @else
+                @elseif ($tab === 'fees')
                     Auto-synced from the course form (annual for boards, per-semester for universities)
+                @else
+                    Track which semester (or year, for boards) is currently running per course
                 @endif
             </p>
         </div>
@@ -142,13 +147,36 @@
                     Add Course
                 </button>
             @endif
-        @else
+        @elseif ($tab === 'fees')
             <div class="flex items-center gap-x-6 gap-y-1 text-xs text-slate-500 flex-wrap">
                 <span>Total: <span class="text-slate-800 font-semibold ml-1">{{ $stats['fees']['total'] }}</span></span>
                 <span>Priced: <span class="text-pink-600 font-semibold ml-1">{{ $stats['fees']['priced'] }}</span></span>
                 <span>Free: <span class="text-emerald-600 font-semibold ml-1">{{ $stats['fees']['free'] }}</span></span>
             </div>
             {{-- Fee structures are auto-synced from the course form; no manual add button. --}}
+        @else
+            @php
+                $totalStudentsAcross = $upgradeRows->sum('student_total');
+                $coursesWithEnroll   = $upgradeRows->filter(fn ($r) => $r['student_total'] > 0)->count();
+            @endphp
+            <div class="flex items-center gap-x-6 gap-y-1 text-xs text-slate-500 flex-wrap">
+                <span>Courses: <span class="text-slate-800 font-semibold ml-1">{{ $upgradeRows->count() }}</span></span>
+                <span>With Students: <span class="text-pink-600 font-semibold ml-1">{{ $coursesWithEnroll }}</span></span>
+                <span>Total Students: <span class="text-emerald-600 font-semibold ml-1">{{ $totalStudentsAcross }}</span></span>
+            </div>
+            @if ($isAdmin)
+                {{-- Upgrade-all button — bumps every course in one go.
+                     Uses the same confirm modal as the per-row buttons. --}}
+                <form method="POST" action="{{ route('master.upgrade.semester') }}"
+                      onsubmit="return confirmAction(this, 'This will move every student in every course up by one semester (or year for boards). Continue?', 'Upgrade all courses');">
+                    @csrf
+                    <button type="submit"
+                            class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-pink-600 hover:bg-pink-700 text-white text-sm font-semibold transition">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 10l7-7m0 0l7 7m-7-7v18"/></svg>
+                        Upgrade All
+                    </button>
+                </form>
+            @endif
         @endif
     </div>
 
@@ -167,7 +195,9 @@
         @endforeach
     </div>
 
-    {{-- ROW 3 — Filter row (per tab) --}}
+    {{-- ROW 3 — Filter row (per tab). The Upgrade Semester tab doesn't
+         have searchable rows, so we skip the row entirely there. --}}
+    @if ($tab !== 'upgrade')
     <div class="px-6 lg:px-10 py-2.5 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs">
         <div class="flex items-center gap-1.5 text-slate-500">
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -256,6 +286,7 @@
             @endif
         </form>
     </div>
+    @endif
 </div>
 @endsection
 
@@ -355,7 +386,13 @@
                             <tr class="hover:bg-slate-50 transition cursor-pointer" onclick="MasterPanel.openView('course', {{ $c->id }})">
                                 <td class="px-6 py-3">
                                     <div class="font-medium text-slate-800">{{ $c->name }}</div>
-                                    @if ($c->subjects)<div class="text-xs text-slate-500 line-clamp-1">{{ $c->subjects }}</div>@endif
+                                    <div class="flex items-center gap-1.5 mt-0.5">
+                                        @if ($c->subjects)<div class="text-xs text-slate-500 line-clamp-1">{{ $c->subjects }}</div>@endif
+                                        <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-pink-50 text-pink-700"
+                                              title="Currently running">
+                                            {{ $c->currentPeriodLabel() }}
+                                        </span>
+                                    </div>
                                 </td>
                                 <td class="px-6 py-3 text-slate-600">{{ $c->university?->name ?: '—' }}</td>
                                 <td class="px-6 py-3 text-slate-600 capitalize">{{ $c->mode ?: '—' }}</td>
@@ -393,7 +430,7 @@
         @endif
 
     {{-- ────────────── FEE STRUCTURE TAB ────────────── --}}
-    @else
+    @elseif ($tab === 'fees')
         @if ($fees->isEmpty())
             @include('master._empty', ['icon' => 'fee', 'title' => 'No fee structures yet', 'subtitle' => 'Fee structures appear here automatically once a course has a fee set.', 'action' => null])
         @else
@@ -440,6 +477,101 @@
                                                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3"/></svg>
                                                 </button>
                                             </form>
+                                        </div>
+                                    </td>
+                                @endif
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @endif
+
+    {{-- ────────────── UPGRADE SEMESTER TAB ──────────────
+         Visible to both admin and sub-admin so each can see which
+         semester / year is currently running for every course (or for
+         the courses their students are enrolled in). The Upgrade
+         button is admin-only — sub-admin gets a read-only column. --}}
+    @else
+        @if ($upgradeRows->isEmpty())
+            @include('master._empty', ['icon' => 'cap', 'title' => 'No courses yet', 'subtitle' => 'Add courses from the Courses tab — they will show up here for semester tracking.', 'action' => null])
+        @else
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="text-[11px] font-semibold tracking-wider uppercase text-slate-500 border-b border-slate-200">
+                        <tr>
+                            <th class="text-left px-6 py-3">Course</th>
+                            <th class="text-left px-6 py-3">University / Board</th>
+                            <th class="text-left px-6 py-3">Currently Running</th>
+                            <th class="text-left px-6 py-3">Students by Period</th>
+                            <th class="text-right px-6 py-3">Total</th>
+                            @if ($isAdmin)<th class="text-right px-6 py-3">Action</th>@endif
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        @foreach ($upgradeRows as $row)
+                            @php
+                                $atLast = $row['current_semester'] >= $row['periods'];
+                            @endphp
+                            <tr class="hover:bg-slate-50 transition">
+                                <td class="px-6 py-3">
+                                    <div class="font-medium text-slate-800">{{ $row['name'] }}</div>
+                                    <div class="text-xs text-slate-500">
+                                        {{ $row['periods'] }} {{ \Illuminate\Support\Str::plural(strtolower($row['period_label']), $row['periods']) }} total
+                                    </div>
+                                </td>
+                                <td class="px-6 py-3 text-slate-600">
+                                    <div class="flex items-center gap-2">
+                                        <span>{{ $row['university'] ?: '—' }}</span>
+                                        @if ($row['is_board'])
+                                            <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700">Board</span>
+                                        @else
+                                            <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-pink-50 text-pink-700">University</span>
+                                        @endif
+                                    </div>
+                                </td>
+                                <td class="px-6 py-3">
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-pink-50 text-pink-700 text-xs font-bold">
+                                        {{ $row['period_label'] }} {{ $row['current_semester'] }}
+                                        <span class="text-pink-400 font-normal">/ {{ $row['periods'] }}</span>
+                                    </span>
+                                </td>
+                                <td class="px-6 py-3">
+                                    <div class="flex flex-wrap items-center gap-1">
+                                        @foreach ($row['buckets'] as $period => $count)
+                                            @php
+                                                $isCurrent = $period === $row['current_semester'];
+                                            @endphp
+                                            <span title="{{ $row['period_label'] }} {{ $period }} — {{ $count }} student(s)"
+                                                  class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold
+                                                         {{ $isCurrent ? 'bg-pink-600 text-white' : ($count > 0 ? 'bg-slate-100 text-slate-700' : 'bg-slate-50 text-slate-400') }}">
+                                                {{ $row['period_short'] }}{{ $period }}
+                                                <span class="opacity-80">·</span>
+                                                <span>{{ $count }}</span>
+                                            </span>
+                                        @endforeach
+                                    </div>
+                                </td>
+                                <td class="px-6 py-3 text-right text-slate-700 font-semibold">{{ $row['student_total'] }}</td>
+                                @if ($isAdmin)
+                                    <td class="px-6 py-3">
+                                        <div class="flex items-center justify-end">
+                                            @if ($atLast)
+                                                <span class="px-2.5 py-1 rounded-md text-[11px] font-semibold text-slate-400 bg-slate-100" title="Course is already at its final period">
+                                                    At final {{ strtolower($row['period_label']) }}
+                                                </span>
+                                            @else
+                                                <form method="POST" action="{{ route('master.upgrade.semester') }}"
+                                                      onsubmit="return confirmAction(this, 'Move every {{ strtolower($row['period_label']) }}-{{ $row['current_semester'] }} student of {{ addslashes($row['name']) }} up by one? This will also update the course&apos;s current marker.', 'Upgrade {{ addslashes($row['name']) }}');">
+                                                    @csrf
+                                                    <input type="hidden" name="course_id" value="{{ $row['id'] }}">
+                                                    <button type="submit"
+                                                            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition">
+                                                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 10l7-7m0 0l7 7m-7-7v18"/></svg>
+                                                        Upgrade
+                                                    </button>
+                                                </form>
+                                            @endif
                                         </div>
                                     </td>
                                 @endif
