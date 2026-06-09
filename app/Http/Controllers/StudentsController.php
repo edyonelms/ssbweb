@@ -80,12 +80,38 @@ class StudentsController extends Controller
         $data = $this->mergeUploads($request, $data, null);
         $data['active']     = $request->boolean('active', true);
         $data['created_by'] = auth()->id();
+        $data['admission_no'] = $this->resolveAdmissionNo($data['admission_no'] ?? null);
 
         Student::create($data);
 
         return redirect()
             ->route('students.index')
             ->with('status', 'Student added successfully.');
+    }
+
+    /**
+     * Auto-generate the application / admission number from a 1001
+     * baseline so each new student gets the next sequential value.
+     * Anything explicitly typed in the form wins — sequence resumes
+     * from the highest numeric value on file (any non-numeric values
+     * are ignored).
+     */
+    private function resolveAdmissionNo(?string $provided): string
+    {
+        $provided = trim((string) $provided);
+        if ($provided !== '') {
+            return $provided;
+        }
+
+        $maxNumeric = Student::query()
+            ->whereNotNull('admission_no')
+            ->where('admission_no', '!=', '')
+            ->pluck('admission_no')
+            ->filter(fn ($v) => ctype_digit((string) $v))
+            ->map(fn ($v) => (int) $v)
+            ->max();
+
+        return (string) max(((int) $maxNumeric) + 1, 1001);
     }
 
     public function update(Request $request, Student $student): RedirectResponse
@@ -142,18 +168,11 @@ class StudentsController extends Controller
             ->mapWithKeys(fn ($f) => [$f => $student->documentUrl($f)])
             ->all();
 
-        // Universities with a letterhead-style admission form get the
-        // dedicated print-ready template; everyone else keeps the
-        // generic standalone form. Match on a normalised name so
-        // "Mangalayatan University" / "MANGALAYATAN UNIVERSITY" /
-        // "Manglayatan University" all resolve to the same template.
-        $uniName  = strtolower(preg_replace('/\s+/', ' ', (string) $student->university?->name));
-        $isLetterhead = str_contains($uniName, 'mangalayatan')
-                     || str_contains($uniName, 'manglayatan');
-
-        $viewName = $isLetterhead ? 'students.admission-form' : 'students.form';
-
-        $html = view($viewName, [
+        // The letterhead admission form is the canonical template — it
+        // pulls the university's / board's logo, name, address, website
+        // and accreditation badge from master data, so the same layout
+        // brands itself for whichever institution the student belongs to.
+        $html = view('students.admission-form', [
             'student'  => $student,
             'schedule' => $student->feeSchedule(),
             'docUrls'  => $docUrls,
@@ -430,7 +449,7 @@ class StudentsController extends Controller
             'university_id'   => ['nullable', 'integer', 'exists:universities,id'],
             'course_id'       => ['nullable', 'integer', 'exists:courses,id'],
             'mode'            => ['nullable', 'in:online,offline'],
-            'enrollment_type' => ['nullable', 'in:main,lateral'],
+            'enrollment_type' => ['nullable', 'in:main,lateral,fresh,fresh_board,toc,part'],
             'course_year'     => ['nullable', 'integer', 'min:1', 'max:10'],
             'semester'        => ['nullable', 'integer', 'min:1', 'max:20'],
             'father_name'     => ['nullable', 'string', 'max:255'],

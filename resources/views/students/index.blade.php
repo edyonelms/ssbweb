@@ -664,6 +664,7 @@
                 setValue('active', true);
                 applyCourseFilter();
                 applyBoardSemester();
+                applyEnrollmentTypeOptions();
                 resetUploadLabels();
                 return;
             }
@@ -675,6 +676,7 @@
             setValue('class_name',      s.class_name);
             setValue('university_id',   s.university_id);
             applyCourseFilter();
+            applyEnrollmentTypeOptions();
             setValue('course_id',       s.course_id);
             setValue('mode',            s.mode);
             setValue('enrollment_type', s.enrollment_type);
@@ -745,6 +747,24 @@
             }
         }
 
+        function applyEnrollmentTypeOptions() {
+            const uniSel  = form.querySelector('[data-student-uni]');
+            const typeSel = form.querySelector('[data-student-enrolltype]');
+            if (!uniSel || !typeSel) return;
+            const opt    = uniSel.options[uniSel.selectedIndex];
+            const kind   = opt ? (opt.dataset.type || '') : '';
+            const target = kind === 'board' ? 'board' : (kind === 'university' ? 'university' : '');
+            const current = typeSel.value;
+            let stillVisible = false;
+            typeSel.querySelectorAll('option').forEach(o => {
+                if (!o.value) { o.hidden = false; return; }
+                const ok = target ? (o.dataset.for === target) : true;
+                o.hidden = !ok;
+                if (ok && o.value === current) stillVisible = true;
+            });
+            if (!stillVisible) typeSel.value = '';
+        }
+
         function resetUploadLabels(docs) {
             form.querySelectorAll('[data-upload-input]').forEach(input => {
                 const wrap = input.closest('div');
@@ -770,7 +790,7 @@
         function beforeSubmit(_form) { /* hook for future client-side normalization */ }
 
         // Wire change handlers once (form lives in DOM permanently)
-        form.querySelector('[data-student-uni]')?.addEventListener('change', () => { applyCourseFilter(); applyBoardSemester(); });
+        form.querySelector('[data-student-uni]')?.addEventListener('change', () => { applyCourseFilter(); applyBoardSemester(); applyEnrollmentTypeOptions(); });
         form.querySelectorAll('[data-upload-input]').forEach(input => {
             input.addEventListener('change', () => {
                 const wrap = input.closest('div');

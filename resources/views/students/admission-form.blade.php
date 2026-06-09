@@ -127,8 +127,14 @@
     .brand {
         display: flex;
         align-items: center;
-        gap: 14px;
+        gap: 10px;
         margin: 4px 0 2px;
+    }
+    .brand .lh {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-shrink: 0;
     }
     .brand .logo {
         width: 22mm; height: 22mm;
@@ -149,21 +155,21 @@
     .brand .name {
         flex: 1;
         text-align: center;
-        line-height: 1.05;
+        line-height: 1.1;
     }
     .brand .name .uni {
         font-family: 'Georgia', 'Times New Roman', serif;
-        font-size: 30px;
+        font-size: 26px;
         font-weight: 700;
         color: #1d4ed8;
-        letter-spacing: 4px;
+        letter-spacing: 3px;
     }
-    .brand .name .uni-sub {
-        font-size: 14px;
-        color: #1d4ed8;
-        letter-spacing: 6px;
-        font-weight: 700;
-        margin-top: -2px;
+    .brand .name .addr {
+        font-family: 'Georgia', serif;
+        font-size: 11px;
+        color: #334155;
+        margin-top: 3px;
+        line-height: 1.3;
     }
     .brand .name .tagline {
         font-family: 'Georgia', serif;
@@ -174,7 +180,7 @@
         margin-top: 2px;
     }
     .brand .badge {
-        width: 28mm; height: 22mm;
+        width: 22mm; height: 22mm;
         display: flex; align-items: center; justify-content: center;
         overflow: hidden;
         flex-shrink: 0;
@@ -189,6 +195,10 @@
         text-align: center;
         padding: 4px;
     }
+    /* Right-side spacer keeps the centred name visually balanced even when
+       no badge sits on the right. Matches combined logo + badge width. */
+    .brand .balancer { width: 22mm; flex-shrink: 0; }
+    .brand .balancer.with-badge { width: 50mm; }
 
     /* ─── Title ─── */
     .form-title {
@@ -217,7 +227,7 @@
     }
     .sig-row .label { font-weight: 700; font-size: 11px; }
     .sig-row .sig-box {
-        width: 55mm; height: 14mm;
+        width: 40mm; height: 11mm;
         border: 1px solid #000;
         overflow: hidden;
         display: flex; align-items: center; justify-content: center;
@@ -570,35 +580,38 @@
         </div>
     </div>
 
-    {{-- ── University brand band — logo + name + accreditation badge ── --}}
+    {{-- ── University / board brand band — logo (+ accreditation badge
+         on the left for universities only) + name + address + website. --}}
+    @php
+        $isUniType  = $university?->type === \App\Models\University::TYPE_UNIVERSITY;
+        $showBadge  = $isUniType && $university?->naac_image_url;
+        $brandName  = strtoupper($university?->name ?? 'University / Board');
+    @endphp
     <div class="brand">
-        <div class="logo">
-            @if ($university?->image_url)
-                <img src="{{ $university->image_url }}" alt="{{ $university->name }} logo">
-            @else
-                <div class="ph">Upload logo via Master Data → University → Logo</div>
+        <div class="lh">
+            <div class="logo">
+                @if ($university?->image_url)
+                    <img src="{{ $university->image_url }}" alt="{{ $university->name }} logo">
+                @else
+                    <div class="ph">Upload logo via Master Data</div>
+                @endif
+            </div>
+            @if ($showBadge)
+                <div class="badge">
+                    <img src="{{ $university->naac_image_url }}" alt="Accreditation badge">
+                </div>
             @endif
         </div>
         <div class="name">
-            @php
-                // Some institutional letterheads split the brand name
-                // across two visual lines (a large first word + smaller
-                // continuation). We don't attempt to mimic any specific
-                // brand — just render the stored name centred.
-                $brandName = strtoupper($university?->name ?? 'University');
-            @endphp
             <div class="uni">{{ $brandName }}</div>
+            @if ($university?->address)
+                <div class="addr">{{ $university->address }}</div>
+            @endif
             @if ($university?->website)
                 <div class="tagline">{{ $university->website }}</div>
             @endif
         </div>
-        <div class="badge">
-            @if ($university?->naac_image_url)
-                <img src="{{ $university->naac_image_url }}" alt="Accreditation badge">
-            @else
-                <div class="ph">Accreditation badge slot</div>
-            @endif
-        </div>
+        <div class="balancer {{ $showBadge ? 'with-badge' : '' }}"></div>
     </div>
 
     <div class="form-title">
