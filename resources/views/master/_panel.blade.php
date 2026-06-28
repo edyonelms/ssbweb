@@ -65,6 +65,10 @@
                         <dd id="viewCourseMode" class="mt-0.5 text-sm text-slate-800 capitalize"></dd>
                     </div>
                     <div>
+                        <dt class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Type</dt>
+                        <dd id="viewCourseType" class="mt-0.5 text-sm text-slate-800"></dd>
+                    </div>
+                    <div>
                         <dt class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Duration</dt>
                         <dd id="viewCourseDuration" class="mt-0.5 text-sm text-slate-800"></dd>
                     </div>

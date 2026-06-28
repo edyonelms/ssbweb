@@ -62,6 +62,7 @@
         'university'       => $c->university?->name,
         'name'             => $c->name,
         'mode'             => $c->mode,
+        'enrollment_type'  => $c->enrollment_type,
         'duration_years'   => (float) $c->duration_years,
         'registration_fee' => (float) $c->registration_fee,
         'fee_per_sem'      => (float) $c->fee_per_sem,
@@ -818,6 +819,8 @@
             document.getElementById('viewCourseName').textContent       = c.name;
             document.getElementById('viewCourseUniversity').textContent = c.university || '—';
             document.getElementById('viewCourseMode').textContent       = c.mode || '—';
+            const ENROLL_LABELS = { online: 'Online', odl: 'ODL', fresh_board: 'Fresh', toc: 'TOC', part: 'Part Admission' };
+            document.getElementById('viewCourseType').textContent       = ENROLL_LABELS[c.enrollment_type] || '—';
             const durText = c.is_board
                 ? (c.duration_years || 0) + ' yrs'
                 : (c.duration_years || 0) + ' yrs · ' + (c.semesters || 0) + ' sem';
@@ -834,6 +837,8 @@
             f.querySelector('[name="university_id"]').value    = c?.university_id || '';
             f.querySelector('[name="name"]').value             = c?.name || '';
             f.querySelector('[name="mode"]').value             = c?.mode || '';
+            const enrollSel = f.querySelector('[name="enrollment_type"]');
+            if (enrollSel) enrollSel.value = c?.enrollment_type || '';
             f.querySelector('[name="duration_years"]').value   = c?.duration_years || '';
             f.querySelector('[name="registration_fee"]').value = c?.registration_fee ?? '';
             f.querySelector('[name="fee_per_sem"]').value      = c?.fee_per_sem ?? '';
@@ -841,6 +846,28 @@
             f.querySelector('[name="subjects"]').value         = c?.subjects || '';
             // Sync the fee label (Semester / Annual) with the selected university type.
             syncCourseFeeLabel(f);
+            // Filter the Type options to match the selected university / board.
+            applyCourseEnrollmentType(f);
+        }
+
+        // University courses are Online / ODL; board courses are Fresh /
+        // TOC / Part — show only the options that fit the picked institution.
+        function applyCourseEnrollmentType(form) {
+            const uniSel  = form.querySelector('[name="university_id"]');
+            const typeSel = form.querySelector('[data-course-enrolltype]');
+            if (!uniSel || !typeSel) return;
+            const opt    = uniSel.options[uniSel.selectedIndex];
+            const kind   = opt ? (opt.dataset.type || '') : '';
+            const target = kind === 'board' ? 'board' : (kind === 'university' ? 'university' : '');
+            const current = typeSel.value;
+            let stillVisible = false;
+            typeSel.querySelectorAll('option').forEach(o => {
+                if (!o.value) { o.hidden = false; return; }
+                const ok = target ? (o.dataset.for === target) : true;
+                o.hidden = !ok;
+                if (ok && o.value === current) stillVisible = true;
+            });
+            if (!stillVisible) typeSel.value = '';
         }
 
         // Boards charge per year, universities per semester. Reflect that in
@@ -976,7 +1003,7 @@
             }
         }
 
-        return { openCreate, openEdit, openView, close, rebuildFeeCourseSelect, recomputeFeeTotal, syncCourseFeeLabel };
+        return { openCreate, openEdit, openView, close, rebuildFeeCourseSelect, recomputeFeeTotal, syncCourseFeeLabel, applyCourseEnrollmentType };
     })();
 
     document.addEventListener('keydown', e => {
@@ -996,7 +1023,10 @@
     // selected university type changes.
     document.querySelectorAll('#formCourseCreate, #formCourseEdit').forEach(form => {
         const uniSel = form.querySelector('[name="university_id"]');
-        uniSel?.addEventListener('change', () => MasterPanel.syncCourseFeeLabel(form));
+        uniSel?.addEventListener('change', () => {
+            MasterPanel.syncCourseFeeLabel(form);
+            MasterPanel.applyCourseEnrollmentType(form);
+        });
     });
 
     // File-name echo for image uploads.

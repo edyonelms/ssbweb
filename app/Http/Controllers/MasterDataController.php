@@ -628,6 +628,7 @@ class MasterDataController extends Controller
             'university_id'    => ['required', 'integer', 'exists:universities,id'],
             'name'             => ['required', 'string', 'max:255'],
             'mode'             => ['nullable', 'string', 'max:30'],
+            'enrollment_type'  => ['nullable', 'in:online,odl,fresh_board,toc,part'],
             'duration_years'   => ['required', 'numeric', 'min:0.5', 'max:10'],
             'registration_fee' => ['nullable', 'numeric', 'min:0', 'max:99999999'],
             'fee_per_sem'      => ['nullable', 'numeric', 'min:0', 'max:99999999'],

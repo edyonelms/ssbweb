@@ -12,6 +12,7 @@ class Course extends Model
         'university_id',
         'name',
         'mode',
+        'enrollment_type',
         'duration_years',
         'registration_fee',
         'fee_per_sem',

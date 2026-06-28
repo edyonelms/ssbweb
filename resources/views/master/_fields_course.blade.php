@@ -29,6 +29,22 @@
 </div>
 
 <div>
+    <label class="block text-xs font-semibold text-slate-700 mb-1">Type</label>
+    <select name="enrollment_type" data-course-enrolltype
+            class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 outline-none transition text-sm">
+        <option value="">—</option>
+        {{-- University options --}}
+        <option value="online" data-for="university">Online</option>
+        <option value="odl"    data-for="university">ODL</option>
+        {{-- Board options --}}
+        <option value="fresh_board" data-for="board">Fresh</option>
+        <option value="toc"         data-for="board">TOC</option>
+        <option value="part"        data-for="board">Part Admission</option>
+    </select>
+    <p class="mt-1 text-[11px] text-slate-400">Which type this course is offered under — options follow the selected university / board.</p>
+</div>
+
+<div>
     <label class="block text-xs font-semibold text-slate-700 mb-1">Course Name <span class="text-rose-500">*</span></label>
     <input type="text" name="name" required maxlength="255"
            placeholder="e.g. B.Tech CSE"
