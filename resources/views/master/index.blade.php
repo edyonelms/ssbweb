@@ -7,6 +7,7 @@
     /** @var string $search */
     /** @var int|null|string $universityFilter */
     /** @var int|null|string $courseFilter */
+    /** @var string|null $typeFilter */
     /** @var \Illuminate\Support\Collection $universities */
     /** @var \Illuminate\Support\Collection $courses */
     /** @var \Illuminate\Support\Collection $fees */
@@ -33,12 +34,13 @@
         return route('master.index', ['tab' => $key]);
     };
 
-    $buildUrl = function (array $overrides) use ($tab, $search, $universityFilter, $courseFilter) {
+    $buildUrl = function (array $overrides) use ($tab, $search, $universityFilter, $courseFilter, $typeFilter) {
         $params = array_filter(array_merge([
-            'tab'           => $tab,
-            'q'             => $search !== '' ? $search : null,
-            'university_id' => $universityFilter ?: null,
-            'course_id'     => $courseFilter ?: null,
+            'tab'             => $tab,
+            'q'               => $search !== '' ? $search : null,
+            'university_id'   => $universityFilter ?: null,
+            'course_id'       => $courseFilter ?: null,
+            'enrollment_type' => $typeFilter ?: null,
         ], $overrides), fn ($v) => $v !== null && $v !== '');
         return route('master.index').'?'.http_build_query($params);
     };
@@ -261,6 +263,24 @@
                     @endif
                 </select>
 
+                @if ($tab === 'courses')
+                    <span class="text-slate-500">Type:</span>
+                    <select name="enrollment_type" onchange="this.form.submit()"
+                            class="px-3 py-1.5 bg-white border border-slate-200 rounded-full text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 transition">
+                        <option value="">All</option>
+                        <optgroup label="University">
+                            @foreach (\App\Models\Course::UNIVERSITY_ENROLLMENT_TYPES as $tKey)
+                                <option value="{{ $tKey }}" {{ (string) $typeFilter === $tKey ? 'selected' : '' }}>{{ \App\Models\Course::ENROLLMENT_TYPES[$tKey] }}</option>
+                            @endforeach
+                        </optgroup>
+                        <optgroup label="Board">
+                            @foreach (\App\Models\Course::BOARD_ENROLLMENT_TYPES as $tKey)
+                                <option value="{{ $tKey }}" {{ (string) $typeFilter === $tKey ? 'selected' : '' }}>{{ \App\Models\Course::ENROLLMENT_TYPES[$tKey] }}</option>
+                            @endforeach
+                        </optgroup>
+                    </select>
+                @endif
+
                 @if ($tab === 'fees')
                     <span class="text-slate-500">Course:</span>
                     <select name="course_id" onchange="this.form.submit()"
@@ -280,6 +300,9 @@
             <input type="hidden" name="tab" value="{{ $tab }}">
             @if (! empty($universityFilter))
                 <input type="hidden" name="university_id" value="{{ $universityFilter }}">
+            @endif
+            @if (! empty($typeFilter))
+                <input type="hidden" name="enrollment_type" value="{{ $typeFilter }}">
             @endif
             <div class="relative">
                 <div class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400">
@@ -385,6 +408,7 @@
                         <tr>
                             <th class="text-left px-6 py-3">Course</th>
                             <th class="text-left px-6 py-3">University</th>
+                            <th class="text-left px-6 py-3">Type</th>
                             <th class="text-left px-6 py-3">Mode</th>
                             <th class="text-right px-6 py-3">Duration</th>
                             <th class="text-right px-6 py-3">Reg. Fee</th>
@@ -412,6 +436,15 @@
                                     </div>
                                 </td>
                                 <td class="px-6 py-3 text-slate-600">{{ $c->university?->name ?: '—' }}</td>
+                                <td class="px-6 py-3">
+                                    @if ($c->enrollment_type && isset(\App\Models\Course::ENROLLMENT_TYPES[$c->enrollment_type]))
+                                        <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded {{ in_array($c->enrollment_type, \App\Models\Course::BOARD_ENROLLMENT_TYPES, true) ? 'bg-emerald-50 text-emerald-700' : 'bg-pink-50 text-pink-700' }}">
+                                            {{ \App\Models\Course::ENROLLMENT_TYPES[$c->enrollment_type] }}
+                                        </span>
+                                    @else
+                                        <span class="text-slate-400">—</span>
+                                    @endif
+                                </td>
                                 <td class="px-6 py-3 text-slate-600 capitalize">{{ $c->mode ?: '—' }}</td>
                                 <td class="px-6 py-3 text-right text-slate-700">{{ rtrim(rtrim(number_format((float) $c->duration_years, 1), '0'), '.') }} yrs{{ $rowDurExtra }}</td>
                                 <td class="px-6 py-3 text-right text-slate-700">₹{{ number_format((float) $c->registration_fee) }}</td>

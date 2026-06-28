@@ -8,6 +8,23 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Course extends Model
 {
+    /**
+     * Enrollment "Type" options — universities offer Online / ODL,
+     * boards offer Fresh / TOC / Part Admission. Keys are stored on the
+     * column; values are the human labels used across the UI.
+     */
+    public const ENROLLMENT_TYPES = [
+        'online'      => 'Online',
+        'odl'         => 'ODL',
+        'fresh_board' => 'Fresh',
+        'toc'         => 'TOC',
+        'part'        => 'Part Admission',
+    ];
+
+    public const UNIVERSITY_ENROLLMENT_TYPES = ['online', 'odl'];
+
+    public const BOARD_ENROLLMENT_TYPES = ['fresh_board', 'toc', 'part'];
+
     protected $fillable = [
         'university_id',
         'name',

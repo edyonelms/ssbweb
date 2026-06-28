@@ -35,6 +35,7 @@ class MasterDataController extends Controller
         $search = trim((string) $request->query('q', ''));
         $universityFilter = $request->query('university_id');
         $courseFilter     = $request->query('course_id');
+        $typeFilter       = $request->query('enrollment_type');
 
         // Load all universities + courses up-front so the slide-in panel
         // selects and JS-side filtering work without extra round-trips.
@@ -58,6 +59,9 @@ class MasterDataController extends Controller
         if ($tab === 'courses') {
             if (! empty($universityFilter)) {
                 $coursesQuery->where('university_id', (int) $universityFilter);
+            }
+            if (! empty($typeFilter) && array_key_exists($typeFilter, Course::ENROLLMENT_TYPES)) {
+                $coursesQuery->where('enrollment_type', $typeFilter);
             }
             if ($search !== '') {
                 $like = '%'.$search.'%';
@@ -194,6 +198,7 @@ class MasterDataController extends Controller
             'search'           => $search,
             'universityFilter' => $universityFilter,
             'courseFilter'     => $courseFilter,
+            'typeFilter'       => $typeFilter,
             'universities'     => $universities,
             'courses'          => $courses,
             'fees'             => $fees,
