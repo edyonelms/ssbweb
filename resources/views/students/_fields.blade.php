@@ -43,23 +43,13 @@
         </div>
 
         <div>
-            <label class="block text-xs font-semibold text-slate-700 mb-1">Mode</label>
-            <select name="mode"
-                    class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 outline-none transition text-sm text-slate-800">
-                <option value="">—</option>
-                <option value="online">Online</option>
-                <option value="offline">Offline</option>
-            </select>
-        </div>
-
-        <div>
             <label class="block text-xs font-semibold text-slate-700 mb-1">Type</label>
             <select name="enrollment_type" data-student-enrolltype
                     class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-pink-300/60 focus:border-pink-300/60 outline-none transition text-sm text-slate-800">
                 <option value="">—</option>
                 {{-- University options --}}
-                <option value="fresh"   data-for="university">Fresh</option>
-                <option value="lateral" data-for="university">Lateral</option>
+                <option value="online" data-for="university">Online</option>
+                <option value="odl"    data-for="university">ODL</option>
                 {{-- Board options --}}
                 <option value="fresh_board" data-for="board">Fresh</option>
                 <option value="toc"         data-for="board">TOC</option>

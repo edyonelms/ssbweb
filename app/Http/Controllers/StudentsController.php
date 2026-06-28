@@ -449,7 +449,7 @@ class StudentsController extends Controller
             'university_id'   => ['nullable', 'integer', 'exists:universities,id'],
             'course_id'       => ['nullable', 'integer', 'exists:courses,id'],
             'mode'            => ['nullable', 'in:online,offline'],
-            'enrollment_type' => ['nullable', 'in:main,lateral,fresh,fresh_board,toc,part'],
+            'enrollment_type' => ['nullable', 'in:main,lateral,fresh,fresh_board,toc,part,online,odl'],
             'course_year'     => ['nullable', 'integer', 'min:1', 'max:10'],
             'semester'        => ['nullable', 'integer', 'min:1', 'max:20'],
             'father_name'     => ['nullable', 'string', 'max:255'],
